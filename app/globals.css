@@ -1,0 +1,406 @@
+:root{--bg:#f8f6f1;--surface:#fffdf9;--surface2:#f8f5ef;--text:#25231f;--muted:#858078;--border:#e9e1d5;--gold:#bd8d39;--gold2:#d4aa5b;--goldsoft:#f5ecdc;--blue:#2e7ed0;--green:#248561;--danger:#c3655f;--shadow:0 18px 48px rgba(74,57,25,.08)}
+:root[data-theme="dark"]{--bg:#0e131a;--surface:#161d26;--surface2:#1d2530;--text:#eef1f4;--muted:#98a2ae;--border:#2b3540;--gold:#caa45e;--gold2:#e0c178;--goldsoft:#2b281f;--blue:#79b8f2;--green:#78d0ad;--danger:#db827c;--shadow:0 18px 50px rgba(0,0,0,.28)}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Pretendard,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}button,input,textarea,select{font:inherit;color:inherit}button{cursor:pointer}.lifeShell{min-height:100vh;display:grid;grid-template-columns:270px minmax(0,1fr)}
+.premiumSidebar{position:sticky;top:0;height:100vh;padding:28px 20px 18px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column}.brandBlock{display:flex;align-items:center;gap:13px;padding:6px 12px 26px;border-bottom:1px solid var(--border)}.seal{width:52px;height:52px;display:grid;place-items:center;border-radius:14px;background:var(--goldsoft);color:var(--gold);font-size:1.35rem;border:1px solid rgba(189,141,57,.18)}.brandBlock strong,.brandBlock small{display:block}.brandBlock small{margin-top:4px;color:var(--muted);font-size:.68rem}.navScroll{flex:1;overflow-y:auto;padding:18px 6px}.navGroup{display:grid;gap:4px;margin-bottom:15px}.navGroup>span{padding:0 10px 5px;color:var(--muted);font-size:.68rem;font-weight:700;letter-spacing:.08em}.navGroup button{padding:10px 12px;border:0;border-radius:10px;background:transparent;color:var(--muted);text-align:left}.navGroup button:hover,.navGroup button.active{background:var(--goldsoft);color:var(--gold);font-weight:700}.profileChip{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--surface2)}.profileChip>div{width:37px;height:37px;display:grid;place-items:center;border-radius:50%;background:#111;color:#fff;font-size:.72rem}.profileChip span{font-size:.75rem;font-weight:700}
+.contentArea{padding:26px 34px 55px;min-width:0}.topHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}.topHeader p{margin:0;color:var(--muted);font-size:.76rem}.topHeader h1{margin:5px 0 0;font-size:2rem;letter-spacing:-.04em}.headerTools{display:flex;align-items:center;gap:8px}.iconBtn{width:43px;height:43px;border:1px solid var(--border);border-radius:12px;background:var(--surface)}.searchBox{position:relative}.searchBox input{width:240px;padding:11px 13px;border:1px solid var(--border);border-radius:11px;background:var(--surface)}.searchPopup{position:absolute;z-index:50;right:0;top:48px;width:360px;max-height:430px;overflow:auto;padding:10px;border:1px solid var(--border);border-radius:13px;background:var(--surface);box-shadow:var(--shadow)}.searchPopup article{padding:10px;border-bottom:1px solid var(--border)}.searchPopup span,.searchPopup small{display:block;color:var(--muted);font-size:.72rem}.searchPopup strong{display:block;margin:3px 0}
+.premiumCard{background:var(--surface);border:1px solid var(--border);border-radius:17px;box-shadow:var(--shadow)}.homeGrid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(300px,.75fr);gap:16px}.mainColumn,.rightRail{display:grid;gap:16px;align-content:start}.morningPanel,.reportPanel,.rightRail>.premiumCard{padding:21px}.cardTitle{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.cardTitle h2{margin:0;font-size:1.05rem}.cardTitle button{border:0;background:transparent;color:var(--gold);font-weight:700}.goldBtn{padding:10px 15px;border:0;border-radius:10px;background:linear-gradient(180deg,var(--gold2),var(--gold));color:#fff;font-weight:800}.softBtn{padding:9px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface)}.dangerBtn{padding:10px 15px;border:1px solid rgba(195,101,95,.3);border-radius:10px;background:transparent;color:var(--danger)}
+.morningGrid{display:grid;grid-template-columns:1fr 1fr;gap:16px 22px}.morningGrid label,.eventModal label,.morningCard label,.projectFields label,.peopleGrid label,.reviewForm label{display:grid;gap:8px;font-weight:700}.morningGrid textarea{min-height:130px}.gratitudeList{display:grid;gap:8px}.gratitudeList div{display:grid;grid-template-columns:26px 1fr;align-items:center}.gratitudeList b{color:var(--muted)}input,textarea,select{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);outline:none;resize:vertical}input:focus,textarea:focus,select:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(189,141,57,.1)}.briefBubble{padding:18px;border:1px solid var(--border);border-radius:13px;background:var(--surface2)}.briefBubble p{margin:7px 0}.recommend{margin-top:14px!important;color:var(--gold);font-weight:700}.compactList,.attentionList{display:grid}.compactList article,.attentionList article{display:grid;grid-template-columns:70px 1fr auto;gap:10px;align-items:center;padding:13px 0;border-bottom:1px solid var(--border)}.compactList time{font-weight:800}.compactList strong,.compactList small,.attentionList strong,.attentionList small{display:block}.compactList small,.attentionList small{margin-top:3px;color:var(--muted);font-size:.74rem}.compactList span{padding:5px 8px;border-radius:999px;font-size:.7rem}.compactList .planned{color:var(--blue);background:rgba(46,126,208,.1)}.compactList .doing{color:var(--green);background:rgba(36,133,97,.1)}.compactList .done{color:var(--muted);background:var(--surface2)}.attentionList article{grid-template-columns:28px 1fr}.miniProject{margin:13px 0}.miniProject>div{display:flex;justify-content:space-between}.miniProject i{display:block;height:7px;margin-top:8px;border-radius:999px;background:var(--border);overflow:hidden}.miniProject b{display:block;height:100%;background:linear-gradient(90deg,#2e72d0,#69a5c7)}
+.calendarToolbar{display:flex;justify-content:space-between;align-items:center;padding:18px;border-bottom:1px solid var(--border)}.calendarToolbar>div{display:flex;gap:7px;align-items:center}.calendarToolbar button{padding:8px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface)}.calendarToolbar button.active{background:var(--goldsoft);color:var(--gold)}.weekHeader,.monthGrid{display:grid;grid-template-columns:repeat(7,1fr)}.weekHeader span{padding:10px;text-align:center;color:var(--muted);font-size:.76rem}.monthGrid>button{min-height:116px;padding:8px;border:1px solid var(--border);background:var(--surface);text-align:left}.monthGrid>button.outside{opacity:.4}.monthGrid>button.selected{outline:2px solid var(--gold);outline-offset:-2px}.monthGrid b{display:block;margin-bottom:6px}.monthGrid span{display:block;margin-top:3px;padding:3px 5px;overflow:hidden;border-radius:5px;background:var(--goldsoft);color:var(--gold);font-size:.68rem;text-overflow:ellipsis;white-space:nowrap}.agendaView{padding:16px;display:grid;gap:8px}.agendaView article{display:grid;grid-template-columns:120px 1fr auto;gap:15px;padding:13px;border:1px solid var(--border);border-radius:10px;background:var(--surface2)}.agendaView small{display:block;color:var(--muted);margin-top:4px}
+.taskComposer,.peopleComposer,.chapterComposer{padding:16px;display:grid;grid-template-columns:1.5fr .7fr 1fr .55fr auto auto;gap:9px;align-items:center;margin-bottom:14px}.taskComposer label{font-size:.76rem}.taskComposer label input{width:auto}.taskTabs{display:flex;gap:7px;padding:14px;border-bottom:1px solid var(--border)}.taskTabs button{padding:8px 12px;border:1px solid var(--border);border-radius:9px;background:var(--surface)}.taskTabs button.active{background:var(--goldsoft);color:var(--gold)}.rows{padding:14px;display:grid;gap:8px}.rows article{display:grid;grid-template-columns:24px 1fr auto;gap:10px;align-items:center;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--surface2)}.rows input[type=checkbox]{width:auto}.rows small{display:block;color:var(--muted);margin-top:4px}.rows button{border:0;background:transparent;color:var(--muted)}.lineDone{text-decoration:line-through;color:var(--muted)}
+.projectWorkspace{display:grid;grid-template-columns:280px 1fr;gap:14px}.projectList{padding:14px;align-self:start}.projectList>button{width:100%;display:flex;justify-content:space-between;align-items:center;padding:12px;border:0;border-radius:10px;background:transparent;text-align:left}.projectList>button.active{background:var(--goldsoft);color:var(--gold)}.projectList small{display:block;margin-top:4px;color:var(--muted)}.projectDetail{padding:23px}.projectHero{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:18px;border-bottom:1px solid var(--border)}.projectHero span{color:var(--gold);font-size:.74rem}.projectHero h2{margin:5px 0}.projectHero p{color:var(--muted)}.projectHero>b{font-size:2.2rem;color:var(--gold)}.projectFields{display:grid;grid-template-columns:1fr 1fr .45fr;gap:12px;margin:18px 0}.milestoneHead{display:flex;justify-content:space-between;align-items:center}.milestoneHead button{padding:8px 11px;border:1px solid var(--border);border-radius:9px;background:var(--surface)}.milestoneCards{display:grid;gap:8px;margin:12px 0}.milestoneCards label{display:grid;grid-template-columns:24px 1fr auto;gap:10px;align-items:center;padding:13px;border:1px solid var(--border);border-radius:10px;background:var(--surface2)}.milestoneCards input{width:auto}.projectNote{display:grid;gap:8px;margin-top:18px}
+.peopleComposer{grid-template-columns:1fr 1fr auto}.peopleGrid,.activityCards,.noteGrid,.chapterGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.peopleGrid article,.activityCards article,.noteGrid article,.chapterGrid article{padding:18px}.personHead{display:flex;align-items:center;gap:12px;margin-bottom:15px}.avatar{width:44px;height:44px;display:grid;place-items:center;border-radius:50%;background:var(--goldsoft);color:var(--gold);font-weight:800}.personHead h3{margin:0}.personHead span{color:var(--muted);font-size:.75rem}.peopleGrid label{margin-top:10px;font-size:.76rem}.activityComposer{padding:18px;display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-bottom:14px}.activityComposer textarea{grid-column:span 2}.activityHead{display:flex;justify-content:space-between;color:var(--gold);font-size:.75rem}.activityCards h3{margin:8px 0}.activityCards p,.activityCards small,.noteGrid p,.chapterGrid p{color:var(--muted)}.activityCards small{display:block;margin-top:6px}.noteComposer{padding:18px;display:grid;grid-template-columns:.5fr 1fr;gap:9px;margin-bottom:14px}.noteComposer textarea{grid-column:1/-1;min-height:180px}.noteComposer button{justify-self:end}.noteGrid span,.chapterGrid span{color:var(--gold);font-size:.74rem}
+.reviewWorkspace{display:grid;grid-template-columns:230px 1fr;gap:14px}.reviewHistory{padding:14px;display:grid;gap:6px;align-content:start}.reviewHistory button{padding:9px;border:0;border-radius:8px;background:transparent;text-align:left}.reviewHistory button.active{background:var(--goldsoft);color:var(--gold)}.reviewForm{padding:20px}.reviewSummary,.reviewGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.reviewGrid{margin-top:13px}.reviewGrid textarea{min-height:150px}.timelineList{padding:20px}.timelineList article{display:grid;grid-template-columns:105px 20px 1fr;gap:10px;padding:14px 0;border-bottom:1px solid var(--border)}.timelineList i{width:10px;height:10px;margin-top:5px;border-radius:50%;background:var(--gold)}.timelineList span{color:var(--gold);font-size:.72rem}.timelineList h3{margin:4px 0}.timelineList p{color:var(--muted)}.statGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}.statGrid article{padding:18px}.statGrid strong,.statGrid span{display:block}.statGrid strong{font-size:1.8rem}.statGrid span{color:var(--muted)}.activityStats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}.activityStats article{padding:13px;border:1px solid var(--border);border-radius:10px;background:var(--surface2)}.activityStats strong,.activityStats b,.activityStats small{display:block}.activityStats b{margin-top:7px}.activityStats small{color:var(--muted)}.chapterComposer{grid-template-columns:1fr 1.5fr auto}.chapterGrid article.active{border-color:var(--gold)}.chapterGrid button{margin-top:12px}.settingsPanel{padding:22px}.settingsPanel>div{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--border)}.settingsPanel button{padding:9px 12px;border:1px solid var(--border);border-radius:9px;background:var(--surface)}
+.overlay{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:20px;background:rgba(20,20,18,.45);backdrop-filter:blur(8px)}.morningCard,.eventModal{width:min(700px,100%);max-height:calc(100vh - 30px);overflow:auto;padding:24px;border:1px solid var(--border);border-radius:18px;background:var(--surface);box-shadow:0 30px 90px rgba(0,0,0,.25)}.modalHead{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}.modalHead h2{margin:4px 0}.morningCard label,.eventModal label{margin-top:12px}.morningCard textarea{min-height:85px}.morningCard fieldset{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;border:0;padding:0;margin:14px 0}.morningCard legend{grid-column:1/-1}.twoFields{display:grid;grid-template-columns:1fr 1fr;gap:10px}.modalActions{display:flex;justify-content:space-between;margin-top:18px}
+@media(max-width:1100px){.lifeShell{grid-template-columns:220px 1fr}.homeGrid{grid-template-columns:1fr}.rightRail{grid-template-columns:repeat(3,1fr)}.peopleGrid,.activityCards,.noteGrid,.chapterGrid{grid-template-columns:repeat(2,1fr)}.activityComposer{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:820px){.lifeShell{display:block}.premiumSidebar{position:sticky;z-index:30;width:100%;height:auto;padding:9px 10px;overflow-x:auto;border-right:0;border-bottom:1px solid var(--border)}.brandBlock,.profileChip,.navGroup>span{display:none}.navScroll{display:flex;overflow:visible;padding:0}.navGroup{display:flex;margin:0}.navGroup button{white-space:nowrap}.contentArea{padding:18px 11px 40px}.topHeader{align-items:flex-start;gap:12px}.searchBox input{width:150px}.rightRail{grid-template-columns:1fr}.morningGrid,.reviewSummary,.reviewGrid,.projectFields{grid-template-columns:1fr}.projectWorkspace,.reviewWorkspace{grid-template-columns:1fr}.projectList{display:flex;overflow-x:auto}.projectList>button{min-width:180px}.peopleGrid,.activityCards,.noteGrid,.chapterGrid,.statGrid,.activityStats{grid-template-columns:1fr}.taskComposer,.activityComposer,.peopleComposer,.chapterComposer{grid-template-columns:1fr}.activityComposer textarea{grid-column:1}.monthGrid>button{min-height:88px}.morningCard fieldset,.twoFields{grid-template-columns:1fr}}
+
+
+/* v5.1 — responsive layout and clearer labels */
+.lifeShell,
+.contentArea,
+.premiumCard,
+.projectWorkspace,
+.projectDetail,
+.monthCalendar,
+.monthGrid,
+.activityComposer,
+.activityStats,
+.chapterGrid {
+  min-width: 0;
+}
+
+.contentArea {
+  width: 100%;
+  max-width: none;
+}
+
+.monthCalendar {
+  container-type: inline-size;
+  overflow: hidden;
+}
+
+.weekHeader,
+.monthGrid {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.monthGrid > button {
+  min-width: 0;
+  min-height: clamp(84px, 10.2vw, 128px);
+  overflow: hidden;
+}
+
+.monthGrid > button > b {
+  font-size: clamp(.8rem, 1vw, 1rem);
+}
+
+.monthGrid span {
+  width: 100%;
+  min-width: 0;
+  padding: 3px 4px;
+  font-size: clamp(.58rem, .72vw, .72rem);
+}
+
+.monthGrid small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: .68rem;
+}
+
+.activityComposer {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  align-items: end;
+}
+
+.activityComposer label {
+  grid-column: span 3;
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: .76rem;
+}
+
+.activityComposer label > span {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.activityComposer .activityTitleField {
+  grid-column: span 4;
+}
+
+.activityComposer .wideField {
+  grid-column: span 4;
+}
+
+.activityComposer textarea {
+  grid-column: auto;
+  min-height: 88px;
+}
+
+.unitInput {
+  position: relative;
+}
+
+.unitInput input {
+  padding-right: 46px;
+}
+
+.unitInput b {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-size: .75rem;
+}
+
+.activitySaveBtn {
+  grid-column: span 12;
+  justify-self: end;
+  min-width: 150px;
+}
+
+.dashboardSection {
+  margin-bottom: 14px;
+  padding: 18px;
+}
+
+.dashboardSection .cardTitle > div {
+  min-width: 0;
+}
+
+.dashboardSection .cardTitle small,
+.milestoneHead small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: .72rem;
+}
+
+.dashboardSection .cardTitle button {
+  flex: 0 0 auto;
+  padding: 8px 11px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+}
+
+.activityStats.grouped {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.activityStats.grouped article {
+  cursor: pointer;
+}
+
+.activityStats.grouped article:hover,
+.clickableProject:hover {
+  border-color: var(--gold);
+  transform: translateY(-1px);
+}
+
+.clickableProject {
+  cursor: pointer;
+  transition: .15s ease;
+}
+
+.milestoneHead {
+  gap: 16px;
+}
+
+.milestoneHead > div {
+  min-width: 0;
+}
+
+.milestoneCards label {
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+}
+
+.milestoneCards strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.milestoneCards span {
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: .72rem;
+}
+
+.chapterComposer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.chapterComposer label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: .76rem;
+}
+
+.chapterComposer label span {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.chapterGrid article {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.chapterContent {
+  min-width: 0;
+}
+
+.chapterGrid h3,
+.chapterGrid p,
+.chapterGrid small {
+  overflow-wrap: anywhere;
+}
+
+.chapterEndBtn {
+  align-self: flex-start;
+  margin-top: 18px !important;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+@container (max-width: 900px) {
+  .monthGrid > button {
+    min-height: 76px;
+    padding: 5px;
+  }
+  .monthGrid span {
+    font-size: .58rem;
+  }
+}
+
+@media (max-width: 1250px) {
+  .activityComposer label,
+  .activityComposer .activityTitleField {
+    grid-column: span 4;
+  }
+  .activityComposer .wideField {
+    grid-column: span 6;
+  }
+  .activityStats.grouped {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 980px) {
+  .calendarToolbar {
+    align-items: flex-start;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .calendarToolbar > div {
+    flex-wrap: wrap;
+  }
+  .activityComposer label,
+  .activityComposer .activityTitleField,
+  .activityComposer .wideField {
+    grid-column: span 6;
+  }
+  .projectWorkspace {
+    grid-template-columns: 1fr;
+  }
+  .chapterGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .activityComposer label,
+  .activityComposer .activityTitleField,
+  .activityComposer .wideField,
+  .activitySaveBtn {
+    grid-column: 1 / -1;
+  }
+  .activityStats.grouped,
+  .chapterGrid {
+    grid-template-columns: 1fr;
+  }
+  .chapterComposer {
+    grid-template-columns: 1fr;
+  }
+  .monthCalendar {
+    overflow-x: auto;
+  }
+  .weekHeader,
+  .monthGrid {
+    min-width: 720px;
+  }
+}
+
+/* v5.2 — skip weak landing page and fit the entire month in one screen */
+.calendarPage {
+  height: calc(100dvh - 118px);
+  min-height: 620px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.calendarPage .calendarToolbar {
+  flex: 0 0 auto;
+  padding: 12px 14px;
+}
+
+.calendarPage .monthCalendar {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: 34px minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.calendarPage .weekHeader {
+  min-height: 0;
+}
+
+.calendarPage .weekHeader span {
+  display: grid;
+  place-items: center;
+  padding: 4px;
+}
+
+.calendarPage .monthGrid {
+  min-height: 0;
+  height: 100%;
+  grid-template-rows: repeat(6, minmax(0, 1fr));
+}
+
+.calendarPage .monthGrid > button {
+  min-height: 0;
+  height: 100%;
+  padding: 5px 6px;
+}
+
+.calendarPage .monthGrid > button > b {
+  margin-bottom: 2px;
+  line-height: 1.1;
+}
+
+.calendarPage .monthGrid span {
+  margin-top: 2px;
+  padding: 2px 4px;
+  line-height: 1.15;
+}
+
+.calendarPage .monthGrid small {
+  margin-top: 2px;
+  line-height: 1.1;
+}
+
+@media (max-height: 780px) and (min-width: 821px) {
+  .calendarPage {
+    height: calc(100dvh - 96px);
+    min-height: 540px;
+  }
+  .contentArea {
+    padding-top: 14px;
+  }
+  .topHeader {
+    margin-bottom: 10px;
+  }
+  .calendarPage .calendarToolbar {
+    padding: 8px 10px;
+  }
+  .calendarPage .monthGrid span {
+    font-size: .56rem;
+  }
+}
+
+@media (max-width: 820px) {
+  .calendarPage {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+  .calendarPage .monthCalendar {
+    display: block;
+    overflow-x: auto;
+  }
+  .calendarPage .weekHeader,
+  .calendarPage .monthGrid {
+    min-width: 720px;
+  }
+  .calendarPage .monthGrid {
+    height: auto;
+    grid-template-rows: none;
+  }
+  .calendarPage .monthGrid > button {
+    min-height: 88px;
+    height: auto;
+  }
+}
