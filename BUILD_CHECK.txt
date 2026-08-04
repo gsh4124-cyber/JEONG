@@ -1,0 +1,24 @@
+TypeScript parser check return code: 2
+
+STDOUT:
+../../mnt/data/JEONG-LifeOS-v5.9-Calendar-Stability/components/dashboard.tsx(3,57): error TS2307: Cannot find module 'react' or its corresponding type declarations.
+../../mnt/data/JEONG-LifeOS-v5.9-Calendar-Stability/components/dashboard.tsx(186,253): error TS2339: Property 'date' does not exist on type 'unknown'.
+../../mnt/data/JEONG-LifeOS-v5.9-Calendar-Stability/components/dashboard.tsx(186,276): error TS2339: Property 'goal' does not exist on type 'unknown'.
+../../mnt/data/JEONG-LifeOS-v5.9-Calendar-Stability/components/dashboard.tsx(186,297): error TS2339: Property 'joy' does not exist on type 'unknown'.
+../../mnt/data/JEONG-LifeOS-v5.9-Calendar-Stability/components/dashboard.tsx(186,304): error TS2339: Property 'good' does not exist on type 'unknown'.
+../../mnt/data/JEONG-LifeOS-v5.9-Calendar-Stability/components/dashboard.tsx(385,9): error TS2875: This JSX tag requires the module path 'react/jsx-runtime' to exist, but none could be found. Make sure you have types for the appropriate package installed.
+../../mnt/data/JEONG-LifeOS-v5.9-Calendar-Stability/components/dashboard.tsx(388,221): error TS2322: Type 'readonly [{ readonly v: "home"; readonly t: "오늘"; }, { readonly v: "day"; readonly t: "하루 페이지"; }] | readonly [{ readonly v: "calendar"; readonly t: "캘린더"; }, { readonly v: "tasks"; readonly t: "할 일"; }] | readonly [{ ...; }, { ...; }] | readonly [...] | readonly [...] | readonly [...]' is not assignable to type '{ readonly v: "home"; readonly t: "오늘"; } | { readonly v: "day"; readonly t: "하루 페이지"; } | readonly ({ readonly v: "home"; readonly t: "오늘"; } | { readonly v: "day"; readonly t: "하루 페이지"; })[]'.
+  Type 'readonly [{ readonly v: "calendar"; readonly t: "캘린더"; }, { readonly v: "tasks"; readonly t: "할 일"; }]' is not assignable to type '{ readonly v: "home"; readonly t: "오늘"; } | { readonly v: "day"; readonly t: "하루 페이지"; } | readonly ({ readonly v: "home"; readonly t: "오늘"; } | { readonly v: "day"; readonly t: "하루 페이지"; })[]'.
+    Type 'readonly [{ readonly v: "calendar"; readonly t: "캘린더"; }, { readonly v: "tasks"; readonly t: "할 일"; }]' is not assignable to type 'readonly ({ readonly v: "home"; readonly t: "오늘"; } | { readonly v: "day"; readonly t: "하루 페이지"; })[]'.
+      Type '{ readonly v: "calendar"; readonly t: "캘린더"; } | { readonly v: "tasks"; readonly t: "할 일"; }' is not assignable to type '{ readonly v: "home"; readonly t: "오늘"; } | { readonly v: "day"; readonly t: "하루 페이지"; }'.
+        Type '{ readonly v: "calendar"; readonly t: "캘린더"; }' is not assignable to type '{ readonly v: "home"; readonly t: "오늘"; } | { readonly v: "day"; readonly t: "하루 페이지"; }'.
+          Type '{ readonly v: "calendar"; readonly t: "캘린더"; }' is not assignable to type '{ readonly v: "day"; readonly t: "하루 페이지"; }'.
+            Types of property 'v' are incompatible.
+              Type '"calendar"' is not assignable to type '"day"'.
+../../mnt/data/JEONG-LifeOS-v5.9-Calendar-Stability/components/dashboard.tsx(388,240): error TS2339: Property 'v' does not exist on type 'unknown'.
+../../mnt/data/JEONG-LifeOS-v5.9-Calendar-Stability/components/dashboard.tsx(388,251): error TS2339: Property 't' does not exist on type 'unknown'.
+../../mnt/data/JEONG-LifeOS-v5.9-Calendar-Stability/components/dashboard.tsx(513,364): error TS2339: Property 'status' does not exist on type 'unknown'.
+
+
+STDERR:
+

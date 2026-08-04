@@ -1,0 +1,12 @@
+클라우드 동기화 준비
+
+현재 v5.3은 로컬 자동 저장 + JSON 백업/복원이 실제 작동합니다.
+PC·노트북·휴대폰 실시간 동기화에는 Supabase 프로젝트 URL과 키가 필요합니다.
+
+다음 연결 단계:
+1. Supabase 프로젝트 생성
+2. supabase/schema.sql 실행
+3. NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY 입력
+4. Google 로그인 이메일을 사용자 키로 사용해 jeong_state 저장/불러오기 연결
+
+키가 없는 상태에서 임의 서버에 데이터를 보내지 않도록 이번 버전에서는 자동 업로드를 켜지 않았습니다.
