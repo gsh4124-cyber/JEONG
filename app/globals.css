@@ -4212,3 +4212,288 @@ html[data-theme="light"] .themeMark{
  opacity:1!important;
  filter:none!important;
 }
+
+/* =========================================================
+   JEONG v8.3 — Premium moon, responsive navigation, task fix
+   ========================================================= */
+
+/* A real moon in both themes. No emoji, so shape/tone stays consistent. */
+.celestialMoon{
+ position:relative!important;
+ display:grid!important;
+ place-items:center!important;
+ width:64px!important;
+ height:64px!important;
+ min-width:64px!important;
+ border-radius:50%!important;
+ overflow:visible!important;
+ opacity:1!important;
+ filter:none!important;
+ background:
+  radial-gradient(circle at 31% 28%,rgba(255,255,255,.72) 0 4%,transparent 5%),
+  radial-gradient(circle at 66% 61%,rgba(106,73,27,.28) 0 9%,transparent 10%),
+  radial-gradient(circle at 42% 73%,rgba(116,80,29,.2) 0 6%,transparent 7%),
+  radial-gradient(circle at 57% 32%,rgba(134,93,35,.22) 0 7%,transparent 8%),
+  radial-gradient(circle at 34% 36%,#f8dc8f 0%,#d7a84c 48%,#936823 76%,#5d431f 100%)!important;
+ box-shadow:
+  inset -11px -13px 18px rgba(70,43,12,.3),
+  inset 7px 6px 13px rgba(255,239,184,.28),
+  0 0 18px rgba(218,166,70,.34),
+  0 0 42px rgba(218,166,70,.14)!important;
+}
+.celestialMoon::before,.celestialMoon::after,.celestialMoon>span::before{
+ content:"";
+ position:absolute;
+ border-radius:50%;
+ background:rgba(103,69,25,.2);
+ box-shadow:inset 2px 2px 4px rgba(73,43,11,.16),1px 1px 2px rgba(255,232,167,.18);
+}
+.celestialMoon::before{width:10px;height:10px;left:15px;top:34px}
+.celestialMoon::after{width:7px;height:7px;right:13px;top:17px}
+.celestialMoon>span::before{width:5px;height:5px;right:20px;bottom:12px}
+html[data-theme="light"] .celestialMoon{
+ background:
+  radial-gradient(circle at 31% 28%,rgba(255,255,255,.84) 0 4%,transparent 5%),
+  radial-gradient(circle at 66% 61%,rgba(117,78,26,.2) 0 9%,transparent 10%),
+  radial-gradient(circle at 42% 73%,rgba(117,78,26,.16) 0 6%,transparent 7%),
+  radial-gradient(circle at 57% 32%,rgba(117,78,26,.16) 0 7%,transparent 8%),
+  radial-gradient(circle at 34% 36%,#fff1bd 0%,#e5bc68 50%,#b9842e 78%,#79531d 100%)!important;
+ box-shadow:inset -10px -12px 17px rgba(93,58,15,.2),inset 7px 6px 12px rgba(255,255,255,.45),0 8px 24px rgba(150,104,31,.2),0 0 28px rgba(211,165,77,.16)!important;
+}
+
+/* Reliable task control: button avoids browser/overlay checkbox conflicts. */
+.rows article{position:relative;isolation:isolate}
+.taskCheck{
+ position:relative!important;
+ z-index:3!important;
+ width:20px!important;
+ min-width:20px!important;
+ max-width:20px!important;
+ height:20px!important;
+ min-height:20px!important;
+ max-height:20px!important;
+ padding:0!important;
+ margin:0!important;
+ display:grid!important;
+ place-items:center!important;
+ border:1.5px solid #c59537!important;
+ border-radius:5px!important;
+ background:transparent!important;
+ color:#fff!important;
+ line-height:1!important;
+ cursor:pointer!important;
+ pointer-events:auto!important;
+ touch-action:manipulation!important;
+}
+.taskCheck:hover{background:rgba(205,160,74,.12)!important;transform:translateY(-1px)}
+.taskCheck.checked{background:linear-gradient(145deg,#e1b45a,#ad7725)!important;border-color:#d9a84b!important;box-shadow:0 4px 12px rgba(174,116,29,.2)}
+html[data-theme="light"] .taskCheck.checked{color:#fff!important}
+
+/* Hidden by default; shown as a fixed navigation on small screens. */
+.mobileBottomNav{display:none}
+
+/* Full desktop */
+@media (min-width:1280px){
+ .lifeShell{grid-template-columns:280px minmax(0,1fr)!important}
+ .premiumSidebar{width:280px!important;min-width:280px!important}
+}
+
+/* Compact desktop/tablet: sidebar remains as a usable icon rail. */
+@media (min-width:821px) and (max-width:1279px){
+ .lifeShell{display:grid!important;grid-template-columns:84px minmax(0,1fr)!important}
+ .premiumSidebar{
+  position:sticky!important;top:0!important;left:auto!important;
+  width:84px!important;min-width:84px!important;height:100vh!important;
+  padding:18px 10px 14px!important;overflow:hidden!important;
+  border-right:1px solid var(--border)!important;border-bottom:0!important;
+ }
+ .brandBlock{display:flex!important;justify-content:center!important;padding:0 0 18px!important}
+ .brandBlock>div:last-child,.profileSlot,.navGroup>span{display:none!important}
+ .brandBlock .seal{width:48px!important;height:48px!important;min-width:48px!important;margin:0!important}
+ .navScroll{display:block!important;overflow-y:auto!important;overflow-x:hidden!important;padding:8px 0 70px!important}
+ .navGroup{display:grid!important;gap:7px!important;margin:0 0 8px!important}
+ .navGroup button{display:grid!important;place-items:center!important;width:58px!important;height:52px!important;min-height:52px!important;margin:0 auto!important;padding:0!important;border-radius:13px!important;overflow:visible!important}
+ .navGroup button i{font-size:1.15rem!important;margin:0!important}
+ .navGroup button>span{position:fixed!important;left:-9999px!important}
+ .navGroup button:hover::after{
+  content:attr(aria-label);position:fixed;left:78px;z-index:1000;padding:7px 10px;border-radius:8px;background:#111b29;color:#f7eddc;box-shadow:0 8px 24px rgba(0,0,0,.25);white-space:nowrap;font-size:.72rem
+ }
+ .contentArea{min-width:0!important;padding:24px 22px 48px!important}
+ .topHeader{grid-template-columns:minmax(0,1fr)!important;gap:16px!important}
+ .headerIdentity{min-width:0!important}
+ .headerIdentity h1{font-size:clamp(1.55rem,3vw,2.3rem)!important}
+ .headerRight{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:12px!important}
+ .dateWeatherBlock{justify-content:flex-start!important}
+ .headerTools{width:100%!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto auto!important}
+ .searchTrigger{width:100%!important}
+ .homeOverview{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .homeOverview>article{min-width:0!important}
+}
+
+/* Mobile: sidebar becomes a stable bottom navigation, never a broken top strip. */
+@media (max-width:820px){
+ .lifeShell{display:block!important;padding-bottom:78px!important}
+ .premiumSidebar{display:none!important}
+ .mobileBottomNav{
+  position:fixed!important;z-index:1200!important;left:10px!important;right:10px!important;bottom:10px!important;
+  display:grid!important;grid-template-columns:repeat(5,1fr)!important;
+  min-height:62px!important;padding:6px!important;border:1px solid var(--border)!important;border-radius:18px!important;
+  background:color-mix(in srgb,var(--surface) 92%,transparent)!important;
+  box-shadow:0 14px 38px rgba(0,0,0,.28)!important;backdrop-filter:blur(18px)!important;
+ }
+ .mobileBottomNav button{display:grid!important;justify-items:center!important;align-content:center!important;gap:2px!important;min-width:0!important;min-height:50px!important;padding:4px 2px!important;border:0!important;border-radius:12px!important;background:transparent!important;color:var(--muted)!important}
+ .mobileBottomNav button i{font-style:normal!important;font-size:1.05rem!important}
+ .mobileBottomNav button span{font-size:.62rem!important;font-weight:750!important;white-space:nowrap!important}
+ .mobileBottomNav button.active{background:var(--goldsoft)!important;color:var(--gold)!important}
+ .contentArea{width:100%!important;min-width:0!important;padding:18px 12px 96px!important}
+ .topHeader{display:grid!important;gap:16px!important}
+ .headerIdentity{display:grid!important;justify-items:center!important;text-align:center!important;gap:12px!important}
+ .celestialMoon{width:70px!important;height:70px!important;min-width:70px!important}
+ .headerIdentity h1{font-size:clamp(1.55rem,7vw,2.15rem)!important;line-height:1.2!important}
+ .headerIdentity small{display:block!important}
+ .headerRight{display:grid!important;gap:12px!important;width:100%!important}
+ .dateWeatherBlock{display:grid!important;grid-template-columns:1fr!important;gap:10px!important}
+ .clockBlock,.weatherBlock{width:100%!important;justify-content:center!important;text-align:center!important;border:1px solid var(--border)!important;border-radius:14px!important;padding:12px!important;background:var(--surface)!important}
+ .headerTools{display:grid!important;grid-template-columns:minmax(0,1fr) auto auto!important;width:100%!important;gap:8px!important}
+ .searchTrigger{width:100%!important;min-width:0!important}
+ .homeOverview{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .homeGrid,.dayMainGrid{grid-template-columns:1fr!important}
+ .rows article{grid-template-columns:28px minmax(0,1fr) auto!important}
+}
+
+@media (max-width:520px){
+ .homeOverview{grid-template-columns:1fr!important}
+ .headerTools{grid-template-columns:minmax(0,1fr) 44px 44px!important}
+ .contentArea{padding-left:10px!important;padding-right:10px!important}
+}
+
+
+/* =========================================================
+   JEONG v8.4 — Natural responsive header + reliable day task completion
+   ========================================================= */
+
+/* Today-page task row: completion and editing are intentionally separate. */
+.dayTaskRow{
+ display:grid!important;
+ grid-template-columns:24px minmax(0,1fr)!important;
+ align-items:center!important;
+ gap:10px!important;
+ width:100%!important;
+ padding:10px 12px!important;
+ border:1px solid var(--border)!important;
+ border-radius:10px!important;
+ background:var(--surface2)!important;
+ color:var(--text)!important;
+ text-align:left!important;
+}
+.dayTaskToggle{
+ display:grid!important;
+ place-items:center!important;
+ width:20px!important;
+ min-width:20px!important;
+ max-width:20px!important;
+ height:20px!important;
+ min-height:20px!important;
+ max-height:20px!important;
+ padding:0!important;
+ border:1.5px solid var(--gold)!important;
+ border-radius:5px!important;
+ background:transparent!important;
+ color:#fff!important;
+ cursor:pointer!important;
+ line-height:1!important;
+ z-index:2!important;
+}
+.dayTaskToggle:hover{background:var(--goldsoft)!important;transform:translateY(-1px)}
+.dayTaskToggle.checked{background:linear-gradient(145deg,#e1b45a,#ad7725)!important;box-shadow:0 4px 12px rgba(174,116,29,.22)!important}
+.dayTaskEditArea{
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr) auto!important;
+ align-items:center!important;
+ gap:10px!important;
+ width:100%!important;
+ min-width:0!important;
+ min-height:0!important;
+ padding:0!important;
+ border:0!important;
+ background:transparent!important;
+ color:inherit!important;
+ text-align:left!important;
+ cursor:pointer!important;
+}
+.dayTaskEditArea span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dayTaskEditArea time{color:var(--muted);font-size:.72rem;white-space:nowrap}
+.dayTaskRow.done .dayTaskEditArea span{text-decoration:line-through;color:var(--muted)}
+
+/* Tablet/mobile header should feel like one composed header, not stacked cards. */
+@media (max-width:820px){
+ .topHeader{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:14px!important;
+  padding:4px 2px 0!important;
+ }
+ .headerIdentity{
+  display:grid!important;
+  grid-template-columns:54px minmax(0,1fr)!important;
+  align-items:center!important;
+  justify-items:stretch!important;
+  gap:14px!important;
+  text-align:left!important;
+ }
+ .celestialMoon{
+  width:54px!important;
+  height:54px!important;
+  min-width:54px!important;
+  margin:0!important;
+  box-shadow:inset -9px -10px 14px rgba(70,43,12,.28),inset 6px 5px 10px rgba(255,239,184,.25),0 0 16px rgba(218,166,70,.28),0 0 30px rgba(218,166,70,.1)!important;
+ }
+ .headerIdentity>div:last-child{min-width:0!important}
+ .headerIdentity h1{
+  margin:0!important;
+  font-size:clamp(1.48rem,5vw,2rem)!important;
+  line-height:1.16!important;
+ }
+ .headerIdentity small{
+  display:block!important;
+  margin-top:5px!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+ }
+ .headerRight{display:grid!important;gap:10px!important;width:100%!important}
+ .dateWeatherBlock{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+  gap:10px!important;
+ }
+ .clockBlock,.weatherBlock{
+  min-height:74px!important;
+  width:100%!important;
+  padding:10px 12px!important;
+  border:1px solid var(--border)!important;
+  border-radius:14px!important;
+  background:var(--surface)!important;
+  justify-content:flex-start!important;
+  text-align:left!important;
+ }
+ .clockBlock strong{font-size:1.35rem!important}
+ .weatherBlock{display:flex!important;align-items:center!important;gap:10px!important}
+ .weatherBlock>span{min-width:0!important}
+ .weatherBlock>span>strong{display:inline!important;margin-right:5px!important;font-size:1.35rem!important}
+ .weatherBlock small{display:block!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+ .headerTools{display:grid!important;grid-template-columns:minmax(0,1fr) 46px 46px!important;gap:8px!important;width:100%!important}
+ .searchTrigger,.headerTools .iconBtn{min-height:46px!important}
+ .contentArea{padding-top:14px!important}
+}
+
+@media (max-width:520px){
+ .headerIdentity{grid-template-columns:48px minmax(0,1fr)!important;gap:11px!important}
+ .celestialMoon{width:48px!important;height:48px!important;min-width:48px!important}
+ .headerIdentity h1{font-size:clamp(1.3rem,6vw,1.7rem)!important}
+ .headerIdentity small{font-size:.72rem!important}
+ .dateWeatherBlock{grid-template-columns:1fr!important}
+ .clockBlock,.weatherBlock{min-height:64px!important}
+ .homeOverview{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .homeOverview>article{padding:12px 10px!important}
+}

@@ -292,7 +292,7 @@ export function Dashboard(){
  const activeProjects=local.projects.filter(p=>p.status!=="done");
  const hour=now.getHours();
  const greeting=hour<12?"좋은 아침입니다, 황제.":hour<18?"좋은 오후입니다, 황제.":"좋은 저녁입니다, 황제.";
- const greetingIcon=hour>=18||hour<6?"☾":"☀";
+ const isNight=hour>=18||hour<6;
  const briefing=[todayEvents.length?`오늘 일정 ${todayEvents.length}건`:`오늘 일정 없음`,todayTasks.length?`오늘 할 일 ${todayTasks.length}건`:`오늘 오늘 할 일이 없습니다`,duePeople.length?`연락 확인 ${duePeople.length}건`:`연락 확인 없음`,activeProjects.length?`진행 프로젝트 ${activeProjects.length}개`:"진행 프로젝트 없음"];
  const activityTitleLabel:Record<ActivityType,string>={
   running:"훈련 이름",workout:"운동 이름",martial:"훈련 이름",reading:"책 이름",
@@ -691,9 +691,12 @@ export function Dashboard(){
  return <div className="lifeShell">
   {showMorning&&<div className="overlay"><form className="morningCard" onSubmit={saveMorning}><div className="modalHead"><div><span>오늘 시작</span><h2>{greeting}</h2></div><button type="button" className="softBtn" onClick={()=>setShowMorning(false)}>나중에</button></div><label>오늘 목표<textarea required value={local.goal} onChange={e=>update("goal",e.target.value)}/></label><label>선택한 이유<textarea value={local.reason} onChange={e=>update("reason",e.target.value)}/></label><label>오늘 즐길 것<textarea value={local.enjoyment} onChange={e=>update("enjoyment",e.target.value)}/></label><fieldset><legend>감사 3가지</legend>{[0,1,2].map(i=><input key={i} value={local.gratitude[i]??""} onChange={e=>update("gratitude",local.gratitude.map((x,j)=>j===i?e.target.value:x))}/>)}</fieldset><button className="goldBtn">오늘 시작하기</button></form></div>}
   <aside className="premiumSidebar"><div className="brandBlock"><div className="seal">整</div><div><strong>PROJECT JEONG</strong><small>Your Private Assistant</small></div></div><div className="navScroll">{groups.map((g,gi)=><section className="navGroup" key={gi}>{g.label&&<span>{g.label}</span>}{g.items.map(i=><button key={i.v} className={view===i.v?"active":""} onClick={()=>navigateTo(i.v as View)}><i>{i.icon}</i><span>{i.t}</span></button>)}</section>)}</div><div className="profileChip profileSlot" aria-hidden="true"></div></aside>
+  <nav className="mobileBottomNav" aria-label="모바일 주요 메뉴">
+   {[{v:"home",t:"홈",i:"⌂"},{v:"day",t:"오늘",i:"◷"},{v:"calendar",t:"캘린더",i:"▦"},{v:"records",t:"기록",i:"✎"},{v:"tasks",t:"할 일",i:"☑"}].map(item=><button key={item.v} className={view===item.v?"active":""} onClick={()=>navigateTo(item.v as View)}><i>{item.i}</i><span>{item.t}</span></button>)}
+  </nav>
   <main className={`contentArea ${pageLoading?"pageLoading":""}`}><header className="topHeader">
  <div className="headerIdentity">
-  <div className="greetingMark themeMark" aria-hidden="true">{greetingIcon}</div>
+  <div className={`greetingMark celestialMoon ${isNight?"night":"day"}`} aria-hidden="true"><span/></div>
   <div><h1>{view==="home"?greeting:(viewTitles[view]??"JEONG")}</h1>{view==="home"&&<small>오늘도 선택하는 하루가 당신의 미래를 만듭니다.</small>}</div>
  </div>
  <div className="headerRight">
@@ -757,7 +760,10 @@ export function Dashboard(){
     <article className="premiumCard dayCompactCard">
      <div className="dayCardHead"><div><span>실행</span><h3>오늘 할 일</h3></div><button onClick={()=>setView("tasks")}>전체 보기</button></div>
      <div className="dayList">
-      {dayTasks.slice(0,6).map(t=><button className={`dayTaskRow ${t.done?"done":""}`} key={t.id} onClick={()=>setEditingTask({...t})}><i>{t.done?"✓":"□"}</i><span>{t.title}</span>{t.scheduledAt&&<time>{eventTime(t.scheduledAt)}</time>}</button>)}
+      {dayTasks.slice(0,6).map(t=><div className={`dayTaskRow ${t.done?"done":""}`} key={t.id}>
+       <button type="button" className={`dayTaskToggle ${t.done?"checked":""}`} role="checkbox" aria-checked={t.done} aria-label={`${t.title} ${t.done?"미완료로 변경":"완료 처리"}`} onClick={e=>{e.preventDefault();e.stopPropagation();update("tasks",local.tasks.map(x=>x.id===t.id?{...x,done:!x.done}:x))}}><span aria-hidden="true">{t.done?"✓":""}</span></button>
+       <button type="button" className="dayTaskEditArea" onClick={()=>setEditingTask({...t})}><span>{t.title}</span>{t.scheduledAt&&<time>{eventTime(t.scheduledAt)}</time>}</button>
+      </div>)}
       {!dayTasks.length&&<button className="dayEmptyAction" onClick={()=>setView("tasks")}>+ 오늘 할 일 추가</button>}
      </div>
     </article>
@@ -873,7 +879,7 @@ export function Dashboard(){
   </aside>}
  </div>}
 
-  {view==="tasks"&&<><section className="premiumCard taskComposer"><input value={taskTitle} onChange={e=>setTaskTitle(e.target.value)} placeholder="할 일을 입력하세요"/><select value={taskBucket} onChange={e=>setTaskBucket(e.target.value as TaskBucket)}>{Object.entries(bucketLabels).map(([v,l])=><option value={v} key={v}>{l}</option>)}</select><input type="datetime-local" value={taskWhen} onChange={e=>setTaskWhen(e.target.value)}/><input type="number" min="15" step="15" value={taskDuration} onChange={e=>setTaskDuration(Number(e.target.value))}/><select value={taskProject} onChange={e=>setTaskProject(e.target.value)}><option value="">프로젝트 없음</option>{local.projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select><label><input type="checkbox" checked={taskSync} onChange={e=>setTaskSync(e.target.checked)}/> 캘린더에도 저장</label><button className="goldBtn" onClick={addTask}>추가</button></section><section className="premiumCard"><div className="taskTabs">{(Object.keys(bucketLabels) as TaskBucket[]).map(b=><button className={taskBucket===b?"active":""} onClick={()=>setTaskBucket(b)} key={b}>{bucketLabels[b]}</button>)}</div><div className="rows">{local.tasks.filter(t=>t.bucket===taskBucket).map(t=><article key={t.id}><input type="checkbox" checked={t.done} onChange={()=>update("tasks",local.tasks.map(x=>x.id===t.id?{...x,done:!x.done}:x))}/><div className={t.done?"lineDone":""}><strong>{t.title}</strong><small>{t.scheduledAt?new Date(t.scheduledAt).toLocaleString("ko-KR"):"날짜 없음"}{t.calendarEventId?" · Google Calendar":""}</small></div><div className="taskRowActions"><button className="taskEditBtn" aria-label="할 일 수정" title="수정" onClick={()=>setEditingTask({...t})}><span aria-hidden="true">✎</span><em>수정</em></button><button className="taskDeleteBtn" aria-label="할 일 삭제" title="삭제" onClick={()=>removeTask(t)}><span aria-hidden="true">×</span><em>삭제</em></button></div></article>)}</div></section></>}
+  {view==="tasks"&&<><section className="premiumCard taskComposer"><input value={taskTitle} onChange={e=>setTaskTitle(e.target.value)} placeholder="할 일을 입력하세요"/><select value={taskBucket} onChange={e=>setTaskBucket(e.target.value as TaskBucket)}>{Object.entries(bucketLabels).map(([v,l])=><option value={v} key={v}>{l}</option>)}</select><input type="datetime-local" value={taskWhen} onChange={e=>setTaskWhen(e.target.value)}/><input type="number" min="15" step="15" value={taskDuration} onChange={e=>setTaskDuration(Number(e.target.value))}/><select value={taskProject} onChange={e=>setTaskProject(e.target.value)}><option value="">프로젝트 없음</option>{local.projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select><label><input type="checkbox" checked={taskSync} onChange={e=>setTaskSync(e.target.checked)}/> 캘린더에도 저장</label><button className="goldBtn" onClick={addTask}>추가</button></section><section className="premiumCard"><div className="taskTabs">{(Object.keys(bucketLabels) as TaskBucket[]).map(b=><button className={taskBucket===b?"active":""} onClick={()=>setTaskBucket(b)} key={b}>{bucketLabels[b]}</button>)}</div><div className="rows">{local.tasks.filter(t=>t.bucket===taskBucket).map(t=><article key={t.id}><button type="button" className={`taskCheck ${t.done?"checked":""}`} role="checkbox" aria-checked={t.done} aria-label={`${t.title} ${t.done?"미완료로 변경":"완료 처리"}`} onClick={e=>{e.preventDefault();e.stopPropagation();update("tasks",local.tasks.map(x=>x.id===t.id?{...x,done:!x.done}:x))}}><span aria-hidden="true">{t.done?"✓":""}</span></button><div className={t.done?"lineDone":""}><strong>{t.title}</strong><small>{t.scheduledAt?new Date(t.scheduledAt).toLocaleString("ko-KR"):"날짜 없음"}{t.calendarEventId?" · Google Calendar":""}</small></div><div className="taskRowActions"><button className="taskEditBtn" aria-label="할 일 수정" title="수정" onClick={()=>setEditingTask({...t})}><span aria-hidden="true">✎</span><em>수정</em></button><button className="taskDeleteBtn" aria-label="할 일 삭제" title="삭제" onClick={()=>removeTask(t)}><span aria-hidden="true">×</span><em>삭제</em></button></div></article>)}</div></section></>}
 
   {view==="projects"&&<div className="projectWorkspace">
  <aside className="premiumCard projectList">
