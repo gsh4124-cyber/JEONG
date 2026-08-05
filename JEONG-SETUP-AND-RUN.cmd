@@ -75,7 +75,13 @@ if not exist "node_modules\" (
 )
 
 echo Starting JEONG...
-start "JEONG Server" cmd.exe /c "cd /d ""%~dp0"" && npm.cmd run dev"
+powershell -NoProfile -Command "try { $c=New-Object Net.Sockets.TcpClient; $c.Connect('127.0.0.1',3000); $c.Close(); exit 0 } catch { exit 1 }" >nul 2>nul
+if not errorlevel 1 (
+  echo JEONG is already running.
+  start "" "http://localhost:3000"
+  exit /b 0
+)
+start "JEONG Server" cmd.exe /k "cd /d ""%~dp0"" && npm.cmd run dev"
 timeout /t 7 /nobreak >nul
 start "" "http://localhost:3000"
 echo.

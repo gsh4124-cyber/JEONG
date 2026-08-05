@@ -3,3 +3,7 @@ node_modules
 .env
 .env.local
 *.log
+tsconfig.tsbuildinfo
+BUILD_CHECK.txt
+.DS_Store
+Thumbs.db

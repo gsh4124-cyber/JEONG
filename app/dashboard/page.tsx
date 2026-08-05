@@ -25,17 +25,27 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <header className="accountBar">
-        <span>{session.user?.email}</span>
-        <form
-          action={async () => {
-            "use server";
-            await signOut({ redirectTo: "/" });
-          }}
-        >
-          <button className="plainButton">로그아웃</button>
-        </form>
-      </header>
+      <details className="accountMenu sidebarAccountMenu">
+        <summary aria-label="계정 메뉴">
+          {session.user?.image
+            ? <img src={session.user.image} alt="" />
+            : <span>{(session.user?.name || session.user?.email || "J").slice(0,1).toUpperCase()}</span>}
+        </summary>
+        <div className="accountDropdown">
+          <strong>{session.user?.name || "JEONG 사용자"}</strong>
+          <small>{session.user?.email}</small>
+          <a href="/dashboard">Google 연결</a>
+          <a href="/dashboard?view=settings">프로필 및 설정</a>
+          <form
+            action={async () => {
+              "use server";
+              await signOut({ redirectTo: "/" });
+            }}
+          >
+            <button className="accountLogout">로그아웃</button>
+          </form>
+        </div>
+      </details>
       <Dashboard />
     </>
   );

@@ -1,11 +1,12 @@
 {
   "name": "jeong-google-connected",
-  "version": "5.0.0",
+  "version": "6.0.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "next": "^15.2.0",
