@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+ <defs>
+  <radialGradient id="sunCore" cx="38%" cy="32%" r="70%">
+   <stop offset="0" stop-color="#fffdf2"/><stop offset=".22" stop-color="#ffe6a0"/><stop offset=".62" stop-color="#d99a25"/><stop offset="1" stop-color="#8f5310"/>
+  </radialGradient>
+  <radialGradient id="sunHalo"><stop offset="0" stop-color="#ffd76d" stop-opacity=".46"/><stop offset=".5" stop-color="#e3a62f" stop-opacity=".16"/><stop offset="1" stop-color="#e3a62f" stop-opacity="0"/></radialGradient>
+  <filter id="softGlow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+ </defs>
+ <circle cx="90" cy="90" r="86" fill="url(#sunHalo)"/>
+ <g fill="none" stroke="#c58a20" stroke-linecap="round">
+  <circle cx="90" cy="90" r="54" stroke-opacity=".38"/>
+  <circle cx="90" cy="90" r="66" stroke-opacity=".18" stroke-dasharray="2 7"/>
+  <path d="M90 6v27M90 147v27M6 90h27M147 90h27" stroke-width="1.4" stroke-opacity=".62"/>
+  <path d="M90 3l4 8-4 8-4-8zM90 161l3 6-3 6-3-6z" fill="#d39a2e" stroke="none"/>
+ </g>
+ <circle cx="90" cy="90" r="39" fill="url(#sunCore)" filter="url(#softGlow)"/>
+ <circle cx="90" cy="90" r="39" fill="none" stroke="#fff5cb" stroke-opacity=".75"/>
+ <path d="M65 79c12-13 34-18 50-7M61 98c14 9 33 10 50 2" fill="none" stroke="#fff" stroke-opacity=".25" stroke-width="2.4" stroke-linecap="round"/>
+ <circle cx="76" cy="101" r="3" fill="#9f6518" fill-opacity=".3"/><circle cx="103" cy="74" r="2.5" fill="#9f6518" fill-opacity=".24"/>
+</svg>

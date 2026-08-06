@@ -1,1 +1,5 @@
-JEONG Life OS v8.4 Natural Responsive + Task Completion Fix
+JEONG Life OS v9.3.9
+Calendar Toolbar Centering & Overflow Fix
+- centered calendar/list display switch
+- right-aligned month/week/day switch
+- overflow-safe review and calendar fields
