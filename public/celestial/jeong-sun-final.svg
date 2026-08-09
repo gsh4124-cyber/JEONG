@@ -1,1 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><defs><radialGradient id="g" cx="42%" cy="36%"><stop offset="0" stop-color="#fff8d8"/><stop offset=".32" stop-color="#ffd875"/><stop offset=".7" stop-color="#d99a25"/><stop offset="1" stop-color="#875813"/></radialGradient><filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><g fill="none" stroke="#c58b25" stroke-linecap="round"><circle cx="60" cy="60" r="39" opacity=".45"/><circle cx="60" cy="60" r="49" opacity=".22"/><path d="M60 4v15M60 101v15M4 60h15M101 60h15" stroke-width="1.5"/><path d="M21 21l10 10M89 89l10 10M99 21L89 31M31 89L21 99" opacity=".55"/></g><circle cx="60" cy="60" r="27" fill="url(#g)" filter="url(#glow)"/><circle cx="49" cy="48" r="4" fill="#8d5b16" opacity=".28"/><circle cx="69" cy="62" r="3" fill="#8d5b16" opacity=".22"/><circle cx="55" cy="72" r="2.5" fill="#8d5b16" opacity=".18"/><path d="M60 7l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#e1a331" stroke="none"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+  <defs>
+    <radialGradient id="sun" cx="38%" cy="32%" r="68%"><stop offset="0" stop-color="#fffce9"/><stop offset=".18" stop-color="#ffe9a3"/><stop offset=".48" stop-color="#efb841"/><stop offset=".78" stop-color="#bd7514"/><stop offset="1" stop-color="#6f3e08"/></radialGradient>
+    <radialGradient id="core" cx="42%" cy="36%"><stop stop-color="#fff" stop-opacity=".92"/><stop offset=".35" stop-color="#ffe8a0" stop-opacity=".42"/><stop offset="1" stop-color="#e6a125" stop-opacity="0"/></radialGradient>
+    <filter id="halo" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="11"/></filter>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <linearGradient id="orbit" x1="0" x2="1"><stop stop-color="#b67718" stop-opacity=".12"/><stop offset=".5" stop-color="#e0a93a" stop-opacity=".82"/><stop offset="1" stop-color="#b67718" stop-opacity=".12"/></linearGradient>
+  </defs>
+  <circle cx="90" cy="90" r="52" fill="#e7a52e" opacity=".23" filter="url(#halo)"/>
+  <g fill="none" stroke="url(#orbit)" stroke-linecap="round">
+    <circle cx="90" cy="90" r="45" opacity=".72"/><circle cx="90" cy="90" r="58" opacity=".46"/><circle cx="90" cy="90" r="72" opacity=".20"/>
+    <ellipse cx="90" cy="90" rx="77" ry="27" opacity=".18"/><ellipse cx="90" cy="90" rx="28" ry="77" opacity=".16"/>
+    <path d="M90 4v31M90 145v31M4 90h31M145 90h31" stroke-width="1.1"/>
+    <path d="M32 32l22 22M126 126l22 22M148 32l-22 22M54 126l-22 22" opacity=".35"/>
+  </g>
+  <g fill="#d89a26"><path d="M90 2l2.4 7.2 7.2 2.4-7.2 2.4-2.4 7.2-2.4-7.2-7.2-2.4 7.2-2.4z"/><circle cx="29" cy="64" r="1.5"/><circle cx="151" cy="112" r="1.2"/></g>
+  <circle cx="90" cy="90" r="34" fill="url(#sun)" filter="url(#soft)"/>
+  <circle cx="90" cy="90" r="30" fill="url(#core)"/>
+  <g fill="#794609" opacity=".20"><circle cx="75" cy="76" r="4.5"/><circle cx="102" cy="87" r="3.4"/><circle cx="83" cy="104" r="3"/><circle cx="108" cy="106" r="1.8"/></g>
+  <path d="M70 68c13-10 32-8 43 4" fill="none" stroke="#fff6cf" stroke-width="2" stroke-linecap="round" opacity=".46"/>
+</svg>

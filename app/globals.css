@@ -12,7 +12,7 @@
 .reviewWorkspace{display:grid;grid-template-columns:230px 1fr;gap:14px}.reviewHistory{padding:14px;display:grid;gap:6px;align-content:start}.reviewHistory button{padding:9px;border:0;border-radius:8px;background:transparent;text-align:left}.reviewHistory button.active{background:var(--goldsoft);color:var(--gold)}.reviewForm{padding:20px}.reviewSummary,.reviewGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.reviewGrid{margin-top:13px}.reviewGrid textarea{min-height:150px}.timelineList{padding:20px}.timelineList article{display:grid;grid-template-columns:105px 20px 1fr;gap:10px;padding:14px 0;border-bottom:1px solid var(--border)}.timelineList i{width:10px;height:10px;margin-top:5px;border-radius:50%;background:var(--gold)}.timelineList span{color:var(--gold);font-size:.72rem}.timelineList h3{margin:4px 0}.timelineList p{color:var(--muted)}.statGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}.statGrid article{padding:18px}.statGrid strong,.statGrid span{display:block}.statGrid strong{font-size:1.8rem}.statGrid span{color:var(--muted)}.activityStats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}.activityStats article{padding:13px;border:1px solid var(--border);border-radius:10px;background:var(--surface2)}.activityStats strong,.activityStats b,.activityStats small{display:block}.activityStats b{margin-top:7px}.activityStats small{color:var(--muted)}.chapterComposer{grid-template-columns:1fr 1.5fr auto}.chapterGrid article.active{border-color:var(--gold)}.chapterGrid button{margin-top:12px}.settingsPanel{padding:22px}.settingsPanel>div{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--border)}.settingsPanel button{padding:9px 12px;border:1px solid var(--border);border-radius:9px;background:var(--surface)}
 .overlay{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:20px;background:rgba(20,20,18,.45);backdrop-filter:blur(8px)}.morningCard,.eventModal{width:min(700px,100%);max-height:calc(100vh - 30px);overflow:auto;padding:24px;border:1px solid var(--border);border-radius:18px;background:var(--surface);box-shadow:0 30px 90px rgba(0,0,0,.25)}.modalHead{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}.modalHead h2{margin:4px 0}.morningCard label,.eventModal label{margin-top:12px}.morningCard textarea{min-height:85px}.morningCard fieldset{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;border:0;padding:0;margin:14px 0}.morningCard legend{grid-column:1/-1}.twoFields{display:grid;grid-template-columns:1fr 1fr;gap:10px}.modalActions{display:flex;justify-content:space-between;margin-top:18px}
 @media(max-width:1100px){.lifeShell{grid-template-columns:220px 1fr}.homeGrid{grid-template-columns:1fr}.rightRail{grid-template-columns:repeat(3,1fr)}.peopleGrid,.activityCards,.noteGrid,.chapterGrid{grid-template-columns:repeat(2,1fr)}.activityComposer{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:820px){.lifeShell{display:block}.premiumSidebar{position:sticky;z-index:30;width:100%;height:auto;padding:9px 10px;overflow-x:auto;border-right:0;border-bottom:1px solid var(--border)}.brandBlock,.profileChip,.navGroup>span{display:none}.navScroll{display:flex;overflow:visible;padding:0}.navGroup{display:flex;margin:0}.navGroup button{white-space:nowrap}.contentArea{padding:18px 11px 40px}.topHeader{align-items:flex-start;gap:12px}.searchBox input{width:150px}.rightRail{grid-template-columns:1fr}.morningGrid,.reviewSummary,.reviewGrid,.projectFields{grid-template-columns:1fr}.projectWorkspace,.reviewWorkspace{grid-template-columns:1fr}.projectList{display:flex;overflow-x:auto}.projectList>button{min-width:180px}.peopleGrid,.activityCards,.noteGrid,.chapterGrid,.statGrid,.activityStats{grid-template-columns:1fr}.taskComposer,.activityComposer,.peopleComposer,.chapterComposer{grid-template-columns:1fr}.activityComposer textarea{grid-column:1}.monthGrid>button{min-height:88px}.morningCard fieldset,.twoFields{grid-template-columns:1fr}}
+@media(max-width:640px), (max-width:820px) and (pointer:coarse){.lifeShell{display:block}.premiumSidebar{position:sticky;z-index:30;width:100%;height:auto;padding:9px 10px;overflow-x:auto;border-right:0;border-bottom:1px solid var(--border)}.brandBlock,.profileChip,.navGroup>span{display:none}.navScroll{display:flex;overflow:visible;padding:0}.navGroup{display:flex;margin:0}.navGroup button{white-space:nowrap}.contentArea{padding:18px 11px 40px}.topHeader{align-items:flex-start;gap:12px}.searchBox input{width:150px}.rightRail{grid-template-columns:1fr}.morningGrid,.reviewSummary,.reviewGrid,.projectFields{grid-template-columns:1fr}.projectWorkspace,.reviewWorkspace{grid-template-columns:1fr}.projectList{display:flex;overflow-x:auto}.projectList>button{min-width:180px}.peopleGrid,.activityCards,.noteGrid,.chapterGrid,.statGrid,.activityStats{grid-template-columns:1fr}.taskComposer,.activityComposer,.peopleComposer,.chapterComposer{grid-template-columns:1fr}.activityComposer textarea{grid-column:1}.monthGrid>button{min-height:88px}.morningCard fieldset,.twoFields{grid-template-columns:1fr}}
 
 
 /* v5.1 — responsive layout and clearer labels */
@@ -4294,30 +4294,27 @@ html[data-theme="light"] .taskCheck.checked{color:#fff!important}
 
 /* Full desktop */
 @media (min-width:1280px){
- .lifeShell{grid-template-columns:280px minmax(0,1fr)!important}
- .premiumSidebar{width:280px!important;min-width:280px!important}
+ .lifeShell{grid-template-columns:248px minmax(0,1fr)!important}
+ .premiumSidebar{width:248px!important;min-width:248px!important}
 }
 
-/* Compact desktop/tablet: sidebar remains as a usable icon rail. */
+/* Tablet keeps a complete sidebar; content reflows inside the remaining viewport. */
 @media (min-width:821px) and (max-width:1279px){
- .lifeShell{display:grid!important;grid-template-columns:84px minmax(0,1fr)!important}
+ .lifeShell{display:grid!important;grid-template-columns:212px minmax(0,1fr)!important}
  .premiumSidebar{
   position:sticky!important;top:0!important;left:auto!important;
-  width:84px!important;min-width:84px!important;height:100vh!important;
-  padding:18px 10px 14px!important;overflow:hidden!important;
+  width:212px!important;min-width:212px!important;height:100vh!important;
+  padding:18px 12px 14px!important;overflow:hidden!important;
   border-right:1px solid var(--border)!important;border-bottom:0!important;
  }
- .brandBlock{display:flex!important;justify-content:center!important;padding:0 0 18px!important}
- .brandBlock>div:last-child,.profileSlot,.navGroup>span{display:none!important}
- .brandBlock .seal{width:48px!important;height:48px!important;min-width:48px!important;margin:0!important}
+ .brandBlock{display:flex!important;justify-content:flex-start!important;padding:0 0 18px!important}
+ .brandBlock>div:last-child,.navGroup>span{display:grid!important}
+ .brandBlock .seal{width:44px!important;height:44px!important;min-width:44px!important;margin:0!important}
  .navScroll{display:block!important;overflow-y:auto!important;overflow-x:hidden!important;padding:8px 0 70px!important}
  .navGroup{display:grid!important;gap:7px!important;margin:0 0 8px!important}
- .navGroup button{display:grid!important;place-items:center!important;width:58px!important;height:52px!important;min-height:52px!important;margin:0 auto!important;padding:0!important;border-radius:13px!important;overflow:visible!important}
+ .navGroup button{display:flex!important;align-items:center!important;width:100%!important;height:46px!important;min-height:46px!important;margin:0!important;padding:0 12px!important;border-radius:13px!important;overflow:hidden!important}
  .navGroup button i{font-size:1.15rem!important;margin:0!important}
- .navGroup button>span{position:fixed!important;left:-9999px!important}
- .navGroup button:hover::after{
-  content:attr(aria-label);position:fixed;left:78px;z-index:1000;padding:7px 10px;border-radius:8px;background:#111b29;color:#f7eddc;box-shadow:0 8px 24px rgba(0,0,0,.25);white-space:nowrap;font-size:.72rem
- }
+ .navGroup button>span{position:static!important;display:block!important;margin-left:10px!important}
  .contentArea{min-width:0!important;padding:24px 22px 48px!important}
  .topHeader{grid-template-columns:minmax(0,1fr)!important;gap:16px!important}
  .headerIdentity{min-width:0!important}
@@ -4330,8 +4327,8 @@ html[data-theme="light"] .taskCheck.checked{color:#fff!important}
  .homeOverview>article{min-width:0!important}
 }
 
-/* Mobile: sidebar becomes a stable bottom navigation, never a broken top strip. */
-@media (max-width:820px){
+/* Mobile: use bottom navigation only on genuinely small or touch-first viewports. */
+@media (max-width:640px), (max-width:820px) and (pointer:coarse){
  .lifeShell{display:block!important;padding-bottom:78px!important}
  .premiumSidebar{display:none!important}
  .mobileBottomNav{
@@ -4359,6 +4356,20 @@ html[data-theme="light"] .taskCheck.checked{color:#fff!important}
  .homeOverview{grid-template-columns:repeat(2,minmax(0,1fr))!important}
  .homeGrid,.dayMainGrid{grid-template-columns:1fr!important}
  .rows article{grid-template-columns:28px minmax(0,1fr) auto!important}
+}
+
+@media (min-width:641px) and (max-width:820px) and (pointer:fine){
+ .lifeShell{display:grid!important;grid-template-columns:184px minmax(0,1fr)!important;padding-bottom:0!important}
+ .premiumSidebar{display:flex!important;width:184px!important;min-width:184px!important;padding:16px 10px!important}
+ .brandBlock{gap:9px!important;padding:0 4px 16px!important}
+ .brandBlock .seal{width:40px!important;height:40px!important;min-width:40px!important}
+ .brandBlock strong{font-size:.72rem!important}.brandBlock small{font-size:.56rem!important}
+ .navScroll{display:block!important;padding:10px 0 72px!important;overflow-y:auto!important}
+ .navGroup{display:grid!important;margin-bottom:7px!important}
+ .navGroup>span{display:block!important}.navGroup button{display:flex!important;width:100%!important;min-height:42px!important;padding:0 9px!important}
+ .navGroup button>span{position:static!important;display:block!important;margin-left:8px!important;font-size:.7rem!important}
+ .mobileBottomNav{display:none!important}
+ .contentArea{width:100%!important;min-width:0!important;padding:18px 12px 48px!important}
 }
 
 @media (max-width:520px){
@@ -4660,52 +4671,7 @@ html[data-theme="light"] .taskCheck.checked{color:#fff!important}
   .calendarPage .monthAgendaList .monthListStatus{grid-column:2!important;justify-self:start!important}
 }
 
-/* JEONG v9.3.6 — morning/evening gratitude review */
-.reviewGratitudeGroup{
-  grid-column:1 / -1;
-  display:grid;
-  gap:8px;
-  padding:18px;
-  border:1px solid var(--border);
-  border-radius:16px;
-  background:var(--surface2);
-}
-.reviewGratitudeGroup>strong{font-size:17px}
-.reviewGratitudeGroup>small{color:var(--muted)}
-.reviewGratitudeColumns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
-.reviewGratitudeColumns fieldset{display:grid;gap:10px;margin:0;padding:14px;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
-.reviewGratitudeColumns legend{padding:0 6px;font-weight:700}
-.reviewGratitudeColumns fieldset label{display:grid;grid-template-columns:24px minmax(0,1fr);align-items:center;gap:8px}
-.reviewGratitudeColumns fieldset label b{color:var(--muted)}
-.reviewGratitudeColumns input{width:100%;min-width:0}
-@media(max-width:820px){.reviewGratitudeColumns{grid-template-columns:1fr}}
-
-
 /* JEONG v9.3.7 — theme-safe review, theme celestial, stable calendar toolbar */
-.reviewGratitudeGroup,
-.reviewGratitudeColumns fieldset{
- color:var(--text)!important;
- box-shadow:none!important;
-}
-.reviewGratitudeColumns input{
- background:var(--surface2)!important;
- color:var(--text)!important;
- border-color:var(--border)!important;
-}
-html[data-theme="dark"] .reviewGratitudeGroup{
- background:#181e26!important;
- border-color:#303844!important;
-}
-html[data-theme="dark"] .reviewGratitudeColumns fieldset{
- background:#1d242d!important;
- border-color:#303844!important;
-}
-html[data-theme="dark"] .reviewGratitudeColumns input{
- background:#222a34!important;
- border-color:#37414d!important;
- color:#eef2f6!important;
-}
-
 .themeCelestial{position:relative;display:grid;place-items:center;flex:0 0 auto}
 .celestialSun{
  width:64px!important;height:64px!important;min-width:64px!important;border-radius:50%!important;
@@ -5184,74 +5150,6 @@ html[data-theme="dark"] .view-review .reviewForm{
   background:rgba(25,32,42,.88)!important;
 }
 
-.reviewGratitudeGroup{
-  min-height:366px!important;
-  padding:24px 26px 26px!important;
-  display:flex!important;
-  flex-direction:column!important;
-  justify-content:flex-start!important;
-  gap:6px!important;
-  overflow:visible!important;
-}
-.reviewGratitudeGroup>strong{font-size:18px!important;line-height:1.3!important}
-.reviewGratitudeGroup>small{margin-bottom:8px!important}
-.reviewGratitudeColumns{
-  display:grid!important;
-  grid-template-columns:repeat(2,minmax(0,1fr))!important;
-  align-items:stretch!important;
-  gap:18px!important;
-  margin-top:4px!important;
-  flex:1 1 auto!important;
-}
-.reviewGratitudeColumns>fieldset{
-  min-height:270px!important;
-  height:100%!important;
-  margin:0!important;
-  padding:20px 18px 18px!important;
-  display:flex!important;
-  flex-direction:column!important;
-  justify-content:flex-start!important;
-  align-content:start!important;
-  gap:12px!important;
-  overflow:hidden!important;
-}
-.reviewGratitudeColumns>fieldset>legend{
-  padding:0 8px!important;
-  margin-left:4px!important;
-  font-size:16px!important;
-  line-height:1.2!important;
-}
-.reviewGratitudeColumns>fieldset>label{
-  display:grid!important;
-  grid-template-columns:28px minmax(0,1fr)!important;
-  align-items:center!important;
-  gap:10px!important;
-  min-height:58px!important;
-  margin:0!important;
-  flex:0 0 auto!important;
-}
-.reviewGratitudeColumns .gratitudeTextArea{
-  width:100%!important;
-  min-width:0!important;
-  height:58px!important;
-  min-height:58px!important;
-  max-height:92px!important;
-  padding:13px 15px!important;
-  line-height:1.45!important;
-  resize:vertical!important;
-  overflow:auto!important;
-  word-break:break-word!important;
-  overflow-wrap:anywhere!important;
-}
-html[data-theme="light"] .reviewGratitudeGroup{
-  border:1px solid rgba(198,139,39,.26)!important;
-  box-shadow:0 16px 42px rgba(123,79,18,.08)!important;
-}
-html[data-theme="dark"] .reviewGratitudeGroup{
-  border:1px solid rgba(215,171,84,.24)!important;
-  box-shadow:0 18px 44px rgba(0,0,0,.24),inset 0 1px rgba(255,255,255,.025)!important;
-}
-
 @media(max-width:1179px){
   .themeCelestial{width:70px!important;height:70px!important;min-width:70px!important}
   .themeCelestial>span{inset:14px!important}
@@ -5259,9 +5157,6 @@ html[data-theme="dark"] .reviewGratitudeGroup{
 @media(max-width:820px){
   .contentArea.view-review{overflow:visible}
   .contentArea.view-review .topHeader{min-height:auto}
-  .reviewGratitudeColumns{grid-template-columns:1fr!important}
-  .reviewGratitudeGroup{min-height:auto!important;padding:20px 16px 22px!important}
-  .reviewGratitudeColumns>fieldset{min-height:250px!important}
 }
 @media(max-width:520px){
   .themeCelestial{width:58px!important;height:58px!important;min-width:58px!important}
@@ -5318,62 +5213,6 @@ html[data-theme="dark"] .themeCelestial{background-image:url('/celestial/jeong-m
   .headerIdentity h1{white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
 }
 
-/* Gratitude: the outer panel keeps the requested size, while every field
-   starts directly under its legend. No vertical centering or space spread. */
-.reviewGratitudeGroup{
-  min-height:360px!important;
-  padding:22px 26px 24px!important;
-  display:flex!important;
-  flex-direction:column!important;
-  justify-content:flex-start!important;
-  align-items:stretch!important;
-  gap:4px!important;
-}
-.reviewGratitudeGroup>small{margin:0 0 6px!important}
-.reviewGratitudeColumns{
-  flex:0 0 auto!important;
-  display:grid!important;
-  grid-template-columns:repeat(2,minmax(0,1fr))!important;
-  align-items:start!important;
-  gap:18px!important;
-  margin-top:2px!important;
-}
-.reviewGratitudeColumns>fieldset{
-  min-height:280px!important;
-  height:280px!important;
-  margin:0!important;
-  padding:12px 18px 18px!important;
-  display:grid!important;
-  grid-template-rows:repeat(3,62px)!important;
-  align-content:start!important;
-  justify-content:stretch!important;
-  gap:12px!important;
-  overflow:hidden!important;
-}
-.reviewGratitudeColumns>fieldset>legend{
-  padding:0 8px!important;
-  margin:0 0 0 4px!important;
-  line-height:1.2!important;
-}
-.reviewGratitudeColumns>fieldset>label{
-  min-height:62px!important;
-  height:62px!important;
-  margin:0!important;
-  display:grid!important;
-  grid-template-columns:28px minmax(0,1fr)!important;
-  align-items:center!important;
-  gap:10px!important;
-}
-.reviewGratitudeColumns .gratitudeTextArea{
-  height:62px!important;
-  min-height:62px!important;
-  max-height:62px!important;
-  margin:0!important;
-  padding:13px 15px!important;
-  resize:none!important;
-  overflow:auto!important;
-}
-
 /* Recent records: separate each event visually instead of printing a dense block. */
 .recordsTimelineCard{padding:20px!important}
 .recordsTimelineCard .timeline{
@@ -5428,8 +5267,6 @@ html[data-theme="dark"] .themeCelestial{background-image:url('/celestial/jeong-m
   font-size:.8rem!important;
 }
 @media(max-width:820px){
-  .reviewGratitudeColumns{grid-template-columns:1fr!important}
-  .reviewGratitudeColumns>fieldset{height:auto!important;min-height:276px!important}
   .recordsTimelineCard .timeline>article{grid-template-columns:1fr!important;gap:7px!important}
 }
 
@@ -5538,73 +5375,238 @@ html[data-theme="dark"] .contentArea.view-review .reviewForm{
   border-color:rgba(137,171,219,.20)!important;
 }
 
-/* Exact gratitude fix: no fieldset legend overlap, content starts lower and stays balanced. */
-.reviewGratitudeGroup{
-  min-height:390px!important;
-  padding:28px 28px 30px!important;
-  display:flex!important;
-  flex-direction:column!important;
-  gap:6px!important;
-  overflow:visible!important;
-}
-.reviewGratitudeGroup>strong{font-size:1.2rem!important;line-height:1.35!important}
-.reviewGratitudeGroup>small{margin-bottom:14px!important}
-.reviewGratitudeColumns{
-  display:grid!important;
-  grid-template-columns:repeat(2,minmax(0,1fr))!important;
-  gap:20px!important;
-  align-items:stretch!important;
-  margin-top:0!important;
-}
-.reviewGratitudeColumn{
-  min-width:0!important;
-  min-height:278px!important;
-  padding:20px 18px 18px!important;
-  border:1px solid var(--border)!important;
-  border-radius:16px!important;
-  background:var(--surface2)!important;
-  overflow:hidden!important;
-}
-.reviewGratitudeColumn h3{
-  margin:0 0 18px 16px!important;
-  font-size:1rem!important;
-  line-height:1.35!important;
-  position:relative!important;
-  z-index:1!important;
-}
-.gratitudeEntries{display:grid!important;gap:12px!important}
-.gratitudeEntries>label{
-  display:grid!important;
-  grid-template-columns:34px minmax(0,1fr)!important;
-  align-items:center!important;
-  gap:10px!important;
-  margin:0!important;
-  min-height:64px!important;
-}
-.gratitudeEntries>label>b{text-align:center!important;color:var(--muted)!important;font-size:.95rem!important}
-.gratitudeEntries .gratitudeTextArea{
-  width:100%!important;
-  height:64px!important;
-  min-height:64px!important;
-  max-height:96px!important;
-  padding:16px 16px!important;
-  margin:0!important;
-  line-height:1.45!important;
-  resize:vertical!important;
-  overflow:auto!important;
-  border-radius:12px!important;
-}
-
 @media(max-width:1180px){
  .contentArea::before,.contentArea::after{left:0}
  .themeCelestial{width:74px!important;height:74px!important;min-width:74px!important}
 }
 @media(max-width:820px){
- .reviewGratitudeColumns{grid-template-columns:1fr!important}
- .reviewGratitudeGroup{min-height:auto!important;padding:22px 16px 24px!important}
- .reviewGratitudeColumn{min-height:270px!important}
  .themeCelestial{width:62px!important;height:62px!important;min-width:62px!important}
 }
 @media(prefers-reduced-motion:reduce){
  .contentArea::before,.contentArea::after,.themeCelestial{transform:none!important;transition:none!important}
+}
+
+/* Review gratitude V2 — isolated final styles. */
+.reviewGratitudeV2{
+  grid-column:1 / -1;
+  min-width:0;
+  padding:28px 28px 30px;
+  display:flex;
+  flex-direction:column;
+  color:var(--text);
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:var(--surface2);
+}
+.reviewGratitudeV2>strong{
+  display:block;
+  font-size:1.2rem;
+  line-height:1.35;
+}
+.reviewGratitudeV2>small{
+  display:block;
+  margin-top:6px;
+  margin-bottom:18px;
+  color:var(--muted);
+}
+.reviewGratitudeV2Columns{
+  min-width:0;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:20px;
+  align-items:stretch;
+}
+.reviewGratitudeV2Column{
+  min-width:0;
+  padding:24px 18px 18px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:var(--surface);
+  overflow:hidden;
+}
+.reviewGratitudeV2Column>h3{
+  display:block;
+  margin:0 0 16px;
+  font-size:1rem;
+  line-height:1.35;
+}
+.reviewGratitudeV2Entries{
+  min-width:0;
+  display:grid;
+  gap:12px;
+}
+.reviewGratitudeV2Row{
+  min-width:0;
+  min-height:64px;
+  margin:0;
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr);
+  align-items:center;
+  gap:10px;
+}
+.reviewGratitudeV2Row>b{
+  text-align:center;
+  color:var(--muted);
+  font-size:.95rem;
+}
+.reviewGratitudeV2 .reviewGratitudeV2Textarea{
+  box-sizing:border-box;
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  height:64px;
+  min-height:64px;
+  max-height:64px;
+  margin:0;
+  padding:14px 16px;
+  overflow:auto;
+  resize:none;
+  color:var(--text);
+  line-height:1.45;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:var(--surface2);
+}
+@media(max-width:820px){
+  .reviewGratitudeV2{padding:24px 16px 26px}
+  .reviewGratitudeV2Columns{grid-template-columns:1fr}
+}
+
+/* JEONG sign-in — presentation only; authentication behavior stays in the page action. */
+.landing{
+  --landing-bg:#f7f1e7;
+  --landing-card:#fffdf8;
+  --landing-card-soft:#fbf6ed;
+  --landing-text:#29251f;
+  --landing-muted:#7e766b;
+  --landing-border:rgba(183,132,44,.22);
+  --landing-gold:#b98832;
+  --landing-gold-deep:#92671f;
+  min-height:100vh;
+  min-height:100dvh;
+  display:grid;
+  place-items:center;
+  padding:32px 20px;
+  color:var(--landing-text);
+  background:
+    radial-gradient(circle at 50% 18%,rgba(208,162,77,.10),transparent 34%),
+    var(--landing-bg);
+}
+html[data-theme="dark"] .landing{
+  --landing-bg:#091321;
+  --landing-card:#151d28;
+  --landing-card-soft:#1b2430;
+  --landing-text:#f2f0ea;
+  --landing-muted:#a8afba;
+  --landing-border:rgba(211,174,100,.22);
+  --landing-gold:#d1ad68;
+  --landing-gold-deep:#b88d42;
+  background:
+    radial-gradient(circle at 50% 18%,rgba(122,151,193,.09),transparent 34%),
+    var(--landing-bg);
+}
+.landingCard{
+  width:min(460px,100%);
+  padding:44px 38px 34px;
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  text-align:center;
+  border:1px solid var(--landing-border);
+  border-radius:24px;
+  background:var(--landing-card);
+  box-shadow:0 24px 70px rgba(83,58,20,.11);
+}
+html[data-theme="dark"] .landingCard{
+  box-shadow:0 26px 76px rgba(0,0,0,.34);
+}
+.landingSeal{
+  width:68px;
+  height:68px;
+  margin:0 auto 24px;
+  display:grid;
+  place-items:center;
+  color:var(--landing-gold);
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:2rem;
+  line-height:1;
+  border:1px solid var(--landing-border);
+  border-radius:20px;
+  background:var(--landing-card-soft);
+}
+.landingCopy h1{
+  margin:0;
+  color:var(--landing-text);
+  font-size:clamp(1.65rem,5vw,2rem);
+  line-height:1.25;
+  letter-spacing:-.04em;
+}
+.landingCopy p{
+  max-width:350px;
+  margin:14px auto 28px;
+  color:var(--landing-muted);
+  font-size:.95rem;
+  line-height:1.7;
+}
+.landingCard form{width:100%;margin:0}
+.landingCard .primaryButton{
+  width:100%;
+  min-height:58px;
+  padding:14px 20px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  color:#fffdf8;
+  font-weight:800;
+  border:1px solid var(--landing-gold-deep);
+  border-radius:18px!important;
+  background:linear-gradient(180deg,var(--landing-gold),var(--landing-gold-deep));
+  box-shadow:0 10px 24px rgba(146,103,31,.18);
+  transition:transform .16s ease,box-shadow .16s ease,filter .16s ease;
+}
+.landingCard .primaryButton:hover{
+  transform:translateY(-1px);
+  filter:brightness(1.03);
+  box-shadow:0 13px 28px rgba(146,103,31,.23);
+}
+.landingCard .primaryButton:focus-visible{
+  outline:3px solid color-mix(in srgb,var(--landing-gold) 32%,transparent);
+  outline-offset:3px;
+}
+.googleLogo{
+  width:22px;
+  height:22px;
+  flex:0 0 22px;
+  padding:2px;
+  border-radius:7px;
+  background:#fff;
+}
+.landingPrivacy{
+  margin:18px 8px 0;
+  color:var(--landing-muted);
+  font-size:.74rem;
+  line-height:1.55;
+}
+@media(prefers-color-scheme:dark){
+  html:not([data-theme="light"]) .landing{
+    --landing-bg:#091321;
+    --landing-card:#151d28;
+    --landing-card-soft:#1b2430;
+    --landing-text:#f2f0ea;
+    --landing-muted:#a8afba;
+    --landing-border:rgba(211,174,100,.22);
+    --landing-gold:#d1ad68;
+    --landing-gold-deep:#b88d42;
+    background:
+      radial-gradient(circle at 50% 18%,rgba(122,151,193,.09),transparent 34%),
+      var(--landing-bg);
+  }
+}
+@media(max-width:520px){
+  .landing{padding:24px 20px}
+  .landingCard{padding:36px 22px 28px}
+  .landingSeal{margin-bottom:20px}
 }
