@@ -5,17 +5,60 @@ import { ReviewGratitude } from "@/components/review-gratitude";
 import { JeongShellNavigation } from "@/components/jeong-shell";
 import { JeongHero } from "@/components/jeong-hero";
 import reviewStyles from "@/components/jeong-review.module.css";
+import themeStyles from "@/components/jeong-theme.module.css";
 import homeStyles from "@/components/home-dashboard.module.css";
 import { HomeHero } from "@/components/home-hero";
+import { ContextFilter } from "@/components/planning/context-filter";
+import { ContextPicker, ContextTag } from "@/components/planning/context-picker";
+import { RecurringTaskEditor } from "@/components/planning/recurring-task-editor";
+import { PlanningWorkspace } from "@/components/planning/planning-workspace";
+import { HomeOperations, HomePeriodSwitcher } from "@/components/planning/home-operations";
+import planningContextStyles from "@/components/planning/planning-context.module.css";
+import {
+  loadLocalState,
+  saveLocalState,
+} from "@/lib/planning/local-state-repository";
+import {
+  DEFAULT_CONTEXTS,
+  filterCalendarEventsByContext,
+  filterProjectsByContext,
+  filterTasksByContext,
+  getCalendarContextId,
+  getDefaultCalendarId,
+} from "@/lib/planning/contexts";
+import { usePlanningContextFilter } from "@/lib/planning/use-planning-context-filter";
+import {
+  describeRecurrence,
+  getRecurringTasksForDate,
+  recurrenceToGoogleRrule,
+} from "@/lib/planning/recurrence";
+import { getMonthRange, getNextMonth, getNextWeek, getPreviousMonth, getPreviousWeek, getWeekRange } from "@/lib/planning/periods";
+import { getGoalsForPeriod, getPlanForPeriod } from "@/lib/planning/plans";
+import { getDailyHomeSummary, getMonthlyHomeSummary, getWeeklyHomeSummary, type HomePeriod } from "@/lib/planning/home-summary";
+import type {
+  Activity,
+  ActivityType,
+  Chapter,
+  ContactLog,
+  LocalState,
+  Goal,
+  Plan,
+  Note,
+  NoteType,
+  Person,
+  Project,
+  RecurringTaskCompletion,
+  RecurringTaskDefinition,
+  Review,
+  TaskBucket,
+  TaskItem,
+} from "@/lib/planning/types";
 
-type View = "home"|"day"|"calendar"|"tasks"|"projects"|"people"|"records"|"analytics"|"activities"|"notes"|"review"|"timeline"|"chapters"|"ai"|"settings";
+type View = "home"|"day"|"weekly-plan"|"monthly-plan"|"calendar"|"tasks"|"projects"|"people"|"records"|"analytics"|"activities"|"notes"|"review"|"timeline"|"chapters"|"ai"|"settings";
 type AiPromptType = "morning"|"daily"|"weekly"|"project"|"free";
 type CalendarMode = "month"|"week"|"day";
 type MonthDisplayMode = "calendar" | "list";
 type PeopleViewFilter = "all" | "due" | "waiting" | "stale";
-type TaskBucket = "today"|"week"|"month"|"someday";
-type ActivityType = "running"|"workout"|"martial"|"reading"|"study"|"church"|"photo"|"other";
-type NoteType = "idea"|"thought"|"question"|"principle"|"quote";
 type Recurrence = "none"|"daily"|"weekdays"|"weekly"|"biweekly"|"monthly"|"yearly"|"custom";
 type AiEngine = "none"|"ollama"|"openai"|"claude"|"gemini";
 type ToastState={message:string;kind:"success"|"info"|"error"}|null;
@@ -30,29 +73,6 @@ type EventItem = {
  calendarId?:string; calendarName?:string;
 };
 type MailItem = { id:string; from:string; subject:string; date:string; snippet:string };
-type TaskItem = { id:string; title:string; done:boolean; doneAt?:string; bucket:TaskBucket; scheduledAt:string; durationMinutes:number; syncCalendar:boolean; calendarEventId?:string; projectId?:string };
-type ContactLog = { id:string; date:string; channel:string; summary:string };
-type Person = { id:string; name:string; tags:string[]; lastContact:string; nextContact:string; note:string; phone?:string; email?:string; organization?:string; source?:string; waiting?:boolean; logs?:ContactLog[] };
-type Milestone = { id:string; title:string; done:boolean; weight:number };
-type Project = { id:string; name:string; goal:string; next:string; status:"planning"|"active"|"review"|"done"; milestones:Milestone[]; note:string };
-type Activity = { id:string; date:string; type:ActivityType; title:string; duration:number; amount:number; unit:string; note:string; learned:string; applied:string; meta:Record<string,string|number>; projectId?:string };
-type Note = { id:string; date:string; type:NoteType; title:string; body:string; tags:string[]; projectId?:string };
-type Review = {
- date:string; goal:string; enjoyment:string; status:"done"|"not_done"|"changed"|"";
- reason:string; good:string; learned:string; joy:string;
- /** 이전 버전 호환용 통합 감사 문자열 */
- gratitude?:string;
- /** 아침에 작성한 감사 세 가지 */
- morningGratitude:string[];
- /** 저녁 리뷰에서 작성하는 감사 세 가지 */
- eveningGratitude:string[];
-};
-type Chapter = { id:string; title:string; startDate:string; endDate:string; description:string; active:boolean };
-type LocalState = {
-  morningDate:string; goal:string; reason:string; enjoyment:string; gratitude:string[];
-  tasks:TaskItem[]; people:Person[]; projects:Project[]; activities:Activity[]; notes:Note[];
-  reviews:Record<string,Review>; chapters:Chapter[];
-};
 type EventForm = {
  id?:string; seriesId?:string; title:string; start:string; end:string; allDay:boolean;
  location:string; description:string; recurrence:Recurrence; recurrenceUntil:string;
@@ -63,12 +83,10 @@ type EventForm = {
  attendees:string; addMeet:boolean; visibility:"default"|"public"|"private";
  transparency:"opaque"|"transparent"; colorId:string;
  editScope:"single"|"future"|"series"; calendarId:string;
+ contextId?:string;
 };
 
-const KEY="jeong_lifeos_v5";
-const LEGACY_KEYS=["jeong_integrated_google_v33","jeong_integrated_google_v32","jeong_integrated_google_v31"];
 const DAILY_CONTENT_DATE_KEY="jeong_daily_content_date";
-const DAILY_RESET_MIGRATION_KEY="jeong_daily_reset_migrated_v935";
 const todayKey=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 const uid=()=>crypto.randomUUID?.()??`${Date.now()}-${Math.random()}`;
 const toLocalInput=(value?:string)=>{const d=value?new Date(value):new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16)};
@@ -96,63 +114,11 @@ const defaultProjects:Project[]=[
  {id:"education",name:"교회·교육",goal:"학생이 스스로 생각하도록 돕는 교육",next:"가까운 수업 준비 확인",status:"active",note:"",milestones:[]}
 ];
 const defaultState:LocalState={
- morningDate:"",goal:"",reason:"",enjoyment:"",gratitude:["","",""] ,tasks:[],people:[],projects:defaultProjects,activities:[],notes:[],reviews:{},chapters:[{id:"c1",title:"JEONG를 현실로 만드는 시기",startDate:todayKey(),endDate:"",description:"생각을 실제로 사용하는 시스템으로 만드는 챕터",active:true}]
+ schemaVersion:3,morningDate:"",goal:"",reason:"",enjoyment:"",gratitude:["","",""] ,tasks:[],people:[],projects:defaultProjects,activities:[],notes:[],reviews:{},chapters:[{id:"c1",title:"JEONG를 현실로 만드는 시기",startDate:todayKey(),endDate:"",description:"생각을 실제로 사용하는 시스템으로 만드는 챕터",active:true}],contexts:DEFAULT_CONTEXTS,calendarContextMappings:[],contextCalendarPreferences:[],recurringTasks:[],recurringTaskCompletions:[],plans:[],goals:[]
 };
-function loadState():LocalState{
- if(typeof window==="undefined") return defaultState;
- const raw=localStorage.getItem(KEY)??LEGACY_KEYS.map(k=>localStorage.getItem(k)).find(Boolean)??null;
- if(!raw) return defaultState;
- try{
-  const s:Partial<LocalState>&Record<string,any>=JSON.parse(raw);
-  const people=(s.people??s.contacts??[]).map((p:any)=>({id:p.id??uid(),name:p.name??"",tags:p.tags??["보험"],lastContact:p.lastContact??"",nextContact:p.nextContact??p.date??"",note:p.note??p.purpose??"",phone:p.phone??"",email:p.email??"",organization:p.organization??"",source:p.source??"",waiting:!!p.waiting,logs:Array.isArray(p.logs)?p.logs:[]}));
-  const projects=(s.projects?.length?s.projects:defaultProjects).map((p:any)=>({id:p.id??uid(),name:p.name??"프로젝트",goal:p.goal??"",next:p.next??"",status:p.status??"active",note:p.note??"",milestones:p.milestones??[]}));
-  const notes=s.notes??Object.entries(s.memory??{}).filter(([,v])=>v).map(([type,body])=>({id:uid(),date:todayKey(),type:type==="principle"?"principle":"thought",title:noteLabels[(type==="principle"?"principle":"thought") as NoteType],body:String(body),tags:[]}));
-  const today=todayKey();
-  const storedContentDate=localStorage.getItem(DAILY_CONTENT_DATE_KEY);
-  const lastActive=storedContentDate||localStorage.getItem("jeong_last_active_date")||s.morningDate||today;
-  let tasks=(s.tasks??[]).map((t:any)=>({...t,doneAt:t.doneAt||undefined}));
-  if(!localStorage.getItem("jeong_doneat_migrated_v934")){
-   const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
-   const fallback=todayKey(yesterday);
-   tasks=tasks.map((t:any)=>t.done&&t.bucket==="today"&&!t.doneAt?{...t,doneAt:fallback}:t);
-   localStorage.setItem("jeong_doneat_migrated_v934","1");
-  }
-  let reviews={...(s.reviews??{})};
-  let goal=s.goal??"",reason=s.reason??"",enjoyment=s.enjoyment??"",gratitude=Array.isArray(s.gratitude)?s.gratitude:["","",""];
-  let morningDate=s.morningDate??"";
-  const archiveAndClear=(archiveDate:string)=>{
-   if(goal||reason||enjoyment||gratitude.some(Boolean)){
-    reviews[archiveDate]={
-     ...(reviews[archiveDate]??emptyReview(archiveDate,{...defaultState,goal,reason,enjoyment,gratitude})),
-     date:archiveDate,
-     goal,
-     enjoyment,
-     reason,
-     gratitude:gratitude.filter(Boolean).join(" / "),
-     morningGratitude:gratitudeArray(gratitude),
-     eveningGratitude:gratitudeArray((reviews[archiveDate] as Review|undefined)?.eveningGratitude)
-    };
-   }
-   tasks=tasks.map((t:any)=>t.done&&!t.doneAt?{...t,doneAt:archiveDate}:t);
-   goal="";reason="";enjoyment="";gratitude=["","",""];morningDate="";
-  };
-  if(!localStorage.getItem(DAILY_RESET_MIGRATION_KEY)){
-   // v9.3.5 one-time cleanup: values that survived from the previous day are archived once,
-   // then the current day starts empty. Future boundaries use DAILY_CONTENT_DATE_KEY.
-   const archiveDate=s.morningDate&&s.morningDate!==today?s.morningDate:addDaysYmd(today,-1);
-   if(goal||reason||enjoyment||gratitude.some(Boolean))archiveAndClear(archiveDate);
-   localStorage.setItem(DAILY_RESET_MIGRATION_KEY,"1");
-  }else if(lastActive!==today){
-   archiveAndClear(lastActive);
-  }
-  localStorage.setItem(DAILY_CONTENT_DATE_KEY,today);
-  localStorage.setItem("jeong_last_active_date",today);
-  return {...defaultState,...s,goal,reason,enjoyment,gratitude,morningDate,tasks,people,projects,notes,activities:s.activities??[],reviews,chapters:s.chapters??defaultState.chapters};
- }catch{return defaultState}
-}
 function progress(p:Project){const total=p.milestones.reduce((a,m)=>a+Math.max(0,m.weight),0); if(!total)return p.status==="done"?100:0; return Math.round(p.milestones.filter(m=>m.done).reduce((a,m)=>a+m.weight,0)/total*100)}
 function monthDays(cursor:Date){const first=new Date(cursor.getFullYear(),cursor.getMonth(),1); const start=new Date(cursor.getFullYear(),cursor.getMonth(),1-first.getDay()); return Array.from({length:42},(_,i)=>{const d=new Date(start);d.setDate(start.getDate()+i);return d})}
-function rangeFor(mode:CalendarMode,cursor:Date){if(mode==="month"){const days=monthDays(cursor);const start=new Date(days[0]);start.setHours(0,0,0,0);const end=new Date(days[days.length-1]);end.setDate(end.getDate()+1);end.setHours(0,0,0,0);return {start,end}}; if(mode==="week"){const s=new Date(cursor);s.setDate(s.getDate()-s.getDay());s.setHours(0,0,0,0);const e=new Date(s);e.setDate(e.getDate()+7);return {start:s,end:e}} const s=new Date(cursor);s.setHours(0,0,0,0);const e=new Date(s);e.setDate(e.getDate()+1);return {start:s,end:e}}
+function rangeFor(mode:CalendarMode,cursor:Date){if(mode==="month"){const days=monthDays(cursor);const start=new Date(days[0]);start.setHours(0,0,0,0);const end=new Date(days[days.length-1]);end.setDate(end.getDate()+1);end.setHours(0,0,0,0);return {start,end}}; if(mode==="week"){const s=new Date(cursor);s.setDate(s.getDate()-((s.getDay()+6)%7));s.setHours(0,0,0,0);const e=new Date(s);e.setDate(e.getDate()+7);return {start:s,end:e}} const s=new Date(cursor);s.setHours(0,0,0,0);const e=new Date(s);e.setDate(e.getDate()+1);return {start:s,end:e}}
 function gratitudeArray(value:unknown){
  if(Array.isArray(value))return [0,1,2].map(i=>String(value[i]??""));
  if(typeof value==="string"&&value.trim())return value.split(/\s*\/\s*|\n+/).slice(0,3).concat(["", "", ""]).slice(0,3);
@@ -233,6 +199,10 @@ export function Dashboard(){
  const [aiModel,setAiModel]=useState("llama3.2:3b");
  const [aiStatus,setAiStatus]=useState("");
  const [taskBucket,setTaskBucket]=useState<TaskBucket>("today"); const [taskTitle,setTaskTitle]=useState(""); const [taskWhen,setTaskWhen]=useState(""); const [taskDuration,setTaskDuration]=useState(60); const [taskSync,setTaskSync]=useState(false);
+ const [taskContext,setTaskContext]=useState<string>("personal");
+ const [taskSection,setTaskSection]=useState<TaskBucket|"recurring">("today");
+ const [homePeriod,setHomePeriod]=useState<HomePeriod>("day");
+ const [recurringEditor,setRecurringEditor]=useState<RecurringTaskDefinition|null|"new">(null);
  const [selectedProject,setSelectedProject]=useState<string>("jeong"); const [personName,setPersonName]=useState(""); const [personTag,setPersonTag]=useState("보험");
  const [peopleFilter,setPeopleFilter]=useState<PeopleViewFilter>("all"); const [peopleSearch,setPeopleSearch]=useState(""); const [contactsImporting,setContactsImporting]=useState(false);
  const [activityType,setActivityType]=useState<ActivityType>("running"); const [activityTitle,setActivityTitle]=useState(""); const [activityDate,setActivityDate]=useState(todayKey()); const [activityDuration,setActivityDuration]=useState(60); const [activityAmount,setActivityAmount]=useState(0); const [activityNote,setActivityNote]=useState(""); const [activityLearned,setActivityLearned]=useState(""); const [activityApplied,setActivityApplied]=useState("");
@@ -264,14 +234,18 @@ export function Dashboard(){
  const [pageLoading,setPageLoading]=useState(false);
  const [newProjectName,setNewProjectName]=useState("");
  const [newProjectGoal,setNewProjectGoal]=useState("");
+ const [newProjectContext,setNewProjectContext]=useState<string>("personal");
  const [newMilestoneTitle,setNewMilestoneTitle]=useState("");
  const [newMilestoneWeight,setNewMilestoneWeight]=useState(25);
+ const [contextFilter,setContextFilter]=usePlanningContextFilter();
+ const [planningAnchor,setPlanningAnchor]=useState(todayKey());
+ useEffect(()=>{if(view!=="weekly-plan"&&view!=="monthly-plan")return;const next=new Date(`${planningAnchor}T12:00:00`);setCursor(next);setCalendarMode(view==="monthly-plan"?"month":"week")},[view,planningAnchor]);
 
- useEffect(()=>{const s=loadState();setLocal(s);setShowMorning(s.morningDate!==todayKey());const t=(localStorage.getItem("jeong_theme") as "light"|"dark"|null)??"light";setTheme(t);document.documentElement.dataset.theme=t;
+ useEffect(()=>{const s=loadLocalState({defaultState,noteLabels});setLocal(s);setShowMorning(s.morningDate!==todayKey());const t=(localStorage.getItem("jeong_theme") as "light"|"dark"|null)??"light";setTheme(t);document.documentElement.dataset.theme=t;
  setAiEngine((localStorage.getItem("jeong_ai_engine") as AiEngine|null)??"none");setAiModel(localStorage.getItem("jeong_ai_model")??"llama3.2:3b");
  const savedCalendars=localStorage.getItem("jeong_visible_calendars");if(savedCalendars){try{setVisibleCalendarIds(JSON.parse(savedCalendars))}catch{}}
  setHydrated(true)},[]);
- useEffect(()=>{if(hydrated)localStorage.setItem(KEY,JSON.stringify(local))},[local,hydrated]);
+ useEffect(()=>{if(hydrated)saveLocalState(local)},[local,hydrated]);
  useEffect(()=>{
   const timer=window.setInterval(()=>setNow(new Date()),30000);
   return()=>window.clearInterval(timer);
@@ -306,7 +280,7 @@ export function Dashboard(){
     eveningGratitude:gratitudeArray((reviews[last] as Review|undefined)?.eveningGratitude)
    };
    }
-   return {...prev,morningDate:"",goal:"",reason:"",enjoyment:"",gratitude:["","",""],reviews,tasks:prev.tasks.map(t=>t.done&&!t.doneAt?{...t,doneAt:last}:t)};
+   return {...prev,morningDate:"",goal:"",reason:"",enjoyment:"",gratitude:["","",""],dailyGoalId:undefined,parentWeeklyGoalId:undefined,reviews,tasks:prev.tasks.map(t=>t.done&&!t.doneAt?{...t,doneAt:last}:t)};
   });
   localStorage.setItem(DAILY_CONTENT_DATE_KEY,current);
   localStorage.setItem("jeong_last_active_date",current);
@@ -340,9 +314,16 @@ export function Dashboard(){
    fetch("/api/gmail",{cache:"no-store"}),
    fetch("/api/calendar/calendars",{cache:"no-store"})
   ]);
-  if(cr.ok)setEvents((await cr.json()).events??[]);else setCalendarError("Google Calendar를 불러오지 못했습니다.");
+  const calendarEvents=cr.ok?((await cr.json()).events??[]):null;
+  if(!cr.ok)setCalendarError("Google Calendar를 불러오지 못했습니다.");
   if(mr.ok)setMails((await mr.json()).messages??[]);
-  if(lr.ok){const list=(await lr.json()).calendars??[];setCalendarOptions(list);if(!visibleCalendarIds.length&&list.length)setVisibleCalendarIds(list.filter((x:any)=>x.primary).map((x:any)=>x.id))}
+  if(lr.ok){
+   const list=(await lr.json()).calendars??[];
+   const primaryId=list.find((calendar:any)=>calendar.primary)?.id;
+   setCalendarOptions(list);
+   if(calendarEvents)setEvents(calendarEvents.map((event:EventItem)=>event.calendarId==="primary"&&primaryId?{...event,calendarId:primaryId}:event));
+   if(!visibleCalendarIds.length&&list.length)setVisibleCalendarIds(list.filter((x:any)=>x.primary).map((x:any)=>x.id));
+  }else if(calendarEvents)setEvents(calendarEvents);
  }finally{setLoading(false)}
 }
  useEffect(()=>{if(hydrated)loadCalendar()},[hydrated,calendarMode,cursor,visibleCalendarIds.join("|")]);
@@ -356,22 +337,28 @@ export function Dashboard(){
   eveningGratitude:gratitudeArray(rawCurrentReview?.eveningGratitude)
  };
  const updateReview=(patch:Partial<Review>)=>setLocal(s=>({...s,reviews:{...s.reviews,[reviewDate]:{...(s.reviews[reviewDate]??emptyReview(reviewDate,s)),...patch,date:reviewDate}}}));
- const todayEvents=events.filter(e=>eventOccursOnDate(e,todayKey()));
+ const contextEvents=filterCalendarEventsByContext(events,local.calendarContextMappings,local.contexts,contextFilter);
+ const contextTasks=filterTasksByContext(local.tasks,local.contexts,contextFilter);
+ const contextProjects=filterProjectsByContext(local.projects,local.contexts,contextFilter);
+ const currentDateKey=todayKey(now);
+ const todayRecurring=getRecurringTasksForDate({tasks:local.recurringTasks,date:currentDateKey,completions:local.recurringTaskCompletions,contexts:local.contexts,context:contextFilter});
+ const dayRecurring=getRecurringTasksForDate({tasks:local.recurringTasks,date:dayDate,completions:local.recurringTaskCompletions,contexts:local.contexts,context:contextFilter});
+ const todayEvents=contextEvents.filter(e=>eventOccursOnDate(e,todayKey()));
  const selectedDateKey=todayKey(selectedDate);
- const selectedDateEvents=events.filter(e=>eventOccursOnDate(e,selectedDateKey)).sort((a,b)=>a.start.localeCompare(b.start));
+ const selectedDateEvents=contextEvents.filter(e=>eventOccursOnDate(e,selectedDateKey)).sort((a,b)=>a.start.localeCompare(b.start));
  const weekDates=(()=>{
   const start=new Date(cursor);
   start.setHours(0,0,0,0);
   start.setDate(start.getDate()-start.getDay());
   return Array.from({length:7},(_,i)=>{const d=new Date(start);d.setDate(start.getDate()+i);return d});
  })();
- const agendaDayEvents=(date:Date)=>events
+ const agendaDayEvents=(date:Date)=>contextEvents
   .filter(e=>eventOccursOnDate(e,todayKey(date)))
   .sort((a,b)=>a.start.localeCompare(b.start));
  const dayModeEvents=agendaDayEvents(cursor);
  const monthStart=new Date(cursor.getFullYear(),cursor.getMonth(),1);
  const monthEnd=new Date(cursor.getFullYear(),cursor.getMonth()+1,1);
- const monthEvents=events
+ const monthEvents=contextEvents
   .filter(e=>{
    const start=new Date(e.start).getTime();
    const end=new Date(e.end||e.start).getTime();
@@ -404,9 +391,9 @@ export function Dashboard(){
   });
 
 
- const todayTasks=local.tasks.filter(t=>t.bucket==="today"&&!t.done);
+ const todayTasks=contextTasks.filter(t=>t.bucket==="today"&&!t.done);
  const duePeople=local.people.filter(p=>p.nextContact&&p.nextContact<=todayKey());
- const activeProjects=local.projects.filter(p=>p.status!=="done");
+ const activeProjects=contextProjects.filter(p=>p.status!=="done");
  const hour=now.getHours();
  const greeting="좋은 하루입니다, 황제.";
  const isNight=theme==="dark";
@@ -420,7 +407,7 @@ export function Dashboard(){
   reading:"예: 설득의 심리학",study:"예: 철학 1강 정리",church:"예: 중등부 교안 작성",
   photo:"예: 야간 인물 촬영",other:"원하는 활동 이름을 직접 입력"
  };
- const selectedProjectData=local.projects.find(p=>p.id===selectedProject)??local.projects[0];
+ const selectedProjectData=contextProjects.find(p=>p.id===selectedProject)??contextProjects[0];
  const reviewDates=Object.keys(local.reviews).sort((a,b)=>b.localeCompare(a));
  useEffect(()=>{
   if(view==="review"&&previousViewRef.current!=="review"){
@@ -505,13 +492,22 @@ export function Dashboard(){
   window.addEventListener("keydown",onKey);
   return()=>window.removeEventListener("keydown",onKey);
  },[selectedDate]);
- function saveMorning(e:FormEvent){e.preventDefault();localStorage.setItem(DAILY_CONTENT_DATE_KEY,todayKey());setLocal(s=>({...s,morningDate:todayKey()}));setShowMorning(false);notify("오늘 아침 기록을 저장했습니다.")}
+ function persistMorning(state:LocalState){
+  const nowStamp=new Date().toISOString(); const day=todayKey();
+  const existing=state.dailyGoalId?state.goals.find(g=>g.id===state.dailyGoalId):undefined;
+  if(!state.goal.trim())return {...state,morningDate:day,dailyGoalId:undefined,parentWeeklyGoalId:undefined,goals:existing?state.goals.filter(goal=>goal.id!==existing.id):state.goals};
+  const daily:Goal={id:existing?.id??uid(),horizon:"DAY",contextId:state.contextId,parentGoalId:state.parentWeeklyGoalId,periodStart:day,periodEnd:day,title:state.goal.trim(),status:existing?.status??"active",priority:existing?.priority??"normal",createdAt:existing?.createdAt??nowStamp,updatedAt:nowStamp};
+  return {...state,morningDate:day,dailyGoalId:daily.id,goals:[...state.goals.filter(g=>g.id!==daily.id),daily]};
+ }
+ function saveMorning(e:FormEvent){e.preventDefault();localStorage.setItem(DAILY_CONTENT_DATE_KEY,todayKey());setLocal(persistMorning);setShowMorning(false);notify("오늘 아침 기록을 저장했습니다.")}
  function defaultEventForm(date=selectedDate):EventForm{
   const st=new Date(date);st.setHours(9,0,0,0);const en=new Date(st);en.setHours(10,0,0,0);
+  const contextId=contextFilter==="ALL"?"personal":local.contexts.find(context=>context.key===contextFilter)?.id??"personal";
+  const calendarId=getDefaultCalendarId(local.contextCalendarPreferences,local.calendarContextMappings,contextId,visibleCalendarIds[0]||"primary");
   return {title:"",start:toLocalInput(st.toISOString()),end:toLocalInput(en.toISOString()),allDay:false,location:"",description:"",
    recurrence:"none",recurrenceUntil:"",recurrenceCount:0,recurrenceInterval:1,weeklyDays:[],
    monthlyMode:"date",holidayPolicy:"skip",excludeHolidays:false,excludeWeekends:false,reminders:[30],attendees:"",addMeet:false,
-   visibility:"default",transparency:"opaque",colorId:"",editScope:"single",calendarId:visibleCalendarIds[0]||"primary"};
+   visibility:"default",transparency:"opaque",colorId:"",editScope:"single",calendarId,contextId};
  }
  function openNewEvent(date=selectedDate){setEventForm(defaultEventForm(date))}
  function parseRecurrence(lines:string[]|undefined,start:string){
@@ -549,7 +545,7 @@ export function Dashboard(){
    ...parsed,excludeHolidays:false,excludeWeekends:false,holidayPolicy:"skip",
    reminders:e.reminders?.length?e.reminders:[30],attendees:(e.attendees??[]).join(", "),addMeet:!!e.hangoutLink,
    visibility:(e.visibility as EventForm["visibility"])??"default",transparency:(e.transparency as EventForm["transparency"])??"opaque",
-   colorId:e.colorId??"",editScope:e.recurringEventId?"single":"series",calendarId:e.calendarId||"primary"});
+   colorId:e.colorId??"",editScope:e.recurringEventId?"single":"series",calendarId:e.calendarId||"primary",contextId:getCalendarContextId(local.calendarContextMappings,e.calendarId)});
  } async function saveEvent(e:FormEvent){
   e.preventDefault();if(!eventForm||savingEvent)return;
   setSavingEvent(true);
@@ -612,7 +608,42 @@ export function Dashboard(){
   try{const r=await fetch("/api/ai/status?engine=ollama");const data=await r.json();setAiStatus(data.ok?`Ollama 연결됨 · ${data.models?.length??0}개 모델`:"Ollama가 실행 중이지 않습니다.");}
   catch{setAiStatus("로컬 AI에 연결하지 못했습니다.");}
  }
- async function addTask(){if(!taskTitle.trim())return;const task:TaskItem={id:uid(),title:taskTitle.trim(),done:false,bucket:taskBucket,scheduledAt:taskWhen,durationMinutes:taskDuration,syncCalendar:taskSync,projectId:taskProject||undefined};if(taskSync){if(!taskWhen)return alert("캘린더 저장에는 날짜와 시간이 필요합니다.");const s=new Date(taskWhen),e=new Date(s.getTime()+taskDuration*60000);const r=await fetch("/api/calendar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:task.title,start:s.toISOString(),end:e.toISOString(),location:"",description:"JEONG 할 일",recurrence:[],reminders:[30]})});if(!r.ok)return alert("캘린더 저장에 실패했습니다.");task.calendarEventId=(await r.json()).event?.id;loadCalendar()}update("tasks",[...local.tasks,task]);setTaskTitle("");setTaskWhen("");setTaskSync(false)}
+ async function addTask(){if(!taskTitle.trim())return;const task:TaskItem={id:uid(),title:taskTitle.trim(),done:false,bucket:taskBucket,scheduledAt:taskWhen,durationMinutes:taskDuration,syncCalendar:taskSync,projectId:taskProject||undefined,contextId:taskContext||undefined};if(taskSync){if(!taskWhen)return alert("캘린더 저장에는 날짜와 시간이 필요합니다.");const s=new Date(taskWhen),e=new Date(s.getTime()+taskDuration*60000);const calendarId=getDefaultCalendarId(local.contextCalendarPreferences,local.calendarContextMappings,taskContext,visibleCalendarIds[0]||"primary");const r=await fetch("/api/calendar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:task.title,start:s.toISOString(),end:e.toISOString(),location:"",description:"JEONG 할 일",recurrence:[],reminders:[30],calendarId})});if(!r.ok)return alert("캘린더 저장에 실패했습니다.");task.calendarEventId=(await r.json()).event?.id;task.calendarId=calendarId;loadCalendar()}update("tasks",[...local.tasks,task]);setTaskTitle("");setTaskWhen("");setTaskSync(false)}
+ async function syncRecurringCalendar(next:RecurringTaskDefinition,previous?:RecurringTaskDefinition){
+  const shouldSync=next.isActive&&next.showOnCalendar&&!!next.timeOfDay;
+  const calendarId=next.calendarId||getDefaultCalendarId(local.contextCalendarPreferences,local.calendarContextMappings,next.contextId||"personal",visibleCalendarIds[0]||"primary");
+  if(previous?.calendarEventId&&(!shouldSync||previous.calendarId!==calendarId)){
+   const deleteResponse=await fetch(`/api/calendar?id=${encodeURIComponent(previous.calendarEventId)}&calendarId=${encodeURIComponent(previous.calendarId||"primary")}`,{method:"DELETE"});
+   if(!deleteResponse.ok)throw new Error("calendar_delete_failed");
+   next={...next,calendarEventId:undefined};
+  }
+  if(!shouldSync)return {...next,calendarId:next.showOnCalendar?calendarId:undefined,calendarEventId:undefined};
+  const start=new Date(`${next.startDate}T${next.timeOfDay}:00`);
+  const end=new Date(start.getTime()+(next.durationMinutes||30)*60000);
+  const body={id:next.calendarEventId,title:next.title,start:start.toISOString(),end:end.toISOString(),location:"",description:next.description||"JEONG 반복 업무",recurrence:[recurrenceToGoogleRrule(next)],reminders:[30],calendarId};
+  const response=await fetch("/api/calendar",{method:next.calendarEventId?"PATCH":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  if(!response.ok)throw new Error("calendar_sync_failed");
+  return {...next,calendarId,calendarEventId:(await response.json()).event?.id||next.calendarEventId};
+ }
+ async function saveRecurringTask(value:Omit<RecurringTaskDefinition,"id"|"createdAt"|"updatedAt"|"calendarEventId">){
+  const previous=recurringEditor&&recurringEditor!=="new"?recurringEditor:undefined;
+  const timestamp=new Date().toISOString();
+  let next:RecurringTaskDefinition={...value,id:previous?.id||uid(),createdAt:previous?.createdAt||timestamp,updatedAt:timestamp,calendarEventId:previous?.calendarEventId};
+  try{next=await syncRecurringCalendar(next,previous)}catch{notify("반복 업무의 Google Calendar 저장에 실패했습니다.","error");return}
+  update("recurringTasks",previous?local.recurringTasks.map(task=>task.id===previous.id?next:task):[...local.recurringTasks,next]);
+  setRecurringEditor(null);notify(previous?"반복 업무를 수정했습니다.":"반복 업무를 만들었습니다.");loadCalendar();
+ }
+ function setRecurringCompletion(taskId:string,date:string,status:RecurringTaskCompletion["status"]){
+  const existing=local.recurringTaskCompletions.find(item=>item.recurringTaskId===taskId&&item.occurrenceDate===date);
+  const remaining=local.recurringTaskCompletions.filter(item=>!(item.recurringTaskId===taskId&&item.occurrenceDate===date));
+  update("recurringTaskCompletions",existing?.status===status?remaining:[...remaining,{recurringTaskId:taskId,occurrenceDate:date,status,completedAt:status==="done"?new Date().toISOString():undefined}]);
+ }
+ async function setRecurringActive(task:RecurringTaskDefinition,isActive:boolean){
+  let next={...task,isActive,updatedAt:new Date().toISOString()};
+  try{next=await syncRecurringCalendar(next,task)}catch{notify("Google Calendar 연결 변경에 실패했습니다.","error");return}
+  update("recurringTasks",local.recurringTasks.map(item=>item.id===task.id?next:item));
+  notify(isActive?"반복 업무를 다시 시작했습니다.":"반복 업무를 일시 중지했습니다.","info");loadCalendar();
+ }
  function addPerson(){if(!personName.trim())return;update("people",[...local.people,{id:uid(),name:personName.trim(),tags:[personTag],lastContact:"",nextContact:"",note:""}]);setPersonName("")}
  function normalizedPhone(value=""){return value.replace(/[^\d+]/g,"").replace(/^82(?=10)/,"0")}
  function mergePeople(imported:Partial<Person>[],source:string){
@@ -701,7 +732,7 @@ export function Dashboard(){
  function createProject(){
   const name=newProjectName.trim();
   if(!name)return notify("프로젝트 이름을 입력해 주세요.","error");
-  const project:Project={id:uid(),name,goal:newProjectGoal.trim(),next:"",status:"planning",milestones:[],note:""};
+  const project:Project={id:uid(),name,goal:newProjectGoal.trim(),next:"",status:"planning",milestones:[],note:"",contextId:newProjectContext||undefined};
   update("projects",[...local.projects,project]);
   setSelectedProject(project.id);
   setNewProjectName("");setNewProjectGoal("");setProjectDialog(null);
@@ -717,6 +748,15 @@ export function Dashboard(){
   setNewMilestoneTitle("");setNewMilestoneWeight(25);setProjectDialog(null);
   notify("중간 목표를 추가했습니다.");
  }
+ function setCalendarContext(calendarId:string,contextId?:string){
+  setLocal(state=>({...state,
+   calendarContextMappings:[...state.calendarContextMappings.filter(mapping=>mapping.calendarId!==calendarId),...(contextId?[{calendarId,contextId}]:[])],
+   contextCalendarPreferences:contextId?state.contextCalendarPreferences:state.contextCalendarPreferences.filter(preference=>preference.defaultCalendarId!==calendarId)
+  }));
+ }
+ function setDefaultContextCalendar(contextId:string,defaultCalendarId?:string){
+  setLocal(state=>({...state,contextCalendarPreferences:[...state.contextCalendarPreferences.filter(preference=>preference.contextId!==contextId),...(defaultCalendarId?[{contextId,defaultCalendarId}]:[])]}));
+ }
  function addNote(){if(!noteTitle.trim()&&!noteBody.trim())return;update("notes",[...local.notes,{id:uid(),date:todayKey(),type:noteType,title:noteTitle||noteLabels[noteType],body:noteBody,tags:[],projectId:noteProject||undefined}]);setNoteTitle("");setNoteBody("")}
  function addChapter(){if(!chapterTitle.trim())return;update("chapters",[...local.chapters.map(c=>({...c,active:false})),{id:uid(),title:chapterTitle,startDate:todayKey(),endDate:"",description:chapterDescription,active:true}]);setChapterTitle("");setChapterDescription("")}
 
@@ -727,18 +767,20 @@ export function Dashboard(){
   let next={...editingTask};
   if(next.syncCalendar&&next.scheduledAt){
    const st=new Date(next.scheduledAt), en=new Date(st.getTime()+next.durationMinutes*60000);
-   const body={id:next.calendarEventId,title:next.title,start:st.toISOString(),end:en.toISOString(),location:"",description:"JEONG 할 일",recurrence:[],reminders:[30]};
+   const calendarId=next.calendarId??getDefaultCalendarId(local.contextCalendarPreferences,local.calendarContextMappings,next.contextId??"",visibleCalendarIds[0]||"primary");
+   const body={id:next.calendarEventId,title:next.title,start:st.toISOString(),end:en.toISOString(),location:"",description:"JEONG 할 일",recurrence:[],reminders:[30],calendarId};
    const r=await fetch("/api/calendar",{method:next.calendarEventId?"PATCH":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
    if(!r.ok)return alert("Google Calendar 동기화에 실패했습니다.");
    if(!next.calendarEventId)next.calendarEventId=(await r.json()).event?.id;
+   next.calendarId=calendarId;
   }else if(old?.calendarEventId&&!next.syncCalendar){
-   if(confirm("연결된 Google Calendar 일정도 삭제할까요?"))await fetch(`/api/calendar?id=${encodeURIComponent(old.calendarEventId)}`,{method:"DELETE"});
+   if(confirm("연결된 Google Calendar 일정도 삭제할까요?"))await fetch(`/api/calendar?id=${encodeURIComponent(old.calendarEventId)}&calendarId=${encodeURIComponent(old.calendarId||"primary")}`,{method:"DELETE"});
    next.calendarEventId=undefined;
   }
   update("tasks",local.tasks.map(t=>t.id===next.id?next:t));setEditingTask(null);loadCalendar();
  }
  async function removeTask(t:TaskItem){
-  if(t.calendarEventId&&confirm("연결된 Google Calendar 일정도 함께 삭제할까요?"))await fetch(`/api/calendar?id=${encodeURIComponent(t.calendarEventId)}`,{method:"DELETE"});
+  if(t.calendarEventId&&confirm("연결된 Google Calendar 일정도 함께 삭제할까요?"))await fetch(`/api/calendar?id=${encodeURIComponent(t.calendarEventId)}&calendarId=${encodeURIComponent(t.calendarId||"primary")}`,{method:"DELETE"});
   update("tasks",local.tasks.filter(x=>x.id!==t.id));loadCalendar();
  }
  function saveActivityEdit(){if(!editingActivity)return;update("activities",local.activities.map(a=>a.id===editingActivity.id?editingActivity:a));setEditingActivity(null)}
@@ -755,8 +797,8 @@ export function Dashboard(){
   reader.onload=()=>{try{const data=JSON.parse(String(reader.result));setLocal({...defaultState,...data});alert("백업을 복원했습니다.")}catch{alert("올바른 JEONG 백업 파일이 아닙니다.")}};
   reader.readAsText(file);
  }
- const dayEvents=events.filter(e=>new Date(e.start).toDateString()===new Date(`${dayDate}T00:00:00`).toDateString());
- const dayTasks=local.tasks.filter(t=>(t.scheduledAt?.slice(0,10)||"")===dayDate||(t.bucket==="today"&&((!t.done&&dayDate===todayKey())||(t.done&&t.doneAt===dayDate))));
+ const dayEvents=contextEvents.filter(e=>new Date(e.start).toDateString()===new Date(`${dayDate}T00:00:00`).toDateString());
+ const dayTasks=contextTasks.filter(t=>(t.scheduledAt?.slice(0,10)||"")===dayDate||(t.bucket==="today"&&((!t.done&&dayDate===todayKey())||(t.done&&t.doneAt===dayDate))));
  const dayActivities=local.activities.filter(a=>a.date===dayDate);
  const dayNotes=local.notes.filter(n=>n.date===dayDate);
  const dayReview=local.reviews[dayDate];
@@ -794,8 +836,19 @@ export function Dashboard(){
   gemini:{title:"Gemini API",cost:"무료 할당량 또는 사용량 과금 정책 적용",steps:["Google AI Studio에서 Gemini API 키를 생성합니다.","JEONG 폴더의 .env.local 파일을 엽니다.","아래 환경변수를 추가하고 저장합니다.","JEONG를 완전히 종료한 뒤 다시 실행합니다."],env:"GEMINI_API_KEY=발급받은_키",link:"https://aistudio.google.com/app/api-keys",linkLabel:"Gemini API 키 만들기",note:"사용 가능한 무료 할당량과 요금은 계정·모델·정책에 따라 달라질 수 있습니다."}
  };
  const currentAiGuide=aiSetupGuide[aiEngine];
+ const planningRange=view==="monthly-plan"?getMonthRange(planningAnchor):getWeekRange(planningAnchor);
+ const currentWeekRange=getWeekRange(todayKey());
+ const currentMonthRange=getMonthRange(todayKey());
+ const activeContextId=contextFilter==="ALL"?undefined:local.contexts.find(context=>context.key===contextFilter)?.id;
+ const currentWeeklyPlan=getPlanForPeriod(local.plans,"WEEK",currentWeekRange.start,activeContextId);
+ const currentMonthlyPlan=getPlanForPeriod(local.plans,"MONTH",currentMonthRange.start,activeContextId);
+ const currentWeeklyGoals=getGoalsForPeriod(local.goals,"WEEK",currentWeekRange.start).filter(goal=>goal.status==="active");
+ const homeSummaryInput={state:local,events,date:currentDateKey,context:contextFilter};
+ const homeSummary=homePeriod==="day"?getDailyHomeSummary(homeSummaryInput):homePeriod==="week"?getWeeklyHomeSummary(homeSummaryInput):getMonthlyHomeSummary(homeSummaryInput);
+ const upsertPlan=(plan:Plan)=>update("plans",[...local.plans.filter(item=>item.id!==plan.id),plan]);
+ const upsertGoal=(goal:Goal)=>update("goals",[...local.goals.filter(item=>item.id!==goal.id),goal]);
  const viewTitles:Record<string,string>={
-  home:"오늘",day:"하루 기록",calendar:"캘린더",tasks:"할 일",projects:"프로젝트",
+  home:"오늘",day:"하루 기록","weekly-plan":"이번 주 계획","monthly-plan":"이번 달 계획",calendar:"캘린더",tasks:"할 일",projects:"프로젝트",
   people:"관계",records:"전체 기록",analytics:"분석",activities:"활동 기록",
   notes:"노트",review:"리뷰",timeline:"타임라인",chapters:"삶의 시기",ai:"AI",settings:"설정"
  };
@@ -804,6 +857,7 @@ export function Dashboard(){
  const groups=[
   {label:"",items:[{v:"home",t:"홈",icon:"⌂"}]},
   {label:"오늘",items:[{v:"day",t:"오늘",icon:"◷"}]},
+  {label:"계획",items:[{v:"weekly-plan",t:"이번 주",icon:"◇"},{v:"monthly-plan",t:"이번 달",icon:"◫"}]},
   {label:"일정",items:[{v:"calendar",t:"캘린더",icon:"▦"},{v:"tasks",t:"할 일",icon:"☑"}]},
   {label:"운영",items:[{v:"projects",t:"프로젝트",icon:"▤"},{v:"people",t:"관계",icon:"♙"}]},
   {label:"기록",items:[{v:"records",t:"기록",icon:"✎"}]},
@@ -812,9 +866,9 @@ export function Dashboard(){
  ] as const;
  if(!hydrated)return null;
   return <div className={`lifeShell ${view==="review"?reviewStyles.reviewShell:""}`}>
-  {showMorning&&<div className="overlay"><form className="morningCard" onSubmit={saveMorning}><div className="modalHead"><div><span>오늘 시작</span><h2>{greeting}</h2></div><button type="button" className="softBtn" onClick={()=>setShowMorning(false)}>나중에</button></div><label>오늘 목표<textarea required value={local.goal} onChange={e=>update("goal",e.target.value)}/></label><label>선택한 이유<textarea value={local.reason} onChange={e=>update("reason",e.target.value)}/></label><label>오늘 즐길 것<textarea value={local.enjoyment} onChange={e=>update("enjoyment",e.target.value)}/></label><fieldset><legend>감사 3가지</legend>{[0,1,2].map(i=><input key={i} value={local.gratitude[i]??""} onChange={e=>update("gratitude",local.gratitude.map((x,j)=>j===i?e.target.value:x))}/>)}</fieldset><button className="goldBtn">오늘 시작하기</button></form></div>}
+  {showMorning&&<div className="overlay"><form className="morningCard" onSubmit={saveMorning}><div className="modalHead"><div><span>오늘 시작</span><h2>{greeting}</h2></div><button type="button" className="softBtn" onClick={()=>setShowMorning(false)}>나중에</button></div>{currentWeeklyPlan?.direction&&<p className="morningPlanReference">이번 주 방향 · {currentWeeklyPlan.direction}</p>}<label>연결할 주간 목표<select value={local.parentWeeklyGoalId??""} onChange={e=>update("parentWeeklyGoalId",e.target.value||undefined)}><option value="">연결하지 않음</option>{currentWeeklyGoals.map(goal=><option key={goal.id} value={goal.id}>{goal.title}</option>)}</select></label><label>오늘 목표<textarea required value={local.goal} onChange={e=>update("goal",e.target.value)}/></label><label>선택한 이유<textarea value={local.reason} onChange={e=>update("reason",e.target.value)}/></label><label>오늘 즐길 것<textarea value={local.enjoyment} onChange={e=>update("enjoyment",e.target.value)}/></label><fieldset><legend>감사 3가지</legend>{[0,1,2].map(i=><input key={i} value={local.gratitude[i]??""} onChange={e=>update("gratitude",local.gratitude.map((x,j)=>j===i?e.target.value:x))}/>)}</fieldset><button className="goldBtn">오늘 시작하기</button></form></div>}
   <JeongShellNavigation groups={groups} activeView={view} onNavigate={next=>navigateTo(next as View)}/>
-  <main className={`contentArea view-${view} ${view==="home"?homeStyles.homeScope:""} ${view==="review"?reviewStyles.reviewScope:""} ${pageLoading?"pageLoading":""}`}>{view==="home"?<HomeHero
+  <main className={`contentArea ${themeStyles.themeScope} view-${view} ${view==="home"?homeStyles.homeScope:""} ${view==="review"?reviewStyles.reviewScope:""} ${pageLoading?"pageLoading":""}`}>{view==="home"?<HomeHero
    title={greeting} theme={theme}
    dateLabel={now.toLocaleDateString("ko-KR",{year:"numeric",month:"long",day:"numeric",weekday:"short"})} timeLabel={now.toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"})}
    weatherLoading={weatherLoading} weatherIcon={weatherIcon(weather?.code??0)} weatherTemperature={weather?`${Math.round(weather.temperature)}°`:"—"} weatherLabel={weather?weatherLabel(weather.code):"날씨 확인 불가"} weatherDetail={weather?`${weather.location} · 체감 ${Math.round(weather.apparent)}°`:"광주 기준으로 다시 시도"}
@@ -832,20 +886,22 @@ export function Dashboard(){
    <section className={homeStyles.workspace}>
     <header className={homeStyles.workspaceHeader}>
      <div><span>오늘의 운영</span><h2>하루를 시작하고, 중요한 것에 집중합니다.</h2></div>
-     <button className={`goldBtn morningSaveButton ${local.morningDate===todayKey()?"saved":""}`} onClick={()=>{setLocal(s=>({...s,morningDate:todayKey()}));notify("오늘 아침 기록을 저장했습니다.")}}>{local.morningDate===todayKey()?"✓ 저장 완료":"오늘 아침 기록 저장"}</button>
+     <HomePeriodSwitcher value={homePeriod} onChange={setHomePeriod}/>
+     <ContextFilter contexts={local.contexts} value={contextFilter} onChange={setContextFilter}/>
+     <button className={`goldBtn morningSaveButton ${local.morningDate===todayKey()?"saved":""}`} onClick={()=>{setLocal(persistMorning);notify("오늘 아침 기록을 저장했습니다.")}}>{local.morningDate===todayKey()?"✓ 저장 완료":"오늘 아침 기록 저장"}</button>
     </header>
     <div className={homeStyles.workspaceBody}>
      <aside className={homeStyles.dailyRail}>
       <label><span>운영 날짜</span><input type="date" value={dayDate} onChange={e=>{setDayDate(e.target.value);if(e.target.value!==todayKey())setView("day")}}/></label>
       <div className={homeStyles.railMetric}><i className="overviewIcon orange">▣</i><span>다음 일정</span><strong>{todayEvents.find(e=>new Date(e.end).getTime()>Date.now())?.title??"일정 없음"}</strong><small>{todayEvents.find(e=>new Date(e.end).getTime()>Date.now())?eventTime(todayEvents.find(e=>new Date(e.end).getTime()>Date.now())!.start):"오늘 일정 완료"}</small></div>
       <div className={homeStyles.railMetric}><i className="overviewIcon blue">▦</i><span>오늘 일정</span><strong>{todayEvents.length}개</strong><small>{todayEvents.filter(e=>new Date(e.end).getTime()>Date.now()).length}개 남음</small></div>
-      <div className={homeStyles.railMetric}><i className="overviewIcon green">✓</i><span>남은 할 일</span><strong>{local.tasks.filter(t=>t.bucket==="today"&&!t.done).length}개</strong><small>오늘 처리할 항목</small></div>
-      <div className={homeStyles.railProgress}><div className="progressRing" style={{"--progress":`${Math.round(local.tasks.filter(t=>t.bucket==="today"&&t.done&&t.doneAt===todayKey()).length/Math.max(1,local.tasks.filter(t=>t.bucket==="today"&&(!t.done||t.doneAt===todayKey())).length)*100)}%`} as React.CSSProperties}><strong>{Math.round(local.tasks.filter(t=>t.bucket==="today"&&t.done&&t.doneAt===todayKey()).length/Math.max(1,local.tasks.filter(t=>t.bucket==="today"&&(!t.done||t.doneAt===todayKey())).length)*100)}%</strong></div><span>오늘 진행률<small>목표 대비</small></span></div>
+      <div className={homeStyles.railMetric}><i className="overviewIcon green">✓</i><span>남은 할 일</span><strong>{contextTasks.filter(t=>t.bucket==="today"&&!t.done).length}개</strong><small>오늘 처리할 항목</small></div>
+      <div className={homeStyles.railProgress}><div className="progressRing" style={{"--progress":`${Math.round(contextTasks.filter(t=>t.bucket==="today"&&t.done&&t.doneAt===todayKey()).length/Math.max(1,contextTasks.filter(t=>t.bucket==="today"&&(!t.done||t.doneAt===todayKey())).length)*100)}%`} as React.CSSProperties}><strong>{Math.round(contextTasks.filter(t=>t.bucket==="today"&&t.done&&t.doneAt===todayKey()).length/Math.max(1,contextTasks.filter(t=>t.bucket==="today"&&(!t.done||t.doneAt===todayKey())).length)*100)}%</strong></div><span>오늘 진행률<small>목표 대비</small></span></div>
      </aside>
      <article className={homeStyles.operationPanel}>
-      <div className={homeStyles.operationTitle}><span>Morning Direction</span><h2>오늘의 방향을 정합니다.</h2></div>
+      <div className={homeStyles.operationTitle}><span>Morning Direction</span><h2>오늘의 방향을 정합니다.</h2>{(currentWeeklyPlan?.direction||currentMonthlyPlan?.direction)&&<small>이번 주 · {currentWeeklyPlan?.direction||"미정"}　/　이번 달 · {currentMonthlyPlan?.direction||"미정"}</small>}</div>
       <div className="morningGrid">
-       <label>🎯 그날 목표<textarea value={local.goal} onChange={e=>update("goal",e.target.value)} placeholder="오늘의 가장 중요한 목표는?"/></label>
+       <label>🎯 그날 목표<select value={local.parentWeeklyGoalId??""} onChange={e=>update("parentWeeklyGoalId",e.target.value||undefined)}><option value="">주간 목표 연결 안 함</option>{currentWeeklyGoals.map(goal=><option key={goal.id} value={goal.id}>{goal.title}</option>)}</select><textarea value={local.goal} onChange={e=>update("goal",e.target.value)} placeholder="오늘의 가장 중요한 목표는?"/></label>
        <label>💗 그날 즐길 것<textarea value={local.enjoyment} onChange={e=>update("enjoyment",e.target.value)} placeholder="오늘 무엇을 누리고 즐길 것인가?"/></label>
        <label>⭐ 선택한 이유<textarea value={local.reason} onChange={e=>update("reason",e.target.value)} placeholder="왜 이 목표가 오늘 가장 중요한가?"/></label>
        <label>🌿 감사 3가지<div className="gratitudeList">{[0,1,2].map(i=><div key={i}><b>{i+1}.</b><input value={local.gratitude[i]??""} onChange={e=>update("gratitude",local.gratitude.map((x,j)=>j===i?e.target.value:x))}/></div>)}</div></label>
@@ -853,11 +909,25 @@ export function Dashboard(){
      </article>
     </div>
    </section>
-   <section className={homeStyles.supportGrid}>
+   {false&&<section className={homeStyles.supportGrid}>
     <article className="premiumCard reportPanel"><div className="cardTitle"><h2>🧠 오늘 보고</h2></div><div className="briefBubble"><strong>현재 상태</strong>{briefing.map(x=><p key={x}>• {x}</p>)}<p className="recommend">추천 · {todayTasks[0]?.title??todayEvents[0]?.title??"오늘 목표를 시작할 첫 행동 하나를 정하세요."}</p></div></article>
-    <aside className="rightRail"><article className="premiumCard"><div className="cardTitle"><h2>▣ 오늘 일정</h2><button onClick={()=>navigateTo("calendar")}>전체 보기</button></div><div className="compactList">{todayEvents.slice(0,5).map(e=>{const s=eventStatus(e);return <article key={e.id} onClick={()=>openEvent(e)}><time>{eventTime(e.start)}</time><div><strong>{e.title}</strong><small>{e.location||"장소 미입력"}</small></div><span className={s==="완료"?"done":s==="진행 중"?"doing":"planned"}>{s}</span></article>})}{!todayEvents.length&&<p>오늘 일정이 없습니다.</p>}</div></article><article className="premiumCard"><div className="cardTitle"><h2>⚠ 확인이 필요한 것</h2><button onClick={()=>setView("tasks")}>전체 보기</button></div><div className="attentionList">{todayTasks.slice(0,3).map(t=><article key={t.id}><b>□</b><div><strong>{t.title}</strong><small>{t.scheduledAt?new Date(t.scheduledAt).toLocaleString("ko-KR"):"오늘 할 일"}</small></div></article>)}{duePeople.slice(0,2).map(p=><article key={p.id}><b>●</b><div><strong>{p.name} 연락</strong><small>{p.note||p.tags.join(" · ")}</small></div></article>)}{!todayTasks.length&&!duePeople.length&&<p>확인할 항목이 없습니다.</p>}</div></article><article className="premiumCard"><div className="cardTitle"><h2>📁 진행 중인 프로젝트</h2><button onClick={()=>setView("projects")}>전체 보기</button></div>{activeProjects.slice(0,3).map(p=><div className="miniProject" key={p.id}><div><strong>{p.name}</strong><span>{progress(p)}%</span></div><i><b style={{width:`${progress(p)}%`}}/></i></div>)}</article></aside>
-   </section>
+    <aside className="rightRail"><article className="premiumCard"><div className="cardTitle"><h2>▣ 오늘 일정</h2><button onClick={()=>navigateTo("calendar")}>전체 보기</button></div><div className="compactList">{todayEvents.slice(0,5).map(e=>{const s=eventStatus(e);return <article key={e.id} onClick={()=>openEvent(e)}><time>{eventTime(e.start)}</time><div><strong>{e.title}</strong><small>{e.location||"장소 미입력"}</small></div><span className={s==="완료"?"done":s==="진행 중"?"doing":"planned"}>{s}</span></article>})}{!todayEvents.length&&<p>오늘 일정이 없습니다.</p>}</div></article><article className="premiumCard"><div className="cardTitle"><h2>⚠ 확인이 필요한 것</h2><button onClick={()=>setView("tasks")}>전체 보기</button></div><div className="attentionList">{todayTasks.slice(0,3).map(t=><article key={t.id}><b>□</b><div><strong>{t.title}</strong><small>{t.scheduledAt?new Date(t.scheduledAt).toLocaleString("ko-KR"):"오늘 할 일"}</small></div></article>)}{duePeople.slice(0,2).map(p=><article key={p.id}><b>●</b><div><strong>{p.name} 연락</strong><small>{p.note||p.tags.join(" · ")}</small></div></article>)}{!todayTasks.length&&!duePeople.length&&<p>확인할 항목이 없습니다.</p>}</div></article><article className="premiumCard"><div className="cardTitle"><h2>↻ 오늘 반복 업무</h2><button onClick={()=>{setTaskSection("recurring");setView("tasks")}}>전체 보기</button></div><div className="attentionList">{todayRecurring.slice(0,3).map(item=><article key={item.task.id}><b>{item.status==="done"?"✓":item.status==="skipped"?"–":"□"}</b><div><strong>{item.task.title}</strong><small>{describeRecurrence(item.task)}{item.task.timeOfDay?` · ${item.task.timeOfDay}`:""}</small></div></article>)}{!todayRecurring.length&&<p>오늘 반복 업무가 없습니다.</p>}</div><small>{todayRecurring.filter(item=>item.status==="done").length} / {todayRecurring.length} 완료</small></article><article className="premiumCard"><div className="cardTitle"><h2>📁 진행 중인 프로젝트</h2><button onClick={()=>setView("projects")}>전체 보기</button></div>{activeProjects.slice(0,3).map(p=><div className="miniProject" key={p.id}><div><strong>{p.name}</strong><span>{progress(p)}%</span></div><i><b style={{width:`${progress(p)}%`}}/></i></div>)}</article></aside>
+   </section>}
+   <HomeOperations summary={homeSummary} onNavigate={target=>{
+    if(target==="recurring"){setTaskSection("recurring");navigateTo("tasks");return}
+    navigateTo(target)
+   }}/>
   </>}
+
+  {(view==="weekly-plan"||view==="monthly-plan")&&<PlanningWorkspace
+   horizon={view==="monthly-plan"?"MONTH":"WEEK"} range={planningRange}
+   contexts={local.contexts} contextFilter={contextFilter} onContextFilter={setContextFilter}
+   plans={local.plans} goals={local.goals} projects={local.projects} tasks={local.tasks}
+   recurringTasks={local.recurringTasks} completions={local.recurringTaskCompletions} events={events}
+   eventContextId={event=>getCalendarContextId(local.calendarContextMappings,event.calendarId)}
+   onNavigate={direction=>{const next=view==="monthly-plan"?(direction<0?getPreviousMonth(planningAnchor):getNextMonth(planningAnchor)):(direction<0?getPreviousWeek(planningAnchor):getNextWeek(planningAnchor));setPlanningAnchor(next.start)}}
+   onUpsertPlan={upsertPlan} onUpsertGoal={upsertGoal} onRemoveGoal={id=>update("goals",local.goals.filter(goal=>goal.id!==id&&goal.parentGoalId!==id))}
+  />}
 
 
   {view==="day"&&(()=>{
@@ -874,6 +944,7 @@ export function Dashboard(){
     <h2>{dayDate===todayKey()?"오늘을 한눈에 봅니다.":`${dayDate}의 기록`}</h2>
     <p>{dayEvents.length}개 일정 · {remainingTasks.length}개 남은 할 일 · {dayActivities.length}개 활동 기록</p>
    </div>
+   <ContextFilter contexts={local.contexts} value={contextFilter} onChange={setContextFilter}/>
    <div className="dayHistoryControls"><label className="dayDateControl"><span>날짜</span><input type="date" value={dayDate} onChange={e=>setDayDate(e.target.value)}/></label><button onClick={()=>{setDayDate(todayKey());setView("home")}}>오늘로 돌아가기</button></div>
   </section>
 
@@ -903,6 +974,18 @@ export function Dashboard(){
        <button type="button" className="dayTaskEditArea" onClick={()=>setEditingTask({...t})}><span>{t.title}</span>{t.scheduledAt&&<time>{eventTime(t.scheduledAt)}</time>}</button>
       </div>)}
       {!dayTasks.length&&<button className="dayEmptyAction" onClick={()=>setView("tasks")}>+ 오늘 할 일 추가</button>}
+     </div>
+    </article>
+
+    <article className="premiumCard dayCompactCard">
+     <div className="dayCardHead"><div><span>반복</span><h3>오늘의 반복 업무</h3></div><button onClick={()=>{setTaskSection("recurring");setView("tasks")}}>관리</button></div>
+     <div className="dayList">
+      {dayRecurring.slice(0,8).map(item=><div className={`dayTaskRow ${item.status?"done":""}`} key={item.task.id}>
+       <button type="button" className={`dayTaskToggle ${item.status==="done"?"checked":""}`} aria-label={`${item.task.title} 완료`} onClick={()=>setRecurringCompletion(item.task.id,item.occurrenceDate,"done")}><span>{item.status==="done"?"✓":""}</span></button>
+       <div className="dayTaskEditArea"><span>{item.task.title}</span><ContextTag contexts={local.contexts} contextId={item.task.contextId}/>{item.task.timeOfDay&&<time>{item.task.timeOfDay}</time>}</div>
+       <button type="button" className="taskEditBtn" onClick={()=>setRecurringCompletion(item.task.id,item.occurrenceDate,"skipped")}>{item.status==="skipped"?"되돌리기":"건너뜀"}</button>
+      </div>)}
+      {!dayRecurring.length&&<button className="dayEmptyAction" onClick={()=>{setTaskSection("recurring");setView("tasks")}}>+ 반복 업무 추가</button>}
      </div>
     </article>
 
@@ -941,10 +1024,23 @@ export function Dashboard(){
 
   {view==="calendar"&&<div className="calendarWorkspace"><section className="premiumCard calendarPage"><div className="calendarCompactHeader">
     <div><span>일정</span><h2>{calendarMode==="week"?"주간 일정":calendarMode==="month"?"월간 일정":"하루 일정"}</h2></div>
+    <ContextFilter contexts={local.contexts} value={contextFilter} onChange={setContextFilter}/>
     <div className="calendarHeaderHint">
  {calendarMode==="month"?"날짜를 눌러 관리 · 일정 문구를 눌러 수정":calendarMode==="week"?"일정 카드를 눌러 수정 · 요일을 눌러 날짜 관리":"일정을 눌러 수정·삭제"}
 </div>
    </div>
+   <details className="eventOptionSection">
+    <summary>캘린더 분류</summary>
+    <div className={planningContextStyles.mapping}>
+     {calendarOptions.map(calendar=>{
+      const contextId=getCalendarContextId(local.calendarContextMappings,calendar.id);
+      return <div className={planningContextStyles.mappingRow} key={calendar.id}>
+       <strong>{calendar.name}</strong>
+       <ContextPicker contexts={local.contexts} value={contextId} onChange={value=>setCalendarContext(calendar.id,value)} label="Context"/>
+       {contextId&&<label>기본 캘린더 <input type="radio" name={`default-${contextId}`} checked={local.contextCalendarPreferences.some(preference=>preference.contextId===contextId&&preference.defaultCalendarId===calendar.id)} onChange={()=>setDefaultContextCalendar(contextId,calendar.id)}/></label>}
+      </div>})}
+    </div>
+   </details>
    <div className="calendarToolbar compactToolbar">
     <div className="calendarPrimaryControls"><button onClick={()=>{const n=new Date();setCursor(n);setSelectedDate(n)}}>오늘</button><button onClick={()=>{const d=new Date(cursor);calendarMode==="month"?d.setMonth(d.getMonth()-1):calendarMode==="week"?d.setDate(d.getDate()-7):d.setDate(d.getDate()-1);setCursor(d)}}>‹</button><button onClick={()=>{const d=new Date(cursor);calendarMode==="month"?d.setMonth(d.getMonth()+1):calendarMode==="week"?d.setDate(d.getDate()+7):d.setDate(d.getDate()+1);setCursor(d)}}>›</button><strong>{cursor.toLocaleDateString("ko-KR",{year:"numeric",month:"long",day:calendarMode==="day"?"numeric":undefined})}</strong></div>
     <div className={`calendarCenterControls ${calendarMode!=="month"?"isReserved":""}`} aria-hidden={calendarMode!=="month"}><div className="monthDisplayTabs"><button disabled={calendarMode!=="month"} className={calendarMode==="month"&&monthDisplay==="calendar"?"active":""} onClick={()=>setMonthDisplay("calendar")}>달력</button><button disabled={calendarMode!=="month"} className={calendarMode==="month"&&monthDisplay==="list"?"active":""} onClick={()=>setMonthDisplay("list")}>목록</button></div></div>
@@ -952,7 +1048,7 @@ export function Dashboard(){
    </div>
    {calendarError&&<p className="calendarError">{calendarError}</p>}
    {calendarMode==="month"&&monthDisplay==="calendar"&&<div className="monthCalendar"><div className="weekHeader">{["일","월","화","수","목","금","토"].map(x=><span key={x}>{x}</span>)}</div><div className="monthGrid">{monthDays(cursor).map(d=>{
-    const key=todayKey(d);const de=events.filter(e=>eventOccursOnDate(e,key));
+    const key=todayKey(d);const de=contextEvents.filter(e=>eventOccursOnDate(e,key));
     return <button key={d.toISOString()} className={`${d.getMonth()!==cursor.getMonth()?"outside":""} ${key===selectedDateKey?"selected":""} ${key===todayKey()?"todayCell":""}`}
      onClick={()=>{setSelectedDate(d);setShowSelectedDay(true)}} onDoubleClick={()=>openNewEvent(d)}>
      <b>{d.getDate()}</b>{de.slice(0,2).map(e=><span key={e.id} title={`${eventTime(e.start)} ${e.title}`} onClick={ev=>{ev.stopPropagation();setSelectedDate(d);openEvent(e)}} aria-label={`${e.title} 일정 수정`}>{eventTime(e.start)} {e.title}</span>)}{de.length>2&&<small>+{de.length-2}개</small>}
@@ -1018,15 +1114,31 @@ export function Dashboard(){
   </aside>}
  </div>}
 
-  {view==="tasks"&&<><section className="premiumCard taskComposer"><input value={taskTitle} onChange={e=>setTaskTitle(e.target.value)} placeholder="할 일을 입력하세요"/><select value={taskBucket} onChange={e=>setTaskBucket(e.target.value as TaskBucket)}>{Object.entries(bucketLabels).map(([v,l])=><option value={v} key={v}>{l}</option>)}</select><input type="datetime-local" value={taskWhen} onChange={e=>setTaskWhen(e.target.value)}/><input type="number" min="15" step="15" value={taskDuration} onChange={e=>setTaskDuration(Number(e.target.value))}/><select value={taskProject} onChange={e=>setTaskProject(e.target.value)}><option value="">프로젝트 없음</option>{local.projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select><label><input type="checkbox" checked={taskSync} onChange={e=>setTaskSync(e.target.checked)}/> 캘린더에도 저장</label><button className="goldBtn" onClick={addTask}>추가</button></section><section className="premiumCard"><div className="taskTabs">{(Object.keys(bucketLabels) as TaskBucket[]).map(b=><button className={taskBucket===b?"active":""} onClick={()=>setTaskBucket(b)} key={b}>{bucketLabels[b]}</button>)}</div><div className="rows">{local.tasks.filter(t=>t.bucket===taskBucket&&(taskBucket!=="today"||!t.done||t.doneAt===todayKey())).sort((a,b)=>Number(a.done)-Number(b.done)).map(t=><article key={t.id}><button type="button" className={`taskCheck ${t.done?"checked":""}`} role="checkbox" aria-checked={t.done} aria-label={`${t.title} ${t.done?"미완료로 변경":"완료 처리"}`} onClick={e=>{e.preventDefault();e.stopPropagation();update("tasks",local.tasks.map(x=>x.id===t.id?{...x,done:!x.done,doneAt:x.done?undefined:todayKey()}:x))}}><span aria-hidden="true">{t.done?"✓":""}</span></button><div className={t.done?"lineDone":""}><strong>{t.title}</strong><small>{t.scheduledAt?new Date(t.scheduledAt).toLocaleString("ko-KR"):"날짜 없음"}{t.calendarEventId?" · Google Calendar":""}</small></div><div className="taskRowActions"><button className="taskEditBtn" aria-label="할 일 수정" title="수정" onClick={()=>setEditingTask({...t})}><span aria-hidden="true">✎</span><em>수정</em></button><button className="taskDeleteBtn" aria-label="할 일 삭제" title="삭제" onClick={()=>removeTask(t)}><span aria-hidden="true">×</span><em>삭제</em></button></div></article>)}</div></section></>}
+  {view==="tasks"&&<>
+   {taskSection!=="recurring"&&<section className="premiumCard taskComposer">
+    <input value={taskTitle} onChange={e=>setTaskTitle(e.target.value)} placeholder="할 일을 입력하세요"/>
+    <select value={taskBucket} onChange={e=>setTaskBucket(e.target.value as TaskBucket)}>{Object.entries(bucketLabels).map(([v,l])=><option value={v} key={v}>{l}</option>)}</select>
+    <input type="datetime-local" value={taskWhen} onChange={e=>setTaskWhen(e.target.value)}/>
+    <input type="number" min="15" step="15" value={taskDuration} onChange={e=>setTaskDuration(Number(e.target.value))}/>
+    <select value={taskProject} onChange={e=>setTaskProject(e.target.value)}><option value="">프로젝트 없음</option>{local.projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select>
+    <ContextPicker contexts={local.contexts} value={taskContext} onChange={value=>setTaskContext(value??"personal")} allowUnassigned={false}/>
+    <label><input type="checkbox" checked={taskSync} onChange={e=>setTaskSync(e.target.checked)}/> 캘린더에도 저장</label><button className="goldBtn" onClick={addTask}>추가</button>
+   </section>}
+   <section className="premiumCard">
+    <div className="cardTitle"><ContextFilter contexts={local.contexts} value={contextFilter} onChange={setContextFilter}/>{taskSection==="recurring"&&<button className="goldBtn" onClick={()=>setRecurringEditor("new")}>+ 반복 업무</button>}</div>
+    <div className="taskTabs">{(Object.keys(bucketLabels) as TaskBucket[]).map(bucket=><button className={taskSection===bucket?"active":""} onClick={()=>{setTaskBucket(bucket);setTaskSection(bucket)}} key={bucket}>{bucketLabels[bucket]}</button>)}<button className={taskSection==="recurring"?"active":""} onClick={()=>setTaskSection("recurring")}>반복 업무</button></div>
+    {taskSection!=="recurring"?<div className="rows">{contextTasks.filter(t=>t.bucket===taskSection&&(taskSection!=="today"||!t.done||t.doneAt===todayKey())).sort((a,b)=>Number(a.done)-Number(b.done)).map(t=><article key={t.id}><button type="button" className={`taskCheck ${t.done?"checked":""}`} role="checkbox" aria-checked={t.done} aria-label={`${t.title} ${t.done?"미완료로 변경":"완료 처리"}`} onClick={e=>{e.preventDefault();e.stopPropagation();update("tasks",local.tasks.map(x=>x.id===t.id?{...x,done:!x.done,doneAt:x.done?undefined:todayKey()}:x))}}><span aria-hidden="true">{t.done?"✓":""}</span></button><div className={t.done?"lineDone":""}><strong>{t.title}</strong><ContextTag contexts={local.contexts} contextId={t.contextId}/><small>{t.scheduledAt?new Date(t.scheduledAt).toLocaleString("ko-KR"):"날짜 없음"}{t.calendarEventId?" · Google Calendar":""}</small></div><div className="taskRowActions"><button className="taskEditBtn" aria-label="할 일 수정" title="수정" onClick={()=>setEditingTask({...t})}><span aria-hidden="true">✎</span><em>수정</em></button><button className="taskDeleteBtn" aria-label="할 일 삭제" title="삭제" onClick={()=>removeTask(t)}><span aria-hidden="true">×</span><em>삭제</em></button></div></article>)}</div>:<div className="rows">{local.recurringTasks.filter(task=>contextFilter==="ALL"||local.contexts.find(context=>context.key===contextFilter)?.id===task.contextId).sort((a,b)=>Number(b.isActive)-Number(a.isActive)).map(task=><article key={task.id}><button type="button" className={`taskCheck ${task.isActive?"checked":""}`} aria-label={`${task.title} ${task.isActive?"일시 중지":"다시 시작"}`} onClick={()=>setRecurringActive(task,!task.isActive)}><span>{task.isActive?"↻":"Ⅱ"}</span></button><div><strong>{task.title}</strong><ContextTag contexts={local.contexts} contextId={task.contextId}/><small>{describeRecurrence(task)}{task.timeOfDay?` · ${task.timeOfDay}`:""} · {task.priority==="high"?"높은 우선순위":task.priority==="low"?"낮은 우선순위":"보통"}{task.showOnCalendar?" · Google Calendar":""}{!task.isActive?" · 일시 중지":""}</small></div><div className="taskRowActions"><button className="taskEditBtn" onClick={()=>setRecurringEditor(task)}>수정</button><button className="taskDeleteBtn" onClick={()=>setRecurringActive(task,false)}>삭제(보관)</button></div></article>)}{!local.recurringTasks.some(task=>contextFilter==="ALL"||local.contexts.find(context=>context.key===contextFilter)?.id===task.contextId)&&<p>반복 업무가 없습니다.</p>}</div>}
+   </section>
+  </>}
 
-  {view==="projects"&&<div className="projectWorkspace">
+ {view==="projects"&&<div className="projectWorkspace">
  <aside className="premiumCard projectList">
-  <div className="cardTitle"><div><h2>프로젝트</h2><small>{local.projects.length}개 운영 중</small></div><button className="iconAddBtn" title="새 프로젝트" onClick={()=>setProjectDialog("project")}>＋</button></div>
-  <div className="projectListItems">{local.projects.map(p=>{
+  <div className="cardTitle"><div><h2>프로젝트</h2><small>{contextProjects.length}개 운영 중</small></div><button className="iconAddBtn" title="새 프로젝트" onClick={()=>setProjectDialog("project")}>＋</button></div>
+  <ContextFilter contexts={local.contexts} value={contextFilter} onChange={setContextFilter}/>
+  <div className="projectListItems">{contextProjects.map(p=>{
    const completed=p.milestones.filter(m=>m.done).length;
    return <button className={selectedProject===p.id?"active":""} onClick={()=>setSelectedProject(p.id)} key={p.id}>
-    <div className="projectListTop"><strong>{p.name}</strong><span>{progress(p)}%</span></div>
+    <div className="projectListTop"><strong>{p.name}</strong><span>{progress(p)}%</span></div><ContextTag contexts={local.contexts} contextId={p.contextId}/>
     <div className="projectListMeta"><small className={`statusBadge ${p.status}`}>{projectStatusLabel[p.status]}</small><small>{completed}/{p.milestones.length} 완료</small></div>
     <div className="miniProgress"><i style={{width:`${progress(p)}%`}}></i></div>
    </button>
@@ -1052,6 +1164,7 @@ export function Dashboard(){
    <label><span>목표</span><textarea placeholder="완료했을 때 어떤 상태가 되어야 하나요?" value={selectedProjectData.goal} onChange={e=>update("projects",local.projects.map(p=>p.id===selectedProjectData.id?{...p,goal:e.target.value}:p))}/></label>
    <label className="nextActionField"><span>다음 행동</span><textarea placeholder="지금 바로 실행할 수 있는 한 가지" value={selectedProjectData.next} onChange={e=>update("projects",local.projects.map(p=>p.id===selectedProjectData.id?{...p,next:e.target.value}:p))}/></label>
    <label className="statusField"><span>상태</span><select value={selectedProjectData.status} onChange={e=>update("projects",local.projects.map(p=>p.id===selectedProjectData.id?{...p,status:e.target.value as Project["status"]}:p))}><option value="planning">기획</option><option value="active">진행 중</option><option value="review">검토 중</option><option value="done">완료</option></select></label>
+   <ContextPicker contexts={local.contexts} value={selectedProjectData.contextId} onChange={contextId=>update("projects",local.projects.map(p=>p.id===selectedProjectData.id?{...p,contextId}:p))}/>
   </section>
 
   <section className="projectSection">
@@ -1202,7 +1315,8 @@ export function Dashboard(){
 </section></>}
   </main>
 
-  {editingTask&&<div className="overlay"><div className="editModal"><div className="modalHead"><h2>할 일 수정</h2><button onClick={()=>setEditingTask(null)}>닫기</button></div><label>할 일<input value={editingTask.title} onChange={e=>setEditingTask({...editingTask,title:e.target.value})}/></label><div className="twoFields"><label>기간<select value={editingTask.bucket} onChange={e=>setEditingTask({...editingTask,bucket:e.target.value as TaskBucket})}>{Object.entries(bucketLabels).map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label><label>프로젝트<select value={editingTask.projectId??""} onChange={e=>setEditingTask({...editingTask,projectId:e.target.value||undefined})}><option value="">없음</option>{local.projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label></div><div className="twoFields"><label>날짜·시간<input type="datetime-local" value={editingTask.scheduledAt} onChange={e=>setEditingTask({...editingTask,scheduledAt:e.target.value})}/></label><label>예상 시간(분)<input type="number" value={editingTask.durationMinutes} onChange={e=>setEditingTask({...editingTask,durationMinutes:Number(e.target.value)})}/></label></div><label className="checkRow"><input type="checkbox" checked={editingTask.syncCalendar} onChange={e=>setEditingTask({...editingTask,syncCalendar:e.target.checked})}/>Google Calendar와 연결</label><button className="goldBtn" onClick={saveTaskEdit}>저장</button></div></div>}
+  {recurringEditor&&<RecurringTaskEditor key={recurringEditor==="new"?"new":recurringEditor.id} contexts={local.contexts} projects={local.projects} calendars={calendarOptions} initial={recurringEditor==="new"?undefined:recurringEditor} defaultContextId="personal" defaultCalendarId={getDefaultCalendarId(local.contextCalendarPreferences,local.calendarContextMappings,"personal",visibleCalendarIds[0]||"primary")} calendarForContext={contextId=>getDefaultCalendarId(local.contextCalendarPreferences,local.calendarContextMappings,contextId,visibleCalendarIds[0]||"primary")} onSave={saveRecurringTask} onCancel={()=>setRecurringEditor(null)}/>} 
+  {editingTask&&<div className="overlay"><div className="editModal"><div className="modalHead"><h2>할 일 수정</h2><button onClick={()=>setEditingTask(null)}>닫기</button></div><label>할 일<input value={editingTask.title} onChange={e=>setEditingTask({...editingTask,title:e.target.value})}/></label><div className="twoFields"><label>기간<select value={editingTask.bucket} onChange={e=>setEditingTask({...editingTask,bucket:e.target.value as TaskBucket})}>{Object.entries(bucketLabels).map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label><label>프로젝트<select value={editingTask.projectId??""} onChange={e=>setEditingTask({...editingTask,projectId:e.target.value||undefined})}><option value="">없음</option>{local.projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label></div><ContextPicker contexts={local.contexts} value={editingTask.contextId} onChange={contextId=>setEditingTask({...editingTask,contextId})}/><div className="twoFields"><label>날짜·시간<input type="datetime-local" value={editingTask.scheduledAt} onChange={e=>setEditingTask({...editingTask,scheduledAt:e.target.value})}/></label><label>예상 시간(분)<input type="number" value={editingTask.durationMinutes} onChange={e=>setEditingTask({...editingTask,durationMinutes:Number(e.target.value)})}/></label></div><label className="checkRow"><input type="checkbox" checked={editingTask.syncCalendar} onChange={e=>setEditingTask({...editingTask,syncCalendar:e.target.checked})}/>Google Calendar와 연결</label><button className="goldBtn" onClick={saveTaskEdit}>저장</button></div></div>}
   {editingActivity&&<div className="overlay"><div className="editModal"><div className="modalHead"><h2>활동 기록 수정</h2><button onClick={()=>setEditingActivity(null)}>닫기</button></div><div className="twoFields"><label>종류<select value={editingActivity.type} onChange={e=>setEditingActivity({...editingActivity,type:e.target.value as ActivityType})}>{Object.entries(activityLabels).map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label><label>날짜<input type="date" value={editingActivity.date} onChange={e=>setEditingActivity({...editingActivity,date:e.target.value})}/></label></div><label>제목<input value={editingActivity.title} onChange={e=>setEditingActivity({...editingActivity,title:e.target.value})}/></label><div className="twoFields"><label>시간(분)<input type="number" value={editingActivity.duration} onChange={e=>setEditingActivity({...editingActivity,duration:Number(e.target.value)})}/></label><label>수치<input type="number" step="0.1" value={editingActivity.amount} onChange={e=>setEditingActivity({...editingActivity,amount:Number(e.target.value)})}/></label></div><label>프로젝트<select value={editingActivity.projectId??""} onChange={e=>setEditingActivity({...editingActivity,projectId:e.target.value||undefined})}><option value="">없음</option>{local.projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label><label>기록<textarea value={editingActivity.note} onChange={e=>setEditingActivity({...editingActivity,note:e.target.value})}/></label><label>배운 것<textarea value={editingActivity.learned} onChange={e=>setEditingActivity({...editingActivity,learned:e.target.value})}/></label><label>적용할 것<textarea value={editingActivity.applied} onChange={e=>setEditingActivity({...editingActivity,applied:e.target.value})}/></label><button className="goldBtn" onClick={saveActivityEdit}>저장</button></div></div>}
   {editingNote&&<div className="overlay"><div className="editModal"><div className="modalHead"><h2>노트 수정</h2><button onClick={()=>setEditingNote(null)}>닫기</button></div><div className="twoFields"><label>분류<select value={editingNote.type} onChange={e=>setEditingNote({...editingNote,type:e.target.value as NoteType})}>{Object.entries(noteLabels).map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label><label>날짜<input type="date" value={editingNote.date} onChange={e=>setEditingNote({...editingNote,date:e.target.value})}/></label></div><label>제목<input value={editingNote.title} onChange={e=>setEditingNote({...editingNote,title:e.target.value})}/></label><label>프로젝트<select value={editingNote.projectId??""} onChange={e=>setEditingNote({...editingNote,projectId:e.target.value||undefined})}><option value="">없음</option>{local.projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label><label>내용<textarea value={editingNote.body} onChange={e=>setEditingNote({...editingNote,body:e.target.value})}/></label><button className="goldBtn" onClick={saveNoteEdit}>저장</button></div></div>}
   {editingPerson&&<div className="overlay"><div className="editModal personModal"><div className="modalHead"><h2>관계 상세</h2><button onClick={()=>setEditingPerson(null)}>닫기</button></div><div className="twoFields"><label>이름<input value={editingPerson.name} onChange={e=>setEditingPerson({...editingPerson,name:e.target.value})}/></label><label>태그<input value={editingPerson.tags.join(", ")} onChange={e=>setEditingPerson({...editingPerson,tags:e.target.value.split(",").map(x=>x.trim()).filter(Boolean)})}/></label></div><div className="twoFields"><label>전화<input value={editingPerson.phone??""} onChange={e=>setEditingPerson({...editingPerson,phone:e.target.value})}/></label><label>이메일<input value={editingPerson.email??""} onChange={e=>setEditingPerson({...editingPerson,email:e.target.value})}/></label></div><div className="twoFields"><label>최근 연락<input type="date" value={editingPerson.lastContact} onChange={e=>setEditingPerson({...editingPerson,lastContact:e.target.value})}/></label><label>다음 연락<input type="date" value={editingPerson.nextContact} onChange={e=>setEditingPerson({...editingPerson,nextContact:e.target.value})}/></label></div><label>관계 메모<textarea value={editingPerson.note} onChange={e=>setEditingPerson({...editingPerson,note:e.target.value})}/></label><section className="contactLogBox"><h3>연락 기록</h3><div className="contactLogComposer"><select value={contactChannel} onChange={e=>setContactChannel(e.target.value)}><option>문자</option><option>전화</option><option>카카오톡</option><option>이메일</option><option>대면</option></select><input value={contactSummary} onChange={e=>setContactSummary(e.target.value)} placeholder="무슨 이야기를 했는지"/><button onClick={addContactLog}>기록</button></div>{[...(editingPerson.logs??[])].reverse().map(log=><article key={log.id}><time>{log.date}</time><b>{log.channel}</b><span>{log.summary}</span></article>)}</section><button className="goldBtn" onClick={savePersonEdit}>저장</button></div></div>}
@@ -1228,6 +1342,7 @@ export function Dashboard(){
     <div className="dialogHeader"><div><span>새 프로젝트</span><h2>무엇을 현실로 만들까요?</h2><p>이름과 완료됐을 때의 모습을 먼저 정합니다.</p></div><button className="dialogClose" onClick={()=>setProjectDialog(null)}>×</button></div>
     <label><span>프로젝트 이름</span><input autoFocus value={newProjectName} onChange={e=>setNewProjectName(e.target.value)} placeholder="예: JEONG 실사용판 완성"/></label>
     <label><span>프로젝트 목표</span><textarea value={newProjectGoal} onChange={e=>setNewProjectGoal(e.target.value)} placeholder="완료했을 때 어떤 상태가 되어야 하나요?"/></label>
+    <ContextPicker contexts={local.contexts} value={newProjectContext} onChange={value=>setNewProjectContext(value??"personal")} allowUnassigned={false}/>
     <div className="dialogActions"><button className="btnSecondary" onClick={()=>setProjectDialog(null)}>취소</button><button className="goldBtn" onClick={createProject}>프로젝트 만들기</button></div>
    </section>
   </div>}
@@ -1266,7 +1381,8 @@ export function Dashboard(){
 </section>
  <section className="eventOptionSection"><div className="sectionTitleRow"><h3>알림</h3><button type="button" className="btnSecondary compactBtn" onClick={()=>setEventForm({...eventForm,reminders:[...eventForm.reminders,30]})}>+ 알림 추가</button></div><div className="reminderList">{eventForm.reminders.map((r,i)=><div key={i}><select value={r} onChange={e=>setEventForm({...eventForm,reminders:eventForm.reminders.map((x,j)=>j===i?Number(e.target.value):x)})}><option value="0">정시</option><option value="5">5분 전</option><option value="10">10분 전</option><option value="30">30분 전</option><option value="60">1시간 전</option><option value="120">2시간 전</option><option value="1440">1일 전</option><option value="2880">2일 전</option><option value="10080">1주 전</option></select><span>{reminderLabel(r)}</span><button type="button" className="btnTextDanger" aria-label="알림 삭제" onClick={()=>setEventForm({...eventForm,reminders:eventForm.reminders.filter((_,j)=>j!==i)})}>삭제</button></div>)}</div><p className="optionHint">Google Calendar 앱·웹 설정에 따라 휴대폰과 PC로 알림이 옵니다.</p></section>
  <section className="eventOptionSection"><h3>사람과 회의</h3><label>참석자 이메일<input value={eventForm.attendees} onChange={e=>setEventForm({...eventForm,attendees:e.target.value})} placeholder="쉼표로 구분"/></label><label className="checkRow"><input type="checkbox" checked={eventForm.addMeet} onChange={e=>setEventForm({...eventForm,addMeet:e.target.checked})}/>Google Meet 링크 만들기</label></section>
- <label>저장할 캘린더<select value={eventForm.calendarId} onChange={e=>setEventForm({...eventForm,calendarId:e.target.value})}>{calendarOptions.map(cal=><option key={cal.id} value={cal.id}>{cal.name}</option>)}</select></label>
+ <ContextPicker contexts={local.contexts} value={eventForm.contextId} onChange={contextId=>setEventForm({...eventForm,contextId,calendarId:contextId?getDefaultCalendarId(local.contextCalendarPreferences,local.calendarContextMappings,contextId,eventForm.calendarId):eventForm.calendarId})}/>
+ <label>저장할 캘린더<select value={eventForm.calendarId} onChange={e=>setEventForm({...eventForm,calendarId:e.target.value,contextId:getCalendarContextId(local.calendarContextMappings,e.target.value)})}>{calendarOptions.map(cal=><option key={cal.id} value={cal.id}>{cal.name}</option>)}</select></label>
  <div className="twoFields eventLocationRow"><label>장소<input value={eventForm.location} onChange={e=>setEventForm({...eventForm,location:e.target.value})}/></label>
  <fieldset className="eventColorField">
   <legend>색상</legend>

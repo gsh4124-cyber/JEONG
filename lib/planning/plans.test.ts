@@ -1,0 +1,7 @@
+import assert from "node:assert/strict";import test from "node:test";import type {Context,Goal,Plan} from "./types";const modulePromise=import("./plans"+".ts");
+const now="2026-08-10T00:00:00Z";const plans:Plan[]=[{id:"p",horizon:"WEEK",periodStart:"2026-08-10",periodEnd:"2026-08-16",direction:"집중",createdAt:now,updatedAt:now}];
+const goals:Goal[]=[{id:"m",horizon:"MONTH",periodStart:"2026-08-01",periodEnd:"2026-08-31",title:"월 목표",status:"active",priority:"high",contextId:"work",createdAt:now,updatedAt:now},{id:"w",horizon:"WEEK",parentGoalId:"m",periodStart:"2026-08-10",periodEnd:"2026-08-16",title:"주 목표",status:"done",priority:"normal",contextId:"work",createdAt:now,updatedAt:now}];
+const contexts:Context[]=[{id:"work",key:"WORK",name:"직장",sortOrder:1,isActive:true}];
+test("plan lookup uses horizon period and context",async()=>{const {getPlanForPeriod}=await modulePromise;assert.equal(getPlanForPeriod(plans,"WEEK","2026-08-10")?.id,"p")});
+test("goal period and parent-child selectors",async()=>{const {getGoalsForPeriod,getChildGoals}=await modulePromise;assert.deepEqual(getGoalsForPeriod(goals,"WEEK","2026-08-10").map((g:Goal)=>g.id),["w"]);assert.deepEqual(getChildGoals(goals,"m").map((g:Goal)=>g.id),["w"])});
+test("context and active goal selectors",async()=>{const {getGoalsByContext,getActiveGoals}=await modulePromise;assert.equal(getGoalsByContext(goals,contexts,"WORK").length,2);assert.deepEqual(getActiveGoals(goals).map((g:Goal)=>g.id),["m"])});
