@@ -250,7 +250,7 @@ function recurrenceRule(form:EventForm){
 
 export function Dashboard({user}: {user?:DashboardUser}){
  const [local,setLocal]=useState<LocalState>(defaultState); const [hydrated,setHydrated]=useState(false); const [theme,setTheme]=useState<"light"|"dark">("light");
- const [view,setView]=useState<View>("home"); const [search,setSearch]=useState(""); const [showMorning,setShowMorning]=useState(false);
+ const [view,setView]=useState<View>("home"); const viewRef=useRef<View>("home"); const historyReadyRef=useRef(false); const [search,setSearch]=useState(""); const [showMorning,setShowMorning]=useState(false);
  const [dayExecutionMode,setDayExecutionMode]=useState<"todos"|"routines">("todos"); const [dayExecutionContext,setDayExecutionContext]=useState<ContextFilterValue>("ALL");
  const [events,setEvents]=useState<EventItem[]>([]); const [operationalEvents,setOperationalEvents]=useState<EventItem[]>([]); const deletedEventTombstones=useRef<DeletedEventTombstone[]>([]); const [loading,setLoading]=useState(false); const [calendarError,setCalendarError]=useState(""); const [operationalCalendarError,setOperationalCalendarError]=useState(""); const [calendarReady,setCalendarReady]=useState(false);
  const [calendarMode,setCalendarModeState]=useState<CalendarMode>("month"); const [cursor,setCursor]=useState(new Date()); const [selectedDate,setSelectedDate]=useState(new Date()); const [calendarTaskRange,setCalendarTaskRange]=useState<"day"|"week"|"month">("day"); const [calendarDayPreview,setCalendarDayPreview]=useState<Date|null>(null); const [eventReturnDate,setEventReturnDate]=useState<Date|null>(null); const [eventForm,setEventForm]=useState<EventForm|null>(null);
@@ -630,34 +630,69 @@ export function Dashboard({user}: {user?:DashboardUser}){
    {enableHighAccuracy:false,timeout:6500,maximumAge:30*60*1000}
   );
  }
- function navigateTo(next:View,options?:{preserveOrigin?:boolean}){
-  if(next===view)return;
-  if(!options?.preserveOrigin)setPreviousView(view);
+ function navigateTo(next:View,options?:{preserveOrigin?:boolean;replaceHistory?:boolean}){
+  const current=viewRef.current;
+  if(next===current)return;
+  if(!options?.preserveOrigin)setPreviousView(current);
   if(next==="review")setReviewDate(todayKey());
-  // Keep JEONG navigation in browser/PWA history so Android back returns inside the app first.
-  if(typeof window!=="undefined")window.history.pushState({jeongView:next},"",window.location.href);
+  if(typeof window!=="undefined"&&historyReadyRef.current){
+   const state={jeong:true,jeongView:next};
+   if(options?.replaceHistory)window.history.replaceState(state,"",window.location.href);
+   else window.history.pushState(state,"",window.location.href);
+  }
+  viewRef.current=next;
   setPageLoading(true);
   setView(next);
   window.setTimeout(()=>setPageLoading(false),180);
  }
  function goBackFromDetail(){
   const target:View=["activities","notes","review","timeline"].includes(previousView)?"records":previousView;
-  setPageLoading(true);
-  setView(target);
-  window.setTimeout(()=>setPageLoading(false),180);
+  navigateTo(target,{preserveOrigin:true});
  }
+ useEffect(()=>{viewRef.current=view},[view]);
  useEffect(()=>{
-  if(typeof window==="undefined")return;
-  if(!window.history.state?.jeongView)window.history.replaceState({jeongView:view},"",window.location.href);
+  if(typeof window==="undefined"||historyReadyRef.current)return;
+  historyReadyRef.current=true;
+
+  // Preserve the real page that opened JEONG as an explicit boundary, then place
+  // JEONG Home above it. Internal navigation is pushed above Home from here on.
+  // Android/PWA Back therefore walks JEONG views first and can leave only from Home.
+  const initialState=window.history.state;
+  if(initialState?.jeong&&initialState?.jeongView&&VALID_VIEWS.has(initialState.jeongView as View)){
+   const initialView=initialState.jeongView as View;
+   viewRef.current=initialView;
+   setView(initialView);
+  }else{
+   window.history.replaceState({jeongBoundary:true},"",window.location.href);
+   window.history.pushState({jeong:true,jeongView:"home"},"",window.location.href);
+   viewRef.current="home";
+   setView("home");
+  }
+
   const onPopState=(event:PopStateEvent)=>{
    const next=event.state?.jeongView as View|undefined;
-   if(next&&VALID_VIEWS.has(next)){setPageLoading(true);setView(next);window.setTimeout(()=>setPageLoading(false),120);return}
-   // A history entry without JEONG state is the app boundary; keep Home as the safe root.
-   if(view!=="home"){window.history.pushState({jeongView:"home"},"",window.location.href);setView("home")}
+   if(event.state?.jeong&&next&&VALID_VIEWS.has(next)){
+    viewRef.current=next;
+    setPageLoading(true);
+    setView(next);
+    window.setTimeout(()=>setPageLoading(false),120);
+    return;
+   }
+
+   // We reached JEONG's boundary. If an internal view is still visible, consume
+   // that Back and restore Home. When Home is already visible, the next Back may
+   // leave JEONG normally.
+   if(viewRef.current!=="home"){
+    window.history.pushState({jeong:true,jeongView:"home"},"",window.location.href);
+    viewRef.current="home";
+    setPageLoading(true);
+    setView("home");
+    window.setTimeout(()=>setPageLoading(false),120);
+   }
   };
   window.addEventListener("popstate",onPopState);
   return()=>window.removeEventListener("popstate",onPopState);
- },[view]);
+ },[]);
  function notify(message:string,kind:"success"|"info"|"error"="success"){
   setToast({message,kind});
   window.setTimeout(()=>setToast(null),3000);
