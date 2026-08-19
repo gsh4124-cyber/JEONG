@@ -23,31 +23,36 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
     return { ...token, error: "RefreshTokenError" };
   }
 
-  const response = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: process.env.AUTH_GOOGLE_ID!,
-      client_secret: process.env.AUTH_GOOGLE_SECRET!,
-      grant_type: "refresh_token",
-      refresh_token: token.refreshToken
-    })
-  });
+  try {
+    const response = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: process.env.AUTH_GOOGLE_ID!,
+        client_secret: process.env.AUTH_GOOGLE_SECRET!,
+        grant_type: "refresh_token",
+        refresh_token: token.refreshToken
+      })
+    });
 
-  const refreshed = await response.json();
+    const refreshed = await response.json();
 
-  if (!response.ok) {
-    console.error("Google token refresh failed", refreshed);
+    if (!response.ok) {
+      console.error("Google token refresh failed", refreshed);
+      return { ...token, error: "RefreshTokenError" };
+    }
+
+    return {
+      ...token,
+      accessToken: refreshed.access_token,
+      expiresAt: Math.floor(Date.now() / 1000 + refreshed.expires_in),
+      refreshToken: refreshed.refresh_token ?? token.refreshToken,
+      error: undefined
+    };
+  } catch (error) {
+    console.error("Google token refresh request failed", error);
     return { ...token, error: "RefreshTokenError" };
   }
-
-  return {
-    ...token,
-    accessToken: refreshed.access_token,
-    expiresAt: Math.floor(Date.now() / 1000 + refreshed.expires_in),
-    refreshToken: refreshed.refresh_token ?? token.refreshToken,
-    error: undefined
-  };
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -64,7 +69,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             "profile",
             "https://www.googleapis.com/auth/calendar.events",
             "https://www.googleapis.com/auth/calendar.calendarlist.readonly",
-            "https://www.googleapis.com/auth/gmail.readonly",
             "https://www.googleapis.com/auth/contacts.readonly"
           ].join(" ")
         }

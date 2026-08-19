@@ -1,5 +1,6 @@
 import type {
   CalendarContextMapping,
+  CalendarEventContextOverride,
   Context,
   ContextCalendarPreference,
   ContextFilterValue,
@@ -21,21 +22,41 @@ export function filterTasksByContext(tasks: TaskItem[], contexts: Context[], fil
   return contextId ? tasks.filter((task) => task.contextId === contextId) : tasks;
 }
 
-export function filterProjectsByContext(projects: Project[], contexts: Context[], filter: ContextFilterValue) {
-  const contextId = contextIdForFilter(contexts, filter);
-  return contextId ? projects.filter((project) => project.contextId === contextId) : projects;
+/** Projects are global in JEONG. Context applies to schedules/tasks, not to projects. */
+export function filterProjectsByContext(projects: Project[], _contexts: Context[], _filter: ContextFilterValue) {
+  return projects;
 }
 
-export function filterCalendarEventsByContext<T extends { calendarId?: string }>(
+type CalendarEventRef = { id?: string; recurringEventId?: string; calendarId?: string; contextId?: string; colorId?: string };
+
+export function calendarEventContextKey(event: CalendarEventRef) {
+  const calendarId = event.calendarId || "primary";
+  const stableId = event.recurringEventId || event.id || "";
+  return stableId ? `${calendarId}:${stableId}` : "";
+}
+
+export function getEventContextId(
+  overrides: CalendarEventContextOverride[],
+  mappings: CalendarContextMapping[],
+  event: CalendarEventRef,
+) {
+  if (event.contextId) return event.contextId;
+  const key = calendarEventContextKey(event);
+  const override = key ? overrides.find((item) => item.eventKey === key) : undefined;
+  const colorContext = event.colorId === "5" ? "personal" : event.colorId === "9" ? "work" : event.colorId === "3" ? "church" : undefined;
+  return override?.contextId ?? colorContext ?? getCalendarContextId(mappings, event.calendarId);
+}
+
+export function filterCalendarEventsByContext<T extends CalendarEventRef>(
   events: T[],
   mappings: CalendarContextMapping[],
   contexts: Context[],
   filter: ContextFilterValue,
+  overrides: CalendarEventContextOverride[] = [],
 ) {
   const contextId = contextIdForFilter(contexts, filter);
   if (!contextId) return events;
-  const calendarIds = new Set(mappings.filter((mapping) => mapping.contextId === contextId).map((mapping) => mapping.calendarId));
-  return events.filter((event) => !!event.calendarId && calendarIds.has(event.calendarId));
+  return events.filter((event) => getEventContextId(overrides, mappings, event) === contextId);
 }
 
 export function getCalendarContextId(mappings: CalendarContextMapping[], calendarId?: string) {

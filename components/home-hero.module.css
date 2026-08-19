@@ -1,12 +1,282 @@
-.hero{position:relative;width:auto;height:clamp(292px,21vw,326px);min-height:292px;margin:-18px -24px 0;overflow:hidden;isolation:isolate;color:#382b19;background:#f5ead6}
-.hero:after{content:"";position:absolute;z-index:1;right:0;bottom:-1px;left:0;height:92px;pointer-events:none;background:linear-gradient(to bottom,rgba(247,242,233,0),rgba(247,242,233,.035) 25%,rgba(247,242,233,.18) 48%,rgba(247,242,233,.58) 74%,#f7f2e9 100%)}
-.heroSceneCanvas{position:absolute;inset:0;z-index:0;width:100%;height:100%;overflow:hidden;pointer-events:none;user-select:none}.heroSceneCanvas canvas{display:block;width:100%;height:100%}.heroUI{position:relative;z-index:2;width:100%;height:100%}.heroUIInner{position:relative;width:min(calc(100% - 64px),1200px);height:100%;margin-inline:auto}.heroComposition{position:relative;display:grid;grid-template-columns:minmax(430px,1.3fr) minmax(350px,.9fr);align-items:center;gap:clamp(20px,2.2vw,36px);width:100%;height:100%;padding:26px 0 54px clamp(245px,18vw,305px)}
-.copy{min-width:0;align-self:center}.eyebrow{display:block;margin-bottom:7px;color:#a9751f;font-size:9px;font-weight:800;letter-spacing:.16em;white-space:nowrap}.copy h1{margin:0;color:inherit;font-size:clamp(31px,2.7vw,42px);font-weight:650;line-height:1.06;letter-spacing:-.05em;white-space:nowrap}.copy p{max-width:470px;margin:10px 0 0;color:#6d5f4b;font-size:12px;line-height:1.52;letter-spacing:-.015em}
+.hero{position:relative;width:auto;height:clamp(254px,18.5vw,286px);min-height:254px;margin:-18px -24px 0;overflow:hidden;isolation:isolate;color:#382b19;background:#f5ead6}
+.hero:after{content:"";position:absolute;z-index:1;right:0;bottom:-1px;left:0;height:76px;pointer-events:none;background:linear-gradient(to bottom,rgba(247,242,233,0),rgba(247,242,233,.035) 25%,rgba(247,242,233,.18) 48%,rgba(247,242,233,.58) 74%,#f7f2e9 100%)}
+.heroSceneCanvas{position:absolute;inset:0;z-index:0;width:100%;height:100%;overflow:hidden;pointer-events:none;user-select:none}.heroSceneCanvas canvas{display:block;width:100%;height:100%}.heroUI{position:relative;z-index:2;width:100%;height:100%}.heroUIInner{position:relative;width:min(calc(100% - 64px),1200px);height:100%;margin-inline:auto}.heroComposition{position:relative;display:grid;grid-template-columns:minmax(430px,1.3fr) minmax(350px,.9fr);align-items:center;gap:clamp(20px,2.2vw,36px);width:100%;height:100%;padding:18px 0 34px clamp(245px,18vw,305px)}
+.copy{min-width:0;align-self:center;transform:translateX(-36px)}.eyebrow{display:block;margin-bottom:14px;color:#a9751f;font-size:9px;font-weight:800;letter-spacing:.16em;white-space:nowrap}.copy h1{margin:0;color:inherit;font-size:clamp(31px,2.7vw,42px);font-weight:650;line-height:1.06;letter-spacing:-.05em;white-space:nowrap}.copy p{max-width:470px;margin:10px 0 0;color:#6d5f4b;font-size:12px;line-height:1.52;letter-spacing:-.015em}
 .informationSystem{display:grid;align-self:center;gap:10px;min-width:0;padding-top:0;transform:translateX(-18px)}.controls{display:flex;justify-content:flex-end;align-items:center;gap:7px;min-height:34px}.informationRow{display:grid;grid-template-columns:minmax(142px,.76fr) minmax(188px,1.08fr);align-items:stretch;gap:10px;min-width:0}.clock{display:grid;align-content:center;min-width:0;padding:10px 8px;border:0;background:transparent;text-align:right}.clock span{color:#776a58;font-size:9px;white-space:nowrap}.clock strong{margin-top:4px;font-family:Pretendard,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:clamp(24px,1.85vw,29px);font-weight:520;line-height:1.22;letter-spacing:-.045em;font-variant-numeric:tabular-nums;white-space:nowrap}.weather{display:flex;align-items:center;gap:11px;width:100%;min-width:0;min-height:86px;padding:11px 14px;border:1px solid rgba(151,116,61,.14);border-radius:14px;background:linear-gradient(145deg,rgba(255,253,248,.54),rgba(250,240,220,.28));color:inherit;text-align:left;box-shadow:inset 0 1px rgba(255,255,255,.84),0 11px 28px rgba(99,66,17,.045);backdrop-filter:blur(18px) saturate(110%)}.weather>b{display:grid;place-items:center;flex:0 0 35px;width:35px;height:35px;border-radius:50%;background:radial-gradient(circle at 36% 32%,rgba(255,243,169,.96),rgba(239,171,49,.34) 48%,rgba(255,255,255,0) 72%);font-family:"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif;font-size:23px;filter:saturate(1.2) drop-shadow(0 3px 6px rgba(184,120,24,.22))}.weather>span{display:grid;min-width:0;gap:1px;font-size:9px}.weather strong{font-family:Pretendard,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:23px;font-weight:520;line-height:1.15;font-variant-numeric:tabular-nums}.weather small{color:#776a58;font-size:8px;line-height:1.3;white-space:normal}
 .search,.toolButton{height:34px;border:1px solid rgba(177,132,56,.17);background:rgba(255,252,246,.58);color:#4d402e;box-shadow:inset 0 1px rgba(255,255,255,.84),0 7px 18px rgba(87,58,15,.04);backdrop-filter:blur(16px);transition:border-color .15s ease,background-color .15s ease,transform .12s ease}.search:hover,.toolButton:hover{border-color:rgba(177,132,56,.31);background:rgba(255,253,248,.72)}.search:active,.toolButton:active{transform:scale(.98)}.search:focus-visible,.toolButton:focus-visible,.weather:focus-visible{outline:2px solid rgba(194,145,57,.32);outline-offset:2px}.search{width:148px;min-width:148px;padding:0 10px;border-radius:10px;text-align:left;font-size:10px}.search kbd{float:right;margin-left:8px;padding:1px 4px;border:1px solid rgba(166,123,50,.13);border-radius:5px;background:rgba(255,255,255,.34);font-size:7px}.toolButton{display:grid;place-items:center;width:34px;border-radius:10px;font-size:13px}
 :global(html[data-theme="dark"]) .hero{color:#f2eee5;background:#06111f}:global(html[data-theme="dark"]) .hero:after{background:linear-gradient(to bottom,rgba(6,17,31,0),rgba(6,17,31,.04) 25%,rgba(6,17,31,.20) 48%,rgba(6,17,31,.62) 74%,#06111f 100%)}:global(html[data-theme="dark"]) .eyebrow{color:#dfb75f}:global(html[data-theme="dark"]) .copy p{color:#aab7c8}:global(html[data-theme="dark"]) .clock span,:global(html[data-theme="dark"]) .weather small{color:#94a3b7}:global(html[data-theme="dark"]) .weather{border-color:rgba(180,205,235,.12);background:linear-gradient(145deg,rgba(23,42,67,.68),rgba(8,20,35,.46));box-shadow:inset 0 1px rgba(211,230,255,.09),0 14px 34px rgba(0,0,0,.24)}:global(html[data-theme="dark"]) .weather>b{background:radial-gradient(circle at 36% 32%,rgba(211,226,255,.88),rgba(91,139,208,.35) 48%,rgba(8,20,35,0) 74%);filter:saturate(1.25) drop-shadow(0 3px 7px rgba(82,134,210,.32))}:global(html[data-theme="dark"]) .search,:global(html[data-theme="dark"]) .toolButton{border-color:rgba(180,205,235,.11);background:rgba(11,24,41,.58);color:#edf1f7;box-shadow:inset 0 1px rgba(210,229,255,.08),0 9px 24px rgba(0,0,0,.20)}
 @media(max-width:1320px){.heroUIInner{width:min(calc(100% - 46px),1080px)}.heroComposition{grid-template-columns:minmax(400px,1.3fr) minmax(330px,.92fr);gap:18px;padding-left:clamp(190px,17vw,245px)}.copy h1{font-size:clamp(30px,3vw,39px)}.informationRow{grid-template-columns:136px minmax(182px,1fr)}.informationSystem{transform:translateX(-8px)}}
-@media(max-width:1100px){.hero{height:348px;min-height:348px;margin:-16px -18px 0}.heroUIInner{width:min(calc(100% - 36px),780px)}.heroComposition{grid-template-columns:1fr;align-content:center;gap:12px;padding:45px 0 46px 104px}.copy{max-width:580px}.copy h1{font-size:clamp(29px,4.4vw,37px)}.copy p{margin-top:8px}.informationSystem{gap:9px;transform:none}.informationRow{grid-template-columns:minmax(145px,.8fr) minmax(215px,1.2fr);max-width:470px}.clock{text-align:left}.controls{justify-content:flex-end}}
-@media(max-width:760px){.hero{height:386px;min-height:386px;margin:-12px -12px 0}.hero:after{height:76px}.heroUIInner{width:calc(100% - 24px)}.heroComposition{align-content:start;gap:11px;padding:64px 0 38px 78px}.eyebrow{font-size:8px;letter-spacing:.1em}.copy h1{font-size:clamp(25px,7vw,31px)}.copy p{font-size:11px;line-height:1.45}.informationRow{grid-template-columns:minmax(0,.86fr) minmax(0,1.14fr);width:calc(100% + 66px);max-width:none;margin-left:-66px}.controls{width:calc(100% + 66px);margin-left:-66px}.clock,.weather{min-height:70px;border:1px solid rgba(177,132,56,.13);border-radius:13px;background:rgba(255,252,246,.36);backdrop-filter:blur(16px)}.clock{padding:8px 10px}.clock strong{font-size:20px}.weather{gap:8px;padding:8px 10px}.weather>b,.weather strong{font-size:20px}.weather small{font-size:8px}.search{width:132px;min-width:132px}.search,.toolButton{height:34px}.toolButton{width:34px}:global(html[data-theme="dark"]) .clock{border-color:rgba(180,205,235,.11);background:rgba(11,24,41,.48)}}
-@media(max-width:480px){.hero{height:396px;min-height:396px}.heroComposition{padding-left:68px}.copy h1{font-size:25px}.copy p br{display:none}.informationRow,.controls{width:calc(100% + 56px);margin-left:-56px}.search{width:120px;min-width:120px}.search kbd{display:none}}
+@media(max-width:1100px){.hero{height:318px;min-height:318px;margin:-16px -18px 0}.heroUIInner{width:min(calc(100% - 36px),780px)}.heroComposition{grid-template-columns:1fr;align-content:center;gap:12px;padding:45px 0 46px 104px}.copy{max-width:580px}.copy h1{font-size:clamp(29px,4.4vw,37px)}.copy p{margin-top:8px}.informationSystem{gap:9px;transform:none}.informationRow{grid-template-columns:minmax(145px,.8fr) minmax(215px,1.2fr);max-width:470px}.clock{text-align:left}.controls{justify-content:flex-end}}
+@media(max-width:760px){.hero{height:354px;min-height:354px;margin:-12px -12px 0}.hero:after{height:76px}.heroUIInner{width:calc(100% - 24px)}.heroComposition{align-content:start;gap:11px;padding:64px 0 38px 78px}.copy{transform:none}.eyebrow{font-size:8px;letter-spacing:.1em}.copy h1{font-size:clamp(25px,7vw,31px)}.copy p{font-size:11px;line-height:1.45}.informationRow{grid-template-columns:minmax(0,.86fr) minmax(0,1.14fr);width:calc(100% + 66px);max-width:none;margin-left:-66px}.controls{width:calc(100% + 66px);margin-left:-66px}.clock,.weather{min-height:70px;border:1px solid rgba(177,132,56,.13);border-radius:13px;background:rgba(255,252,246,.36);backdrop-filter:blur(16px)}.clock{padding:8px 10px}.clock strong{font-size:20px}.weather{gap:8px;padding:8px 10px}.weather>b,.weather strong{font-size:20px}.weather small{font-size:8px}.search{width:132px;min-width:132px}.search,.toolButton{height:34px}.toolButton{width:34px}:global(html[data-theme="dark"]) .clock{border-color:rgba(180,205,235,.11);background:rgba(11,24,41,.48)}}
+@media(max-width:480px){.hero{height:364px;min-height:364px}.heroComposition{padding-left:68px}.copy h1{font-size:25px}.copy p br{display:none}.informationRow,.controls{width:calc(100% + 56px);margin-left:-56px}.search{width:120px;min-width:120px}.search kbd{display:none}}
 @media(prefers-reduced-motion:reduce){.search,.toolButton{transition:none}.search:active,.toolButton:active{transform:none}}
+
+/* The supplied celestial artwork is the only scene layer on Home. */
+.hero{background:#f5ead6 url("/celestial/home-hero-light.png") center/cover no-repeat}.heroSceneCanvas{display:none}
+:global(html[data-theme="dark"]) .hero{background:#06111f url("/celestial/home-hero-dark.png") center/cover no-repeat}
+
+/* Keep the supplied artwork intact; only frame it so the celestial focal point balances the copy. */
+:global(html[data-theme="light"]) .hero{background-size:auto 170%;background-position:calc(50% + 5px) 41%}
+:global(html[data-theme="dark"]) .hero{background-size:auto 130%;background-position:calc(50% - 108px) 17%}
+
+.informationSystem{display:grid;justify-items:stretch;gap:8px;min-width:min(100%,360px);transform:none}.controls{order:1;min-height:44px}.informationRow{order:2;grid-template-columns:minmax(0,1fr);width:100%}.weather{display:grid;grid-template-columns:auto minmax(0,1fr) auto;min-height:78px;height:78px;padding:10px 13px;border-radius:12px}.weatherInfo{display:grid;align-content:center;min-width:0;gap:2px;font-size:10px}.weatherInfo>span{color:inherit;font-size:10px;font-weight:650}.weatherInfo strong{font-size:26px;line-height:1.04}.weatherInfo small{overflow:hidden;color:inherit;font-size:9px;line-height:1.35;opacity:.76;text-overflow:ellipsis;white-space:nowrap}.weatherDateTime{display:grid;align-content:center;justify-items:end;gap:4px;margin-left:12px;padding-left:12px;border-left:1px solid rgba(151,116,61,.18)}.weatherDateTime>time:first-child{color:#776a58;font-size:9px;line-height:1.2;white-space:nowrap}.weatherTime{font-family:Pretendard,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:clamp(19px,1.55vw,24px);font-weight:620;line-height:1;letter-spacing:-.045em;font-variant-numeric:tabular-nums;white-space:nowrap}.search,.toolButton{height:44px;border-radius:12px}.search{width:calc(100% - 102px);min-width:0;padding-inline:13px}.toolButton{width:44px;font-size:15px}
+.weather>b{flex-basis:40px;width:40px;height:40px;font-size:27px}.weatherInfo>span{font-size:11px}.weatherInfo strong{font-size:28px}.weatherInfo small{font-size:10px}.weatherDateTime>time:first-child{font-size:10px}
+@media(max-width:1320px){:global(html[data-theme="light"]) .hero{background-position:calc(50% + 96px) 41%}:global(html[data-theme="dark"]) .hero{background-position:calc(50% - 11px) 17%}}
+@media(max-width:1100px){:global(html[data-theme="light"]) .hero{background-position:calc(50% + 278px) 41%}:global(html[data-theme="dark"]) .hero{background-position:calc(50% + 157px) 17%}}
+@media(max-width:760px){.weather{height:auto;min-height:72px}.weatherDateTime{margin-left:8px;padding-left:8px}.weatherDateTime>time:first-child{font-size:8px}.weatherTime{font-size:17px}.search,.toolButton{height:44px}.toolButton{width:44px}}
+@media(max-width:1100px){.informationSystem{justify-content:stretch}.informationRow{width:100%}.controls{order:1}.informationRow{order:2}}
+.copy{transform:translateX(-104px)}
+.weatherDateTime{gap:9px}
+@media(max-width:760px){.copy{transform:none}}
+
+/* Keep the supplied celestial artwork and greeting together when the desktop narrows. */
+@media(max-width:1100px){
+ :global(html[data-theme="light"]) .hero{background-size:auto 142%;background-position:calc(50% + 26px) 41%}
+ :global(html[data-theme="dark"]) .hero{background-size:auto 126%;background-position:calc(50% - 62px) 17%}
+ .heroComposition{padding-left:clamp(86px,12vw,132px)}
+ .copy{transform:none}
+}
+@media(max-width:760px){
+ :global(html[data-theme="light"]) .hero{background-size:auto 132%;background-position:45% 41%}
+ :global(html[data-theme="dark"]) .hero{background-size:auto 120%;background-position:42% 18%}
+ .heroComposition{padding-left:54px}
+}
+
+/* Bring the celestial focal point and greeting together without moving the artwork itself. */
+@media(min-width:1101px){
+ .copy{transform:translate(-150px,18px)}
+}
+
+/* 2026-08-13 round 3: keep the sun partly behind the greeting; nudge the greeting only slightly upward. */
+@media(min-width:1101px){
+ .copy{transform:translate(-188px,10px)}
+}
+
+/* 2026-08-13 round 4: keep greeting at its original horizontal position; move the celestial artwork left instead. */
+@media(min-width:1101px){
+ .copy{transform:translate(-104px,6px)}
+ :global(html[data-theme="light"]) .hero{background-position:calc(50% - 45px) 41%}
+ :global(html[data-theme="dark"]) .hero{background-position:calc(50% - 150px) 17%}
+}
+@media(min-width:1101px) and (max-width:1320px){
+ :global(html[data-theme="light"]) .hero{background-position:calc(50% + 46px) 41%}
+ :global(html[data-theme="dark"]) .hero{background-position:calc(50% - 61px) 17%}
+}
+@media(max-width:1100px) and (min-width:761px){
+ .copy{transform:none}
+ :global(html[data-theme="light"]) .hero{background-position:calc(50% - 24px) 41%}
+ :global(html[data-theme="dark"]) .hero{background-position:calc(50% - 112px) 17%}
+}
+
+
+/* 2026-08-13 round 4 final: restore copy X; only the celestial artwork moves ~half a sun left. */
+@media(min-width:1101px){
+ .copy{transform:translate(-150px,10px)}
+}
+
+/* 2026-08-13 round 5: freeze the accepted sun/copy positions and make the artwork full-bleed across the content area. */
+@media(min-width:1101px){
+ .hero{margin:-20px -28px 0;width:calc(100% + 56px)}
+ .copy{transform:translate(-150px,10px)}
+}
+@media(max-width:1100px) and (min-width:761px){
+ .hero{margin:-18px -20px 0;width:calc(100% + 40px)}
+}
+@media(max-width:760px){
+ .hero{margin:-12px -12px 0;width:calc(100% + 24px)}
+}
+
+/* =========================================================
+   JEONG refinement · 2026-08-13 round 8
+   Keep the accepted sun/moon + copy coordinates from R6.
+   A second background layer fills only the uncovered side area.
+   ========================================================= */
+:global(html[data-theme="light"]) .hero{
+  background-color:#f5ead6;
+  background-image:url("/celestial/home-hero-light.png"),linear-gradient(90deg,#f4e5c9 0%,#f7ead1 18%,#f4e6cd 82%,#f2e1c3 100%);
+  background-repeat:no-repeat,no-repeat;
+  background-size:auto 170%,cover;
+  background-position:calc(50% - 45px) 41%,center;
+}
+:global(html[data-theme="dark"]) .hero{
+  background-color:#06111f;
+  background-image:url("/celestial/home-hero-dark.png"),linear-gradient(90deg,#071426 0%,#08182b 18%,#071526 82%,#06111f 100%);
+  background-repeat:no-repeat,no-repeat;
+  background-size:auto 130%,cover;
+  background-position:calc(50% - 150px) 17%,center;
+}
+@media(min-width:1101px) and (max-width:1320px){
+ :global(html[data-theme="light"]) .hero{background-size:auto 170%,cover;background-position:calc(50% + 46px) 41%,center}
+ :global(html[data-theme="dark"]) .hero{background-size:auto 130%,cover;background-position:calc(50% - 61px) 17%,center}
+}
+@media(max-width:1100px) and (min-width:761px){
+ :global(html[data-theme="light"]) .hero{background-size:auto 142%,cover;background-position:calc(50% - 24px) 41%,center}
+ :global(html[data-theme="dark"]) .hero{background-size:auto 126%,cover;background-position:calc(50% - 112px) 17%,center}
+}
+@media(max-width:760px){
+ :global(html[data-theme="light"]) .hero{background-size:auto 132%,cover;background-position:45% 41%,center}
+ :global(html[data-theme="dark"]) .hero{background-size:auto 120%,cover;background-position:42% 18%,center}
+}
+
+
+/* JEONG refinement R9 · never move the accepted celestial/copy coordinates.
+   Only remove the parent max-width cap and align the utility system with the Home cards. */
+.hero{max-width:none!important}
+@media(min-width:1321px){
+ .informationSystem{transform:translateX(48px)!important}
+}
+@media(max-width:760px){
+ .heroUIInner{width:calc(100% - 24px)!important;max-width:none!important}
+ .informationSystem{width:100%!important;max-width:none!important;transform:none!important}
+ .controls,.informationRow{box-sizing:border-box!important;width:100%!important;max-width:none!important;margin-left:0!important}
+}
+@media(max-width:480px){
+ .controls,.informationRow{width:100%!important;margin-left:0!important}
+}
+
+/* =========================================================
+   JEONG refinement R10 · 2026-08-14
+   Copy coordinates stay frozen. Only celestial art and utility rail move.
+   ========================================================= */
+@media(min-width:1321px){
+ :global(html[data-theme="light"]) .hero{background-position:calc(50% - 55px) 41%,center!important}
+ :global(html[data-theme="dark"]) .hero{background-position:calc(50% - 160px) 17%,center!important}
+ .informationSystem{transform:none!important}
+}
+@media(min-width:1241px) and (max-width:1320px){
+ :global(html[data-theme="light"]) .hero{background-position:calc(50% + 36px) 41%,center!important}
+ :global(html[data-theme="dark"]) .hero{background-position:calc(50% - 71px) 17%,center!important}
+ .informationSystem{transform:none!important}
+}
+/* This is the width where the artwork used to collide with the fixed greeting.
+   The greeting does not move; the artwork alone gets extra clearance. */
+@media(min-width:1101px) and (max-width:1240px){
+ :global(html[data-theme="light"]) .hero{background-position:calc(50% - 20px) 41%,center!important}
+ :global(html[data-theme="dark"]) .hero{background-position:calc(50% - 121px) 17%,center!important}
+ .informationSystem{transform:none!important}
+}
+@media(max-width:1100px) and (min-width:761px){
+ :global(html[data-theme="light"]) .hero{background-position:calc(50% - 34px) 41%,center!important}
+ :global(html[data-theme="dark"]) .hero{background-position:calc(50% - 122px) 17%,center!important}
+}
+
+
+/* Final edge alignment: full bleed without changing the accepted copy/celestial center. */
+.hero{margin-left:calc(0px - var(--page-gutter))!important;margin-right:calc(0px - var(--page-gutter))!important;width:calc(100% + var(--page-gutter) + var(--page-gutter))!important;max-width:none!important}
+@media(min-width:1241px) and (max-width:1320px){.informationSystem{transform:none!important}}
+@media(min-width:1101px) and (max-width:1240px){.informationSystem{transform:none!important}}
+@media(max-width:760px){.informationSystem,.controls,.informationRow{max-width:100%!important}.controls,.informationRow{width:100%!important;margin-left:0!important}}
+
+/* =========================================================
+   JEONG refinement R12 · responsive Home hero guides
+   - utility rail ends exactly where the Home cards end
+   - accepted desktop greeting/celestial balance is preserved
+   - once space becomes tight, celestial orb moves off-canvas and copy
+     snaps to the same left guide as the cards below
+   ========================================================= */
+@media(min-width:1240px){
+ .heroUIInner{width:min(calc(100% - 84px),1360px)!important;max-width:none!important}
+ .heroComposition{padding-left:calc(clamp(245px,18vw,305px) + max(0px,calc((100% - 1200px)/2)))!important}
+ .informationSystem{justify-self:end!important;width:min(100%,360px)!important;max-width:360px!important}
+}
+@media(min-width:981px) and (max-width:1239px){
+ .heroUIInner{width:min(calc(100% - 76px),1050px)!important;max-width:none!important}
+ .informationSystem{justify-self:end!important;width:min(100%,360px)!important;max-width:360px!important}
+}
+@media(max-width:980px){
+ .heroUIInner{width:min(calc(100% - 68px),680px)!important;max-width:none!important}
+ .heroComposition{grid-template-columns:1fr!important;padding-left:0!important;padding-right:0!important}
+ .copy{transform:none!important;justify-self:start!important;width:100%!important}
+ .informationSystem{justify-self:stretch!important;width:100%!important;max-width:none!important}
+ .controls,.informationRow{width:100%!important;max-width:none!important;margin-left:0!important}
+ :global(html[data-theme="light"]) .hero{background-position:calc(50% - 520px) 41%,center!important}
+ :global(html[data-theme="dark"]) .hero{background-position:calc(50% - 560px) 17%,center!important}
+}
+@media(max-width:760px){
+ .heroUIInner{width:min(calc(100% - 36px),680px)!important}
+ .heroComposition{padding-top:48px!important}
+}
+@media(max-width:520px){
+ .heroUIInner{width:calc(100% - 30px)!important}
+}
+
+/* =========================================================
+   JEONG refinement R13 · 2026-08-14
+   Responsive edge guides. Desktop copy/orb coordinates stay accepted;
+   only the utility rail reaches the same right edge as Home content.
+   ========================================================= */
+@media(min-width:1240px){
+  .heroUIInner{width:min(calc(100% - 28px),1360px)!important;max-width:none!important}
+}
+@media(min-width:1101px) and (max-width:1239px){
+  .heroUIInner{width:min(calc(100% - 20px),1050px)!important;max-width:none!important}
+  .heroComposition{padding-left:calc(clamp(245px,18vw,305px) + 28px)!important}
+  .informationSystem{justify-self:end!important;width:min(100%,360px)!important;max-width:360px!important}
+}
+@media(min-width:901px) and (max-width:1100px){
+  .heroUIInner{width:min(calc(100% - 20px),1050px)!important;max-width:none!important}
+  .heroComposition{grid-template-columns:minmax(0,1fr) minmax(320px,360px)!important;gap:16px!important;padding-left:0!important;padding-right:0!important}
+  .copy{transform:none!important;justify-self:start!important;width:100%!important}
+  .informationSystem{justify-self:end!important;width:100%!important;max-width:360px!important;transform:none!important}
+  .controls,.informationRow{width:100%!important;max-width:none!important;margin-left:0!important}
+  :global(html[data-theme="light"]) .hero{background-position:calc(50% - 560px) 41%,center!important}
+  :global(html[data-theme="dark"]) .hero{background-position:calc(50% - 600px) 17%,center!important}
+}
+@media(max-width:900px){
+  .heroUIInner{width:min(calc(100% - 12px),700px)!important;max-width:none!important}
+  .heroComposition{grid-template-columns:1fr!important;padding-left:0!important;padding-right:0!important}
+  .copy{transform:none!important;justify-self:start!important;width:100%!important}
+  .informationSystem{justify-self:stretch!important;width:100%!important;max-width:none!important;transform:none!important}
+  .controls,.informationRow{width:100%!important;max-width:none!important;margin-left:0!important}
+  :global(html[data-theme="light"]) .hero{background-position:calc(50% - 520px) 41%,center!important}
+  :global(html[data-theme="dark"]) .hero{background-position:calc(50% - 560px) 17%,center!important}
+}
+@media(max-width:760px){.heroUIInner{width:calc(100% - 12px)!important}}
+
+/* =========================================================
+   JEONG refinement R14 · exact Home guides + collision-safe artwork
+   ========================================================= */
+@media(min-width:1240px){
+  .heroUIInner{width:min(calc(100% - (2 * var(--page-gutter)) - 28px),1360px)!important;max-width:none!important}
+}
+@media(min-width:981px) and (max-width:1239px){
+  .heroUIInner{width:min(calc(100% - (2 * var(--page-gutter)) - 20px),1050px)!important;max-width:none!important}
+  :global(html[data-theme="light"]) .hero{background-image:url("/celestial/hero-atmosphere-light.webp")!important;background-size:cover!important;background-position:center!important}
+  :global(html[data-theme="dark"]) .hero{background-image:url("/celestial/hero-atmosphere-dark.webp")!important;background-size:cover!important;background-position:center!important}
+}
+@media(max-width:980px){
+  .heroUIInner{width:min(calc(100% - (2 * var(--page-gutter)) - 12px),700px)!important;max-width:none!important}
+  :global(html[data-theme="light"]) .hero{background-image:url("/celestial/hero-atmosphere-light.webp")!important;background-size:cover!important;background-position:center!important}
+  :global(html[data-theme="dark"]) .hero{background-image:url("/celestial/hero-atmosphere-dark.webp")!important;background-size:cover!important;background-position:center!important}
+}
+@media(max-width:760px){.heroUIInner{width:calc(100% - (2 * var(--page-gutter)))!important}}
+
+/* =========================================================
+   JEONG refinement R15 · one Home guide from header to cards.
+   Desktop artwork/copy coordinates stay untouched; compact widths switch
+   to the atmosphere-only artwork before the celestial body can collide.
+   ========================================================= */
+.heroComposition{box-sizing:border-box!important;max-width:100%!important}
+.informationSystem,.controls,.informationRow{box-sizing:border-box!important;min-width:0!important}
+@media(min-width:1240px){
+ .heroUIInner{width:min(calc(100% - (2 * var(--page-gutter)) - 28px),1360px)!important;max-width:none!important}
+ .informationSystem{justify-self:end!important;margin-right:0!important;transform:none!important}
+}
+@media(min-width:981px) and (max-width:1239px){
+ .heroUIInner{width:min(calc(100% - (2 * var(--page-gutter)) - 20px),1050px)!important;max-width:none!important}
+ .informationSystem{justify-self:end!important;margin-right:0!important;transform:none!important}
+}
+@media(max-width:1120px) and (min-width:761px){
+ .hero{height:330px!important;min-height:330px!important}
+ .heroComposition{grid-template-columns:1fr!important;align-content:center!important;gap:12px!important;padding:34px 0 42px!important}
+ .copy{width:100%!important;max-width:none!important;transform:none!important;justify-self:stretch!important}
+ .informationSystem{width:100%!important;max-width:none!important;justify-self:stretch!important;transform:none!important}
+ .controls,.informationRow{width:100%!important;max-width:none!important;margin:0!important}
+ :global(html[data-theme="light"]) .hero{background-image:url("/celestial/hero-atmosphere-light.webp")!important;background-size:cover!important;background-position:center!important}
+ :global(html[data-theme="dark"]) .hero{background-image:url("/celestial/hero-atmosphere-dark.webp")!important;background-size:cover!important;background-position:center!important}
+}
+@media(max-width:760px){
+ .heroUIInner{width:calc(100% - (2 * var(--page-gutter)))!important;max-width:none!important}
+ .heroComposition{padding-left:0!important;padding-right:0!important}
+ .informationSystem,.controls,.informationRow{width:100%!important;max-width:100%!important;margin:0!important}
+}

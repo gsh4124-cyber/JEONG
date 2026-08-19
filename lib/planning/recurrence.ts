@@ -39,6 +39,10 @@ export function occursOnDate(task: RecurringTaskDefinition, dateValue: string): 
   if (task.recurrence.type === "DAILY") return true;
   if (task.recurrence.type === "WEEKDAYS") return date.getDay() >= 1 && date.getDay() <= 5;
   if (task.recurrence.type === "MONTHLY") return date.getDate() === task.recurrence.dayOfMonth;
+  if (task.recurrence.type === "WEEKLY_BLOCKS") return task.recurrence.blocks.some((block) => {
+    const day=date.getDay();
+    return block.startDay<=block.endDay ? day>=block.startDay&&day<=block.endDay : day>=block.startDay||day<=block.endDay;
+  });
 
   if (!task.recurrence.weekdays.includes(date.getDay())) return false;
   const interval = Math.max(1, task.recurrence.interval ?? 1);
@@ -64,7 +68,17 @@ export function getOccurrencesForDate(
   completions: RecurringTaskCompletion[] = [],
 ): RecurringTaskOccurrence[] {
   const occurrenceDate = date.slice(0, 10);
-  return tasks.filter((task) => occursOnDate(task, occurrenceDate)).map((task) => {
+  return tasks.filter((task) => occursOnDate(task, occurrenceDate)).filter((task)=>{
+    if(task.recurrence.type!=="WEEKLY_BLOCKS")return true;
+    const date=parseLocalDate(occurrenceDate); const day=date.getDay();
+    const block=task.recurrence.blocks.find(block=>block.startDay<=block.endDay?day>=block.startDay&&day<=block.endDay:day>=block.startDay||day<=block.endDay);
+    if(!block)return false;
+    const monday=new Date(date); monday.setDate(date.getDate()-((day+6)%7));
+    const dates:number[]=[]; for(let i=0;i<7;i++){const d=new Date(monday);d.setDate(monday.getDate()+i);const wd=d.getDay();if(block.startDay<=block.endDay?wd>=block.startDay&&wd<=block.endDay:wd>=block.startDay||wd<=block.endDay)dates.push(d.getTime())}
+    const first=formatLocalDate(new Date(Math.min(...dates))), last=formatLocalDate(new Date(Math.max(...dates)));
+    const done=completions.filter(c=>c.recurringTaskId===task.id&&c.status==="done"&&c.occurrenceDate>=first&&c.occurrenceDate<=last);
+    return done.some(c=>c.occurrenceDate===occurrenceDate)||done.length<Math.max(1,block.target);
+  }).map((task) => {
     const completion = getOccurrenceStatus(task, occurrenceDate, completions);
     return { task, occurrenceDate, status: completion?.status, completion };
   });
@@ -112,6 +126,7 @@ export function recurrenceToGoogleRrule(task: RecurringTaskDefinition): string {
   if (task.recurrence.type === "DAILY") rule += "FREQ=DAILY";
   else if (task.recurrence.type === "WEEKDAYS") rule += "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR";
   else if (task.recurrence.type === "MONTHLY") rule += `FREQ=MONTHLY;BYMONTHDAY=${task.recurrence.dayOfMonth}`;
+  else if (task.recurrence.type === "WEEKLY_BLOCKS") rule += "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR,SA,SU";
   else {
     const days = task.recurrence.weekdays.map((day) => googleWeekday[day]).join(",");
     rule += `FREQ=WEEKLY;INTERVAL=${Math.max(1, task.recurrence.interval ?? 1)};BYDAY=${days}`;
@@ -124,6 +139,9 @@ export function describeRecurrence(task: RecurringTaskDefinition): string {
   if (task.recurrence.type === "DAILY") return "매일";
   if (task.recurrence.type === "WEEKDAYS") return "평일";
   if (task.recurrence.type === "MONTHLY") return `매월 ${task.recurrence.dayOfMonth}일`;
-  const days = task.recurrence.weekdays.map((day) => ["일", "월", "화", "수", "목", "금", "토"][day]).join("·");
+  if (task.recurrence.type === "WEEKLY_BLOCKS") return task.recurrence.blocks.map(block=>`${["일","월","화","수","목","금","토"][block.startDay]}~${["일","월","화","수","목","금","토"][block.endDay]} ${block.target}회`).join(" · ");
+  const orderedDays = [...task.recurrence.weekdays].sort((a, b) => a - b);
+  if ((task.recurrence.interval ?? 1) === 1 && orderedDays.length === 2 && orderedDays[0] === 0 && orderedDays[1] === 6) return "주말";
+  const days = orderedDays.map((day) => ["일", "월", "화", "수", "목", "금", "토"][day]).join("·");
   return task.recurrence.interval === 2 ? `격주 ${days}` : `매주 ${days}`;
 }

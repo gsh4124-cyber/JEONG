@@ -1,28 +1,129 @@
-import type { HomePeriod, HomeSummary } from "@/lib/planning/home-summary";
+import { useState } from "react";
+import type { Context, ContextFilterValue, Project } from "@/lib/planning/types";
+import type { HomeSummary } from "@/lib/planning/home-summary";
+import { ContextFilter } from "./context-filter";
 import styles from "./home-operations.module.css";
 
-export function HomePeriodSwitcher({ value, onChange }: { value: HomePeriod; onChange: (value: HomePeriod) => void }) {
-  return <nav className={styles.periodSwitch} aria-label="Home 운영 기간">{(["day", "week", "month"] as const).map(period => <button key={period} type="button" className={value === period ? styles.active : ""} aria-pressed={value === period} onClick={() => onChange(period)}>{period === "day" ? "오늘" : period === "week" ? "이번 주" : "이번 달"}</button>)}</nav>;
+const projectStatusLabel: Record<Project["status"], string> = {
+  planning: "기획",
+  active: "진행 중",
+  review: "검토 중",
+  done: "완료",
+};
+
+const compactDate = (value?: string) => value ? value.replaceAll("-", ".") : "미정";
+
+const homeRoutineLabel = (item: HomeSummary["recurring"][number]) => {
+  const rule = item.task.recurrence;
+  if (rule.type !== "WEEKLY" || (rule.interval ?? 1) !== 1) return "루틴";
+  const days = [...rule.weekdays].sort((a, b) => a - b);
+  // The dedicated WEEKENDS shortcut is a normal routine, not a weekly routine.
+  if (days.length === 2 && days[0] === 0 && days[1] === 6) return "루틴";
+  return "주간 루틴";
+};
+
+export function HomeOperations({
+  summary,
+  contexts,
+  onAddTask,
+  onAddRoutine,
+  onEditTask,
+  onDeleteTask,
+  onToggleTask,
+  onToggleRecurring,
+  onSetTasksDone,
+  onSetRoutinesDone,
+}: {
+  summary: HomeSummary;
+  contexts: Context[];
+  onAddTask: (title: string, bucket: "today" | "week" | "month" | "someday", contextId?: string) => void;
+  onAddRoutine: (title: string, mode: "DAILY" | "WEEKDAYS" | "WEEKENDS" | "WEEKLY" | "BIWEEKLY", contextId?: string) => void;
+  onEditTask: (taskId: string) => void;
+  onDeleteTask: (taskId: string) => void;
+  onToggleTask: (taskId: string) => void;
+  onToggleRecurring: (taskId: string, occurrenceDate: string) => void;
+  onSetTasksDone: (taskIds: string[], done: boolean) => void;
+  onSetRoutinesDone: (items: {taskId:string; occurrenceDate:string}[], done: boolean) => void;
+}) {
+  const [mode, setMode] = useState<"todos" | "routines">("todos");
+  const [executionContext, setExecutionContext] = useState<ContextFilterValue>("ALL");
+  const [quickTitle, setQuickTitle] = useState("");
+  const [quickBucket, setQuickBucket] = useState<"today" | "week" | "month" | "someday">("today");
+  const [quickRoutineMode, setQuickRoutineMode] = useState<"DAILY" | "WEEKDAYS" | "WEEKENDS" | "WEEKLY" | "BIWEEKLY">("DAILY");
+  const executionContextId = executionContext === "ALL" ? undefined : contexts.find(context => context.key === executionContext)?.id;
+  const todos = summary.todos.filter(item => !executionContextId || item.contextId === executionContextId).sort((a, b) => Number(a.done) - Number(b.done) || (a.sortOrder ?? Number.MAX_SAFE_INTEGER) - (b.sortOrder ?? Number.MAX_SAFE_INTEGER) || a.title.localeCompare(b.title));
+  const routines = summary.recurring.filter(item => !executionContextId || item.task.contextId === executionContextId).sort((a, b) => Number(a.status === "done") - Number(b.status === "done") || (a.task.sortOrder ?? Number.MAX_SAFE_INTEGER) - (b.task.sortOrder ?? Number.MAX_SAFE_INTEGER) || a.task.title.localeCompare(b.task.title));
+  const todoCompleted = todos.filter(item => item.done).length;
+  const routineCompleted = routines.filter(item => item.status === "done").length;
+  const rows = mode === "todos" ? todos : routines;
+  const completed = mode === "todos" ? todoCompleted : routineCompleted;
+  const total = rows.length;
+  const progress = total ? Math.round(completed / total * 100) : 0;
+  const allDone = total > 0 && completed === total;
+  const title = mode === "todos" ? "오늘 할 일" : "오늘 루틴";
+
+  return <section className={styles.summary} aria-label="오늘 실행 요약">
+    <article className={`${styles.card} ${styles.todoCard}`}>
+      <header className={styles.todoHeader}>
+        <div><h3>{title}</h3><span>{completed}/{total} 완료</span></div>
+        <div className={styles.todoHeaderActions}>
+          {total > 1 && <button type="button" onClick={() => {
+            if(mode === "todos") onSetTasksDone(todos.map(item=>item.id),!allDone);
+            else onSetRoutinesDone(routines.map(item=>({taskId:item.task.id,occurrenceDate:item.occurrenceDate})),!allDone);
+          }}>{allDone ? "전체 해제" : "전체 체크"}</button>}
+        </div>
+      </header>
+      <div className={styles.todoProgress} aria-label={`${title} 진행률 ${progress}%`}>
+        <div className={styles.todoProgressRing} style={{background:`conic-gradient(var(--home-gold) ${progress}%, var(--home-border) ${progress}% 100%)`}}><span>{progress}%</span></div>
+        <div><strong>{mode === "todos" ? "할 일 진행률" : "루틴 진행률"}</strong><small>완료 {completed} / 전체 {total}</small></div>
+      </div>
+      <div className={styles.todoModeTabs} role="tablist" aria-label="할 일과 루틴 전환">
+        <button type="button" role="tab" aria-selected={mode === "todos"} className={mode === "todos" ? styles.active : ""} onClick={() => setMode("todos")}>할 일 <span>{todos.length}</span></button>
+        <button type="button" role="tab" aria-selected={mode === "routines"} className={mode === "routines" ? styles.active : ""} onClick={() => setMode("routines")}>루틴 <span>{routines.length}</span></button>
+      </div>
+      {mode === "todos" ? <form className={styles.quickAdd} onSubmit={event => {event.preventDefault(); const title=quickTitle.trim(); if(!title)return; onAddTask(title,quickBucket,executionContextId); setQuickTitle("");}}>
+        <input value={quickTitle} onChange={event => setQuickTitle(event.target.value)} placeholder="할 일 추가" aria-label="할 일 제목"/>
+        <select value={quickBucket} onChange={event => setQuickBucket(event.target.value as typeof quickBucket)} aria-label="할 일 기간"><option value="today">오늘</option><option value="week">이번 주</option><option value="month">이번 달</option><option value="someday">언젠가</option></select>
+        <button type="submit">추가</button>
+      </form> : <form className={styles.quickAdd} onSubmit={event => {event.preventDefault(); const title=quickTitle.trim(); if(!title)return; onAddRoutine(title,quickRoutineMode,executionContextId); setQuickTitle("");}}>
+        <input value={quickTitle} onChange={event => setQuickTitle(event.target.value)} placeholder="루틴 추가" aria-label="루틴 제목"/>
+        <select value={quickRoutineMode} onChange={event => setQuickRoutineMode(event.target.value as typeof quickRoutineMode)} aria-label="루틴 주기"><option value="DAILY">매일</option><option value="WEEKDAYS">평일</option><option value="WEEKENDS">주말</option><option value="WEEKLY">매주</option><option value="BIWEEKLY">격주</option></select>
+        <button type="submit">추가</button>
+      </form>}
+      <div className={styles.contextFilterWrap}><ContextFilter contexts={contexts} value={executionContext} onChange={setExecutionContext} ariaLabel="홈 실행 맥락 필터"/></div>
+      <div className={styles.todoList}>
+        {mode === "todos" && todos.map(item => <div key={item.id} className={`${styles.todoRow} ${item.done ? styles.done : ""}`}>
+          <button type="button" className={styles.todoToggle} onClick={() => onToggleTask(item.id)} aria-label={`${item.title} ${item.done ? "미완료로 변경" : "완료 처리"}`}><i aria-hidden="true">{item.done ? "✓" : ""}</i><span>{item.title}</span><small>{item.done ? "완료" : "할 일"}</small></button>
+          <div className={styles.todoRowActions}><button type="button" onClick={() => onEditTask(item.id)} aria-label={`${item.title} 수정`}>✎</button><button type="button" onClick={() => onDeleteTask(item.id)} aria-label={`${item.title} 삭제`}>×</button></div>
+        </div>)}
+        {mode === "routines" && routines.map(item => <button type="button" key={`${item.task.id}-${item.occurrenceDate}`} className={item.status === "done" ? styles.done : ""} onClick={() => onToggleRecurring(item.task.id, item.occurrenceDate)}>
+          <i aria-hidden="true">{item.status === "done" ? "✓" : ""}</i><span>{item.task.title}</span><small>{item.status === "done" ? "완료" : homeRoutineLabel(item)}</small>
+        </button>)}
+        {!total && <p className={styles.empty}>{mode === "todos" ? "이 맥락의 오늘 할 일이 없습니다." : "이 맥락의 오늘 루틴이 없습니다."}</p>}
+      </div>
+    </article>
+  </section>;
 }
-export function HomeOperations({ summary, onNavigate }: { summary: HomeSummary; onNavigate: (target: "weekly-plan" | "monthly-plan" | "calendar" | "tasks" | "projects" | "recurring") => void }) {
- const periodLabel=summary.period==="day"?"오늘":summary.period==="week"?"이번 주":"이번 달";
- const formatDate=(value:string)=>value.slice(5,10).replace("-",".");
- return <section className={styles.summary} aria-label={`${periodLabel} 운영 요약`}>
-  <div className={styles.direction}>
-   <article className={styles.card}><header><h3>방향 연결</h3><button onClick={()=>onNavigate(summary.period==="month"?"monthly-plan":"weekly-plan")}>계획 열기</button></header><div className={styles.hierarchy}>
-    {summary.daily&&<><div><span>오늘 목표</span><strong>{summary.daily.goal||"오늘 목표를 정하면 운영 흐름이 시작됩니다."}</strong></div><div><span>선택 이유</span><p>{summary.daily.reason||"아직 선택 이유가 없습니다."}</p></div><div><span>즐길 것</span><p>{summary.daily.enjoyment||"오늘 즐길 것을 기록해 보세요."}</p></div>{summary.daily.linkedWeeklyGoal&&<div><span>주간 목표</span><strong>{summary.daily.linkedWeeklyGoal.title}</strong></div>}</>}
-    {summary.directions.map((item,index)=><div key={`${item.label}-${item.contextId??"all"}-${index}`}><span>{item.label}</span><p>{item.value}</p></div>)}
-    {!summary.daily&&!summary.directions.length&&<p className={styles.empty}>{periodLabel} 방향이 아직 없습니다. 계획 화면에서 이번 기간의 방향을 정해 보세요.</p>}
-   </div></article>
-   <article className={styles.card}><header><h3>{periodLabel} 목표</h3><button onClick={()=>onNavigate(summary.period==="month"?"monthly-plan":"weekly-plan")}>목표 관리</button></header><div className={styles.goals}>{summary.goals.slice(0,6).map(goal=><div key={goal.id} className={`${styles.goal} ${goal.status==="done"?styles.done:""}`}><i/><strong>{goal.title}</strong><small>{goal.priority==="high"?"높음":goal.priority==="low"?"낮음":"보통"} · {goal.status==="done"?"완료":goal.status==="active"?"진행":"보류"}</small></div>)}{!summary.goals.length&&<p className={styles.empty}>{periodLabel} 목표가 없습니다.</p>}</div></article>
-  </div>
-  <div className={styles.systems}>
-   <SystemCard title="일정" action="캘린더" count={summary.events.length} completed={0} onOpen={()=>onNavigate("calendar")} items={summary.events.slice(0,4).map(item=>({label:item.title,meta:formatDate(item.start)}))} empty="이 기간에 표시할 일정이 없습니다."/>
-   <SystemCard title="할 일" action="할 일" count={summary.todoProgress.total} completed={summary.todoProgress.completed} onOpen={()=>onNavigate("tasks")} items={summary.todos.slice(0,4).map(item=>({label:item.title,meta:item.done?"완료":formatDate(item.scheduledAt)}))} empty="이 기간에 할 일이 없습니다."/>
-   <SystemCard title="반복 업무" action="반복 관리" count={summary.recurringProgress.total} completed={summary.recurringProgress.completed} onOpen={()=>onNavigate("recurring")} items={summary.recurring.slice(0,4).map(item=>({label:item.task.title,meta:item.status==="done"?"완료":formatDate(item.occurrenceDate)}))} empty="이 기간에 반복 업무가 없습니다."/>
-   <SystemCard title="프로젝트" action="프로젝트" count={summary.projects.length} completed={0} onOpen={()=>onNavigate("projects")} items={summary.projects.slice(0,4).map(item=>({label:item.name,meta:`${item.progress}%`}))} empty="진행 중인 프로젝트가 없습니다."/>
-  </div>
-  <article className={styles.card}><header><h3>빠른 이동</h3></header><div className={styles.quickActions}><button onClick={()=>onNavigate("weekly-plan")}>이번 주 계획</button><button onClick={()=>onNavigate("monthly-plan")}>이번 달 계획</button><button onClick={()=>onNavigate("calendar")}>캘린더</button><button onClick={()=>onNavigate("tasks")}>할 일</button><button onClick={()=>onNavigate("recurring")}>반복 업무</button><button onClick={()=>onNavigate("projects")}>프로젝트</button></div></article>
- </section>;
+
+export function HomeProjectSummary({ summary, onNavigate }: { summary: HomeSummary; onNavigate: (target: "calendar" | "projects") => void }) {
+  return <section className={styles.projectSummary} aria-label="Home 프로젝트 요약">
+    <article className={`${styles.card} ${styles.projectCard}`}>
+      <header className={styles.projectHeader}>
+        <div><h3>프로젝트</h3><span>{summary.projects.length}개 운영 중</span></div>
+        <button onClick={() => onNavigate("projects")}>프로젝트</button>
+      </header>
+      <div className={styles.projectGrid}>
+        {summary.projects.slice(0, 4).map(project => <button type="button" key={project.id} className={styles.projectItem} onClick={() => onNavigate("projects")}>
+          <div className={styles.projectItemTop}>
+            <strong>{project.name}</strong>
+            <span className={styles.projectMetaSide}><em>{projectStatusLabel[project.status]}</em><b>{project.progress}%</b></span>
+          </div>
+          <p>{project.goal || "목표 미설정"}</p>
+          <div className={styles.projectPeriod}><span>시작 {compactDate(project.startDate)}</span><span>마감 {compactDate(project.dueDate)}</span></div>
+          <div className={styles.projectProgressTrack}><i style={{width:`${project.progress}%`}} /></div>
+        </button>)}
+        {!summary.projects.length && <p className={styles.empty}>진행 중인 프로젝트가 없습니다.</p>}
+      </div>
+    </article>
+  </section>;
 }
-function SystemCard({title,action,count,completed,onOpen,items,empty}:{title:string;action:string;count:number;completed:number;onOpen:()=>void;items:Array<{label:string;meta:string}>;empty:string}){return <article className={styles.card}><header><h3>{title}</h3><button onClick={onOpen}>{action}</button></header><div className={styles.metric}><strong>{count}</strong><span>{completed?`${completed} 완료 · ${Math.max(0,count-completed)} 남음`:"항목"}</span></div><div className={styles.list}>{items.map((item,index)=><p key={`${item.label}-${index}`}><span>{item.label}</span><small>{item.meta}</small></p>)}{!items.length&&<p className={styles.empty}>{empty}</p>}</div></article>}

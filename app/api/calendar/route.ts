@@ -20,11 +20,13 @@ function map(item:any,calendarId="primary",calendarName=""){
   allDay,location:item.location??"",description:item.description??"",
   recurrence:item.recurrence??[],
   reminders:(item.reminders?.overrides??[]).map((x:any)=>Number(x.minutes)).filter((x:number)=>Number.isFinite(x)),
+  useDefaultReminders:!!item.reminders?.useDefault,
   htmlLink:item.htmlLink??"",hangoutLink:item.hangoutLink??"",
   attendees:(item.attendees??[]).map((x:any)=>x.email).filter(Boolean),
   colorId:item.colorId??"",visibility:item.visibility??"default",
   transparency:item.transparency??"opaque",recurringEventId:item.recurringEventId??"",
   originalStart:item.originalStartTime?.dateTime??item.originalStartTime?.date??"",
+  updated:item.updated??"",
   calendarId,calendarName
  }
 }
@@ -38,12 +40,22 @@ function payload(body:any){
   summary:body.title,location:body.location||undefined,description:body.description||undefined,
   start:body.allDay?{date:startDate}:{dateTime:body.start,timeZone:"Asia/Seoul"},
   end:body.allDay?{date:ymdAdd(endDate,1)}:{dateTime:body.end,timeZone:"Asia/Seoul"},
-  recurrence:Array.isArray(body.recurrence)&&body.recurrence.length?body.recurrence:undefined,
-  reminders:{useDefault:reminders.length===0,overrides:reminders.length?reminders:undefined},
+  reminders:body.useDefaultReminders
+   ?{useDefault:true}
+   :{useDefault:false,overrides:reminders},
   attendees:(Array.isArray(body.attendees)?body.attendees:[]).map((email:string)=>({email})),
   colorId:body.colorId||undefined,visibility:body.visibility||"default",
   transparency:body.transparency||"opaque"
  };
+ const hasRecurrence=Object.prototype.hasOwnProperty.call(body,"recurrence");
+ // For a recurring instance edit, recurrence is intentionally omitted. For a master/non-series edit,
+ // an empty array explicitly clears an old recurrence instead of silently preserving it.
+ if(hasRecurrence){
+  const recurrence=Array.isArray(body.recurrence)?body.recurrence:[];
+  // Inserts do not need an empty recurrence array. PATCH does, because [] is how JEONG
+  // intentionally turns an existing repeating event back into a one-off event.
+  if(recurrence.length||body.id||body.seriesId)data.recurrence=recurrence;
+ }
  if(body.addMeet&&!body.id)data.conferenceData={createRequest:{requestId:`jeong-${Date.now()}-${Math.random().toString(36).slice(2)}`,conferenceSolutionKey:{type:"hangoutsMeet"}}};
  return data;
 }
@@ -82,10 +94,16 @@ export async function GET(req:NextRequest){
  });
  const results=await Promise.all(ids.map(async calendarId=>{
   const r=await fetch(`${cal(calendarId)}?${params}`,{headers:{Authorization:`Bearer ${access}`},cache:"no-store"});
-  if(!r.ok)return [];
-  const data=await r.json();return (data.items??[]).map((x:any)=>map(x,calendarId));
+  if(!r.ok)return {calendarId,ok:false as const,events:[]};
+  const data=await r.json();return {calendarId,ok:true as const,events:(data.items??[]).map((x:any)=>map(x,calendarId))};
  }));
- return NextResponse.json({events:results.flat().sort((a:any,b:any)=>String(a.start).localeCompare(String(b.start)))});
+ if(results.length&&!results.some(result=>result.ok)){
+  return NextResponse.json({error:"calendar_fetch_failed",failedCalendarIds:results.map(result=>result.calendarId)},{status:502});
+ }
+ return NextResponse.json({
+  events:results.flatMap(result=>result.events).sort((a:any,b:any)=>String(a.start).localeCompare(String(b.start))),
+  failedCalendarIds:results.filter(result=>!result.ok).map(result=>result.calendarId)
+ });
 }
 
 export async function POST(req:NextRequest){
@@ -107,11 +125,25 @@ export async function PATCH(req:NextRequest){
   delete trimmed.id;delete trimmed.etag;delete trimmed.created;delete trimmed.updated;delete trimmed.htmlLink;
   const tr=await fetch(requestUrl(`${cal(calendarId)}/${encodeURIComponent(body.seriesId)}`),{method:"PATCH",headers:{Authorization:`Bearer ${access}`,"Content-Type":"application/json"},body:JSON.stringify({recurrence:trimmed.recurrence})});
   if(!tr.ok)return NextResponse.json({error:"trim_series",detail:await tr.text()},{status:tr.status});
+  // A shortened recurring series can still leave its split-boundary occurrence visible.
+  // Remove that selected occurrence before creating the replacement future series.
+  const boundaryId=body.instanceId&&body.instanceId!==body.seriesId?String(body.instanceId):"";
+  if(boundaryId){
+   const boundary=await fetch(`${cal(calendarId)}/${encodeURIComponent(boundaryId)}?sendUpdates=all`,{method:"DELETE",headers:{Authorization:`Bearer ${access}`}});
+   if(!boundary.ok&&boundary.status!==404&&boundary.status!==410){
+    await fetch(requestUrl(`${cal(calendarId)}/${encodeURIComponent(body.seriesId)}`),{method:"PATCH",headers:{Authorization:`Bearer ${access}`,"Content-Type":"application/json"},body:JSON.stringify({recurrence:master.recurrence??[]})});
+    return NextResponse.json({error:"delete_split_boundary",detail:await boundary.text()},{status:boundary.status});
+   }
+  }
   const created=await fetch(requestUrl(cal(calendarId)),{method:"POST",headers:{Authorization:`Bearer ${access}`,"Content-Type":"application/json"},body:JSON.stringify(payload({...body,id:undefined}))});
-  if(!created.ok)return NextResponse.json({error:"create_future",detail:await created.text()},{status:created.status});
+  if(!created.ok){
+   await fetch(requestUrl(`${cal(calendarId)}/${encodeURIComponent(body.seriesId)}`),{method:"PATCH",headers:{Authorization:`Bearer ${access}`,"Content-Type":"application/json"},body:JSON.stringify({recurrence:master.recurrence??[]})});
+   return NextResponse.json({error:"create_future",detail:await created.text()},{status:created.status});
+  }
   return NextResponse.json({event:map(await created.json(),calendarId)});
  }
  const targetId=body.editScope==="series"&&body.seriesId?body.seriesId:body.id;
+ if(!targetId)return NextResponse.json({error:"missing_update_target"},{status:400});
  const r=await fetch(requestUrl(`${cal(calendarId)}/${encodeURIComponent(targetId)}`),{method:"PATCH",headers:{Authorization:`Bearer ${access}`,"Content-Type":"application/json"},body:JSON.stringify(payload(body))});
  if(!r.ok)return NextResponse.json({error:"update",detail:await r.text()},{status:r.status});
  return NextResponse.json({event:map(await r.json(),calendarId)});

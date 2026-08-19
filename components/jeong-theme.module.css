@@ -1,6 +1,7 @@
 .themeScope{
  --jeong-bg:#f7f2e9;--jeong-bg2:#eee5d7;--jeong-surface:rgba(255,253,248,.76);--jeong-surface-strong:rgba(255,254,251,.92);--jeong-field:rgba(255,252,246,.72);--jeong-line:rgba(151,111,45,.15);--jeong-line-soft:rgba(151,111,45,.10);--jeong-highlight:rgba(255,255,255,.88);--jeong-text:#33291d;--jeong-muted:#807463;--jeong-gold:#bd882c;--jeong-gold-2:#d9a23d;--jeong-gold-soft:rgba(218,170,78,.14);
- position:relative;isolation:isolate;min-width:0;min-height:100vh;padding:18px 24px 48px;color:var(--jeong-text);background:radial-gradient(ellipse at 22% 0,rgba(221,171,76,.08),transparent 34%),linear-gradient(145deg,var(--jeong-bg),#fbf8f1 56%,var(--jeong-bg2));
+ --page-gutter:clamp(12px,2.1vw,34px);--section-gap:clamp(12px,1.35vw,20px);--content-max:1440px;
+ position:relative;isolation:isolate;min-width:0;min-height:100vh;padding:clamp(12px,1.5vw,20px) var(--page-gutter) clamp(72px,5vw,96px);color:var(--jeong-text);background:radial-gradient(ellipse at 22% 0,rgba(221,171,76,.08),transparent 34%),linear-gradient(145deg,var(--jeong-bg),#fbf8f1 56%,var(--jeong-bg2));
 }
 :global(html[data-theme="dark"]) .themeScope{--jeong-bg:#050b14;--jeong-bg2:#081524;--jeong-surface:rgba(11,25,43,.78);--jeong-surface-strong:rgba(12,29,50,.92);--jeong-field:rgba(13,30,51,.78);--jeong-line:rgba(157,187,225,.13);--jeong-line-soft:rgba(157,187,225,.085);--jeong-highlight:rgba(210,230,255,.09);--jeong-text:#f1eee7;--jeong-muted:#91a0b4;--jeong-gold:#d5ae5f;--jeong-gold-2:#e2bd70;--jeong-gold-soft:rgba(210,171,85,.13);background:radial-gradient(ellipse at 22% 0,rgba(37,79,133,.16),transparent 38%),linear-gradient(145deg,var(--jeong-bg),var(--jeong-bg2) 58%,#050b14)}
 .themeScope:before{content:"";position:fixed;z-index:-1;inset:0;pointer-events:none;opacity:.24;background-image:radial-gradient(circle at 14% 20%,rgba(255,255,255,.8) 0 .55px,transparent .8px),radial-gradient(circle at 72% 27%,rgba(205,147,41,.46) 0 .5px,transparent .8px);background-size:139px 127px,223px 191px}
@@ -20,6 +21,19 @@
 .themeScope :global(h1),.themeScope :global(h2),.themeScope :global(h3){letter-spacing:-.035em}.themeScope :global(small),.themeScope :global(.muted),.themeScope :global(.cardTitle small),.themeScope :global(.dayHeroCopy p){color:var(--jeong-muted)}
 .themeScope :global(.cardTitle){margin-bottom:12px!important}.themeScope :global(.cardTitle h2){font-size:.92rem!important}.themeScope :global(.cardTitle button){font-size:.68rem!important}
 .themeScope :global(.taskTabs button.active),.themeScope :global(.calendarToolbar button.active),.themeScope :global(.monthDisplayTabs button.active),.themeScope :global(.calendarModeTabs button.active),.themeScope :global(.projectNavItem.active),.themeScope :global(.personListItem.active){border-color:color-mix(in srgb,var(--jeong-gold) 28%,transparent)!important;background:var(--jeong-gold-soft)!important;color:var(--jeong-gold)!important}
+.themeScope :global(.calendarPage > .eventOptionSection){display:none!important}
+.themeScope:global(.view-projects) :global(.projectList){position:sticky;top:14px;display:flex;flex-direction:column;max-height:calc(100dvh - 28px)!important;overflow:hidden}
+.themeScope:global(.view-projects) :global(.projectListItems){flex:1 1 auto;min-height:0;overflow-y:auto;padding-right:3px}
+.themeScope:global(.view-projects) :global(.projectDetail .projectHero){position:sticky;top:0;z-index:8;margin:-1px -1px 0;padding:18px 20px;border-radius:16px 16px 0 0;background:var(--jeong-surface)!important;box-shadow:0 8px 18px color-mix(in srgb,var(--jeong-bg) 62%,transparent)}
+.themeScope:global(.view-tasks) :global(.cardTitle){margin-bottom:0!important}
+.themeScope:global(.view-tasks) :global(.cardTitle [role="group"]){gap:9px;padding:17px 18px 14px}
+.themeScope:global(.view-tasks) :global(.taskTabs){margin-top:12px!important}
+.themeScope:global(.view-tasks) :global(.taskComposer>label){display:flex;align-items:center;min-height:44px!important;gap:8px;padding-inline:14px}
+.themeScope:global(.view-tasks) :global(.taskComposer>label input[type="checkbox"]){flex:0 0 auto;margin:0}
+.themeScope :global(.selectedGoalSummary){display:grid;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--jeong-line)}
+.themeScope :global(.selectedGoalSummary header){display:grid;gap:3px}.themeScope :global(.selectedGoalSummary header span){color:var(--jeong-gold);font-size:.72rem;font-weight:800}.themeScope :global(.selectedGoalSummary header strong){font-size:.92rem}.themeScope :global(.selectedGoalSummary>div){display:grid;gap:7px}.themeScope :global(.selectedGoalSummary p){display:flex;gap:8px;margin:0;line-height:1.4}.themeScope :global(.selectedGoalSummary i){flex:0 0 8px;width:8px;height:8px;margin-top:.32em;border-radius:50%;background:var(--jeong-line)}.themeScope :global(.selectedGoalSummary i.done){background:var(--jeong-gold)}.themeScope :global(.selectedGoalEmpty){color:var(--jeong-muted);font-size:.78rem}
+.themeScope :global(.selectedRangeTasks){display:grid;gap:9px;margin-top:12px;padding-top:12px;border-top:1px solid var(--jeong-line)}.themeScope :global(.selectedRangeTasks header){display:flex;align-items:center;justify-content:space-between}.themeScope :global(.selectedRangeTasks header span){color:var(--jeong-gold);font-size:.72rem;font-weight:800}.themeScope :global(.selectedRangeTasks header b){font-size:.78rem}.themeScope :global(.selectedRangeTasks>div){display:grid;gap:7px}.themeScope :global(.selectedRangeTasks p){display:flex;gap:8px;margin:0;line-height:1.4}.themeScope :global(.selectedRangeTasks i){flex:0 0 8px;width:8px;height:8px;margin-top:.32em;border-radius:50%;background:var(--jeong-line)}
+.themeScope :global(.selectedRangeTasks i.done){background:var(--jeong-gold)}.themeScope :global(.selectedRangeTasks p small),.themeScope :global(.selectedRangeTasks .dayTaskRow small){color:var(--jeong-muted);font-size:.68rem}.themeScope :global(.selectedRangeTasks .dayTaskRow){display:grid;grid-template-columns:20px minmax(0,1fr);align-items:center;gap:8px;min-height:30px}.themeScope :global(.selectedRangeTasks .dayTaskRow>span){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.themeScope :global(.selectedRangeTasks .dayTaskRow.done>span){color:var(--jeong-muted);text-decoration:line-through}
 .themeScope :global(.rows article),.themeScope :global(.compactList article),.themeScope :global(.attentionList article),.themeScope :global(.timelineList article),.themeScope :global(.monthAgendaList article),.themeScope :global(.agendaView article),.themeScope :global(.scheduleRow),.themeScope :global(.dayTaskRow),.themeScope :global(.dayRecordRow){border-color:var(--jeong-line-soft)!important}
 .themeScope :global(.monthGrid>button),.themeScope :global(.weekDayColumn),.themeScope :global(.briefBubble),.themeScope :global(.nextSchedule),.themeScope :global(.reviewPreview),.themeScope :global(.aiTypeGrid button),.themeScope :global(.statGrid article){border-color:var(--jeong-line)!important;background:color-mix(in srgb,var(--jeong-field) 86%,transparent)!important;box-shadow:inset 0 1px var(--jeong-highlight)}
 
@@ -27,9 +41,92 @@
 :global(html[data-theme="dark"]) .themeScope>:global(.topHeader){background:radial-gradient(circle at 17% 45%,rgba(59,111,178,.22),transparent 18%),repeating-radial-gradient(ellipse at 18% 58%,transparent 0 45px,rgba(112,157,216,.065) 46px,transparent 47px 72px),linear-gradient(118deg,#040912,#081523 52%,#050c17)!important}
 .themeScope>:global(.topHeader) :global(.themeCelestial){display:grid!important;opacity:1!important}.themeScope>:global(.topHeader) :global(.weatherBlock),.themeScope>:global(.topHeader) :global(.searchTrigger),.themeScope>:global(.topHeader) :global(.iconBtn){border-color:var(--jeong-line)!important;background:color-mix(in srgb,var(--jeong-surface) 76%,transparent)!important;box-shadow:inset 0 1px var(--jeong-highlight),0 9px 24px rgba(74,49,13,.045)!important;backdrop-filter:blur(16px)}
 
-.themeScope>:global(.calendarWorkspace),.themeScope>:global(.dayWorkspace),.themeScope>:global(.projectWorkspace),.themeScope>:global(.peopleWorkspace),.themeScope>:global(.recordsWorkspace),.themeScope>:global(.reviewWorkspace),.themeScope>:global(.statGrid),.themeScope>:global(.analyticsGrid),.themeScope>:global(.chapterGrid),.themeScope>:global(.noteGrid),.themeScope>:global(.activityGrid),.themeScope>:global(.aiBridgeHero),.themeScope>:global(.aiBridgePanel),.themeScope>:global(.settingsPanel),.themeScope>:global(.advancedAccessPanel),.themeScope>:global(.taskComposer),.themeScope>:global(.subpageHeader),.themeScope>:global(.timelineList){width:min(100%,1240px);margin-inline:auto}
+.themeScope>:global(.calendarWorkspace),.themeScope>:global(.dayWorkspace),.themeScope>:global(.projectWorkspace),.themeScope>:global(.peopleWorkspace),.themeScope>:global(.recordsWorkspace),.themeScope>:global(.reviewWorkspace),.themeScope>:global(.statGrid),.themeScope>:global(.analyticsGrid),.themeScope>:global(.chapterGrid),.themeScope>:global(.noteGrid),.themeScope>:global(.activityGrid),.themeScope>:global(.aiBridgeHero),.themeScope>:global(.aiBridgePanel),.themeScope>:global(.settingsPanel),.themeScope>:global(.advancedAccessPanel),.themeScope>:global(.taskComposer),.themeScope>:global(.subpageHeader),.themeScope>:global(.timelineList){width:min(100%,var(--content-max));margin-inline:auto}
 .themeScope :global(.subpageHeader){min-height:64px!important;margin-bottom:12px!important;padding:12px 16px!important}.themeScope :global(.subpageHeader h2){font-size:.95rem!important}.themeScope :global(.statGrid){gap:12px!important}.themeScope :global(.statGrid .premiumCard){min-height:92px!important;padding:16px!important}.themeScope :global(.statGrid strong){font-size:1.55rem!important}.themeScope :global(.calendarWorkspace),.themeScope :global(.projectWorkspace),.themeScope :global(.peopleWorkspace),.themeScope :global(.recordsWorkspace),.themeScope :global(.reviewWorkspace){gap:12px!important}.themeScope :global(.settingsPanel>div){min-height:52px!important;padding:11px 16px!important;border-color:var(--jeong-line)!important}.themeScope :global(.settingsPanel>h2){padding:15px 16px 6px!important}.themeScope :global(.aiBridgeHero),.themeScope :global(.aiBridgePanel){padding:18px!important}.themeScope :global(.aiTypeGrid){gap:9px!important}.themeScope :global(.aiTypeGrid button){min-height:76px!important;border-radius:12px!important}
 
-@media(max-width:1100px){.themeScope{padding:16px 18px 44px}.themeScope>:global(.topHeader){min-height:154px;margin:-16px -18px 14px;padding:22px 24px 26px}.themeScope :global(.premiumCard){border-radius:15px!important}}
-@media(max-width:820px){.themeScope{padding:12px 12px 90px}.themeScope>:global(.topHeader){min-height:150px;margin:-12px -12px 14px;padding:20px 14px 24px}.themeScope :global(.premiumCard),.themeScope :global(.subpageHeader),.themeScope :global(.calendarPage){border-radius:14px!important}}
-@media(max-width:520px){.themeScope{padding-inline:10px}.themeScope>:global(.topHeader){margin-inline:-10px;padding-inline:12px}.themeScope :global(.goldBtn){border-radius:9px!important}}
+@media(max-width:1100px){.themeScope{--content-max:980px}.themeScope>:global(.topHeader){min-height:clamp(136px,18vw,154px);margin:calc(-1 * clamp(12px,1.5vw,20px)) calc(-1 * var(--page-gutter)) var(--section-gap);padding:clamp(18px,2.2vw,24px) var(--page-gutter) clamp(22px,2.6vw,28px)}.themeScope :global(.premiumCard){border-radius:15px!important}}
+@media(max-width:760px){.themeScope{--page-gutter:clamp(10px,3.2vw,16px);padding-bottom:96px}.themeScope>:global(.topHeader){min-height:clamp(128px,25vw,150px)}.themeScope :global(.premiumCard),.themeScope :global(.subpageHeader),.themeScope :global(.calendarPage){border-radius:14px!important}}
+@media(max-width:480px){.themeScope{--page-gutter:10px}.themeScope :global(.goldBtn){border-radius:9px!important}}
+
+/* Fluid product grid: content determines when columns fold. */
+.themeScope :global(.homeGrid),.themeScope :global(.analyticsGrid),.themeScope :global(.noteGrid),.themeScope :global(.chapterGrid),.themeScope :global(.activityGrid){gap:var(--section-gap)!important}
+.themeScope :global(.statGrid){grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr))!important}
+.themeScope :global(.peopleGrid),.themeScope :global(.noteGrid),.themeScope :global(.chapterGrid){grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))!important}
+.themeScope :global(.taskComposer),.themeScope :global(.peopleComposer),.themeScope :global(.activityComposer){grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr))!important;align-items:end}
+.themeScope :global(.taskComposer)>*,.themeScope :global(.peopleComposer)>*,.themeScope :global(.activityComposer)>*{min-width:0}
+@media(max-width:680px){.themeScope :global(.reviewSummary),.themeScope :global(.reviewGrid),.themeScope :global(.projectFields),.themeScope :global(.twoFields){grid-template-columns:1fr!important}.themeScope :global(.rows article){grid-template-columns:22px minmax(0,1fr) auto!important}.themeScope :global(.subpageHeader){align-items:flex-start!important;flex-wrap:wrap}}
+
+/* Calendar is one master-detail surface; page scrolling must not become nested column scrolling. */
+@media(min-width:1151px){
+ .themeScope :global(.calendarWorkspace){height:auto!important;min-height:0!important;align-items:start!important;overflow:visible!important}
+ .themeScope :global(.calendarWorkspace .calendarPage),.themeScope :global(.calendarWorkspace .selectedDayPanel){height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important}
+ .themeScope :global(.calendarWorkspace .selectedDayPanel){position:sticky!important;top:14px!important}
+}
+.themeScope:global(.view-projects) :global(.projectList>.cardTitle){position:sticky;top:0;z-index:2;flex:0 0 auto;margin:0!important;padding-bottom:12px;background:var(--jeong-surface)}
+.themeScope:global(.view-tasks) :global(.taskComposer>label){line-height:1.25;overflow:visible}
+.themeScope:global(.view-tasks) :global(.taskComposer>label input[type="checkbox"]){width:16px!important;height:16px!important;min-height:16px!important;line-height:1;vertical-align:middle}
+@media(max-width:1150px){.themeScope :global(.calendarWorkspace){height:auto!important;overflow:visible!important}.themeScope :global(.calendarWorkspace .calendarPage),.themeScope :global(.calendarWorkspace .selectedDayPanel){height:auto!important;max-height:none!important;overflow:visible!important}}
+
+/* =========================================================
+   JEONG refinement R12 · 2026-08-14
+   Header geometry + bounded project navigation + detail back rows.
+   ========================================================= */
+.themeScope>:global(.topHeader){
+  padding-left:max(var(--page-gutter),calc((100% - var(--v2-page-max,1480px))/2))!important;
+  padding-right:max(var(--page-gutter),calc((100% - var(--v2-page-max,1480px))/2))!important;
+}
+.themeScope:global(.view-projects) :global(.projectList){overflow:hidden!important}
+.themeScope:global(.view-projects) :global(.projectListItems){
+  max-height:none!important;
+  overflow-y:visible!important;
+  padding-right:3px!important;
+}
+.themeScope:global(.view-projects) :global(.projectListItems:has(>button:nth-child(5))){
+  max-height:430px!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain;
+  scrollbar-gutter:stable;
+  padding-right:5px!important;
+}
+.themeScope:global(.view-projects) :global(.projectListItems::-webkit-scrollbar){width:7px}
+.themeScope:global(.view-projects) :global(.projectListItems::-webkit-scrollbar-thumb){border-radius:999px;background:color-mix(in srgb,var(--jeong-gold) 28%,transparent)}
+.themeScope :global(.detailBackRow){display:flex;align-items:center;width:100%;margin:0 auto 10px}
+.themeScope :global(.detailBackRow .backToRecords){min-height:36px!important;padding:7px 11px!important}
+@media(max-width:1120px) and (min-width:761px){
+  .themeScope:global(.view-projects) :global(.projectListItems:has(>button:nth-child(5))){max-height:220px!important}
+}
+@media(max-width:760px){
+  .themeScope:global(.view-projects) :global(.projectListItems:has(>button:nth-child(5))){max-height:430px!important}
+}
+
+/* =========================================================
+   JEONG refinement R13 · 2026-08-14
+   Generic headers keep one horizontal guide at tablet/compact desktop.
+   The page title owns the left edge; utility controls own the right edge.
+   ========================================================= */
+@media(max-width:1180px) and (min-width:761px){
+  .themeScope>:global(.topHeader){
+    display:flex!important;
+    flex-direction:row!important;
+    align-items:center!important;
+    justify-content:space-between!important;
+    gap:16px!important;
+  }
+  .themeScope>:global(.topHeader) :global(.headerIdentity){flex:1 1 auto!important;min-width:0!important;text-align:left!important}
+  .themeScope>:global(.topHeader) :global(.headerRight){display:flex!important;flex:0 1 auto!important;width:auto!important;min-width:0!important;align-items:center!important;justify-content:flex-end!important;gap:10px!important;margin-left:auto!important}
+  .themeScope>:global(.topHeader) :global(.dateWeatherBlock){width:auto!important}
+  .themeScope>:global(.topHeader) :global(.headerTools){width:auto!important;justify-content:flex-end!important}
+}
+
+/* R14: header and content share one exact guide token at every width. */
+.themeScope>:global(.topHeader){
+  padding-left:max(var(--page-gutter),calc((100% - var(--content-max,1440px))/2))!important;
+  padding-right:max(var(--page-gutter),calc((100% - var(--content-max,1440px))/2))!important;
+}
+@media(max-width:680px){
+  .themeScope :global(.rows article){grid-template-columns:22px 16px minmax(0,1fr) auto!important}
+}
+@media(max-width:520px){
+  .themeScope :global(.rows article){grid-template-columns:22px 16px minmax(0,1fr)!important}
+  .themeScope :global(.rows article .taskRowActions){grid-column:3!important;justify-self:end!important}
+}

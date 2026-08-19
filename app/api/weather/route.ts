@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req:NextRequest){
  const q=req.nextUrl.searchParams;
- const lat=Number(q.get("lat")||35.1595);
- const lon=Number(q.get("lon")||126.8526);
- const location=q.get("location")||"광주";
+ const rawLat=q.get("lat");
+ const rawLon=q.get("lon");
+ if(rawLat===null||rawLon===null)return NextResponse.json({error:"coordinates_required"},{status:400});
+ const lat=Number(rawLat);
+ const lon=Number(rawLon);
+ const location=q.get("location")||"현재 위치";
  if(!Number.isFinite(lat)||!Number.isFinite(lon))return NextResponse.json({error:"coordinates"},{status:400});
  const params=new URLSearchParams({
   latitude:String(lat),longitude:String(lon),

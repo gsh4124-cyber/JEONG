@@ -48,7 +48,8 @@ export default async function DashboardPage() {
           <strong>{session.user?.name || "JEONG 사용자"}</strong>
           <small>{session.user?.email}</small>
           <a href="/dashboard">Google 연결</a>
-          <a href="/dashboard?view=settings">프로필 및 설정</a>
+          <a href="/dashboard?view=profile">개인정보</a>
+          <a href="/dashboard?view=settings">설정</a>
           <form
             action={async () => {
               "use server";
@@ -59,7 +60,7 @@ export default async function DashboardPage() {
           </form>
         </div>
       </details>
-      <Dashboard />
+      <Dashboard user={{ name: session.user?.name, email: session.user?.email, image: session.user?.image }} />
     </>
   );
 }

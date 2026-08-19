@@ -3,47 +3,32 @@ setlocal EnableExtensions
 cd /d "%~dp0"
 title JEONG Check
 
-echo.
-echo ==========================================
-echo        JEONG v6.0.1 CHECK
-echo ==========================================
-echo.
-
-where node.exe >nul 2>nul
-if errorlevel 1 (
-  echo Node.js is not installed.
-  pause
-  exit /b 1
-)
-
 if not exist "node_modules\" (
-  echo Installing required packages...
+  echo Installing dependencies...
   call npm.cmd install
-  if errorlevel 1 goto FAIL
+  if errorlevel 1 goto :failed
 )
 
-echo [1/2] Checking TypeScript...
+set "JEONG_DIST_DIR=.next-check"
+if exist ".next-check\" rmdir /s /q ".next-check"
+
+echo [1/2] TypeScript check...
 call npm.cmd run typecheck
-if errorlevel 1 goto FAIL
+if errorlevel 1 goto :failed
 
 echo.
-echo [2/2] Creating production build...
+echo [2/2] Production build check in .next-check...
 call npm.cmd run build
-if errorlevel 1 goto FAIL
+if errorlevel 1 goto :failed
 
 echo.
-echo ==========================================
-echo JEONG check completed successfully.
-echo You may now run JEONG-RUN.cmd.
-echo ==========================================
+echo JEONG code check completed successfully.
+echo Development cache .next was not touched.
 pause
 exit /b 0
 
-:FAIL
+:failed
 echo.
-echo ==========================================
-echo The check found an error.
-echo Take a screenshot of the last red error lines.
-echo ==========================================
+echo JEONG check failed. Read the first error above.
 pause
 exit /b 1

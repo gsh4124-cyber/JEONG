@@ -7,3 +7,5 @@ tsconfig.tsbuildinfo
 BUILD_CHECK.txt
 .DS_Store
 Thumbs.db
+
+.next-check

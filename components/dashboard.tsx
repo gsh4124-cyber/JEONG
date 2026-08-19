@@ -10,36 +10,45 @@ import homeStyles from "@/components/home-dashboard.module.css";
 import { HomeHero } from "@/components/home-hero";
 import { ContextFilter } from "@/components/planning/context-filter";
 import { ContextPicker, ContextTag } from "@/components/planning/context-picker";
-import { RecurringTaskEditor } from "@/components/planning/recurring-task-editor";
 import { PlanningWorkspace } from "@/components/planning/planning-workspace";
-import { HomeOperations, HomePeriodSwitcher } from "@/components/planning/home-operations";
+import { HomeOperations, HomeProjectSummary } from "@/components/planning/home-operations";
 import planningContextStyles from "@/components/planning/planning-context.module.css";
 import {
   loadLocalState,
+  normalizeLocalState,
   saveLocalState,
 } from "@/lib/planning/local-state-repository";
 import {
   DEFAULT_CONTEXTS,
+  calendarEventContextKey,
   filterCalendarEventsByContext,
-  filterProjectsByContext,
   filterTasksByContext,
   getCalendarContextId,
   getDefaultCalendarId,
+  getEventContextId,
 } from "@/lib/planning/contexts";
 import { usePlanningContextFilter } from "@/lib/planning/use-planning-context-filter";
 import {
   describeRecurrence,
-  getRecurringTasksForDate,
   recurrenceToGoogleRrule,
+  getOccurrencesForDate,
 } from "@/lib/planning/recurrence";
 import { getMonthRange, getNextMonth, getNextWeek, getPreviousMonth, getPreviousWeek, getWeekRange } from "@/lib/planning/periods";
-import { getGoalsForPeriod, getPlanForPeriod } from "@/lib/planning/plans";
-import { getDailyHomeSummary, getMonthlyHomeSummary, getWeeklyHomeSummary, type HomePeriod } from "@/lib/planning/home-summary";
+import { formatProjectPeriod, getProjectDday, withProjectStatus } from "@/lib/planning/projects";
+import { getDailyHomeSummary } from "@/lib/planning/home-summary";
+import { createMorningBriefing } from "@/lib/planning/morning-briefing";
+import { createProactiveReminders } from "@/lib/planning/proactive-reminders";
+import { getDailyRecord } from "@/lib/planning/daily-record";
+import { carryTaskForward, createDailyContinuity } from "@/lib/planning/daily-continuity";
+import { getWeeklySummary } from "@/lib/planning/weekly-intelligence";
+import { getMonthlySummary } from "@/lib/planning/monthly-intelligence";
+import { getProjectIntelligence } from "@/lib/planning/project-intelligence";
+import { getPersonalIntelligence } from "@/lib/planning/personal-intelligence";
+import { buildChatGptLifeStatePrompt, type AiPromptType } from "@/lib/planning/chatgpt-life-state";
+import { getOperatingContext } from "@/lib/planning/operating-loop";
 import type {
   Activity,
   ActivityType,
-  Chapter,
-  ContactLog,
   LocalState,
   Goal,
   Plan,
@@ -52,34 +61,39 @@ import type {
   Review,
   TaskBucket,
   TaskItem,
+  ContextFilterValue,
 } from "@/lib/planning/types";
 
-type View = "home"|"day"|"weekly-plan"|"monthly-plan"|"calendar"|"tasks"|"projects"|"people"|"records"|"analytics"|"activities"|"notes"|"review"|"timeline"|"chapters"|"ai"|"settings";
-type AiPromptType = "morning"|"daily"|"weekly"|"project"|"free";
+type View = "home"|"day"|"weekly-plan"|"monthly-plan"|"calendar"|"routines"|"projects"|"people"|"records"|"analytics"|"activities"|"notes"|"review"|"timeline"|"chapters"|"ai"|"settings"|"profile";
+const VALID_VIEWS = new Set<View>(["home","day","weekly-plan","monthly-plan","calendar","routines","projects","people","records","analytics","activities","notes","review","timeline","chapters","ai","settings","profile"]);
 type CalendarMode = "month"|"week"|"day";
 type MonthDisplayMode = "calendar" | "list";
 type PeopleViewFilter = "all" | "due" | "waiting" | "stale";
 type Recurrence = "none"|"daily"|"weekdays"|"weekly"|"biweekly"|"monthly"|"yearly"|"custom";
-type AiEngine = "none"|"ollama"|"openai"|"claude"|"gemini";
 type ToastState={message:string;kind:"success"|"info"|"error"}|null;
 type WeatherInfo={temperature:number;apparent:number;code:number;wind:number;location:string}|null;
 type ProjectDialogMode="project"|"milestone"|null;
+type TimelineItem={date:string;kind:string;title:string;note:string;project?:string};
+type DashboardUser={name?:string|null;email?:string|null;image?:string|null};
 
 type EventItem = {
  id:string; title:string; start:string; end:string; location:string; description:string;
- recurrence?:string[]; reminders?:number[]; htmlLink?:string; allDay?:boolean;
+ recurrence?:string[]; reminders?:number[]; useDefaultReminders?:boolean; htmlLink?:string; allDay?:boolean;
  attendees?:string[]; colorId?:string; visibility?:string; transparency?:string;
  hangoutLink?:string; recurringEventId?:string; originalStart?:string;
- calendarId?:string; calendarName?:string;
+ calendarId?:string; calendarName?:string; contextId?:string; updated?:string;
 };
-type MailItem = { id:string; from:string; subject:string; date:string; snippet:string };
+type DeletedEventTombstone = {
+ calendarId:string; id:string; seriesId?:string; scope:"single"|"future"|"series"; from?:string; expiresAt:number;
+};
+
 type EventForm = {
  id?:string; seriesId?:string; title:string; start:string; end:string; allDay:boolean;
  location:string; description:string; recurrence:Recurrence; recurrenceUntil:string;
  recurrenceCount:number; recurrenceInterval:number; weeklyDays:string[];
  monthlyMode:"date"|"lastDay"|"nthWeekday"|"lastWeekday";
  holidayPolicy:"skip"|"next"|"previous";
- excludeHolidays:boolean; excludeWeekends:boolean; reminders:number[];
+ excludeHolidays:boolean; excludeWeekends:boolean; reminders:number[]; useDefaultReminders:boolean;
  attendees:string; addMeet:boolean; visibility:"default"|"public"|"private";
  transparency:"opaque"|"transparent"; colorId:string;
  editScope:"single"|"future"|"series"; calendarId:string;
@@ -91,32 +105,36 @@ const todayKey=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padS
 const uid=()=>crypto.randomUUID?.()??`${Date.now()}-${Math.random()}`;
 const toLocalInput=(value?:string)=>{const d=value?new Date(value):new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16)};
 const eventTime=(v:string)=>{const d=new Date(v); return Number.isNaN(d.getTime())||!v.includes("T")?"종일":d.toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"})};
+const eventTime24=(v:string)=>{const d=new Date(v);return Number.isNaN(d.getTime())||!v.includes("T")?"종일":`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`};
 const eventDateKey=(v:string)=>v.includes("T")?todayKey(new Date(v)):v.slice(0,10);
 const dateInput=(v?:string)=>v?eventDateKey(v):todayKey();
-const reminderLabel=(minutes:number)=>minutes>=10080?`${Math.round(minutes/10080)}주 전`:minutes>=1440?`${Math.round(minutes/1440)}일 전`:minutes>=60?`${Math.round(minutes/60)}시간 전`:`${minutes}분 전`;
 const parseYmd=(value:string)=>{const [y,m,d]=value.slice(0,10).split("-").map(Number);return new Date(y,m-1,d)};
 const formatYmd=(date:Date)=>`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
 const addDaysYmd=(value:string,days:number)=>{const d=parseYmd(value);d.setDate(d.getDate()+days);return formatYmd(d)};
+const taskPeriodForBucket=(bucket:TaskBucket,start=todayKey())=>{
+ if(bucket==="today")return {start,end:start};
+ if(bucket==="week")return {start,end:getWeekRange(start).end};
+ if(bucket==="month")return {start,end:getMonthRange(start).end};
+ return {start:"",end:""};
+};
 const compactYmd=(value:string)=>value.slice(0,10).replaceAll("-","");
 const localTimeParts=(value:string)=>{const d=new Date(value);return `${String(d.getHours()).padStart(2,"0")}${String(d.getMinutes()).padStart(2,"0")}${String(d.getSeconds()).padStart(2,"0")}`};
-const colorLabels:Record<string,string>={"":"기본","1":"연보라","2":"연두","3":"보라","4":"코랄","5":"노랑","6":"주황","7":"하늘","8":"회색","9":"파랑","10":"초록","11":"빨강"};
-const eventColorHex:Record<string,string>={"":"#c69a3b","1":"#7986cb","2":"#33b679","3":"#8e24aa","4":"#e67c73","5":"#f6c026","6":"#f5511d","7":"#039be5","8":"#616161","9":"#3f51b5","10":"#0b8043","11":"#d60000"};
+const contextEventColorId=(contextId?:string)=>contextId==="personal"?"5":contextId==="work"?"9":contextId==="church"?"3":"";
+const contextTone=(contextId?:string)=>contextId==="work"?"work":contextId==="church"?"church":contextId==="personal"?"personal":"unassigned";
+function groupTimeline(items:TimelineItem[]){
+ const grouped:Record<string,Record<string,TimelineItem[]>>={};
+ for(const item of items){const year=item.date.slice(0,4)||"기타";const month=item.date.slice(0,7)||year;grouped[year]??={};grouped[year][month]??=[];grouped[year][month].push(item)}
+ return Object.entries(grouped).sort(([a],[b])=>b.localeCompare(a)).map(([year,months])=>({year,months:Object.entries(months).sort(([a],[b])=>b.localeCompare(a)).map(([month,entries])=>({month,entries}))}));
+}
 
 const projectStatusLabel:Record<Project["status"],string>={planning:"기획",active:"진행 중",review:"검토 중",done:"완료"};
 const activityLabels:Record<ActivityType,string>={running:"러닝",workout:"근력 운동",martial:"무도",reading:"독서",study:"공부",church:"교회·교육",photo:"사진",other:"기타"};
 const noteLabels:Record<NoteType,string>={idea:"아이디어",thought:"생각",question:"질문",principle:"기준",quote:"어록"};
 const bucketLabels:Record<TaskBucket,string>={today:"오늘",week:"이번 주",month:"이번 달",someday:"언젠가"};
-const defaultProjects:Project[]=[
- {id:"insurance",name:"우리동네 보험점검",goal:"지역에서 신뢰받는 보험 점검 채널과 고객 흐름 구축",next:"고객 또는 콘텐츠와 연결되는 행동 하나",status:"active",note:"",milestones:[{id:"i1",title:"콘텐츠 운영 체계",done:false,weight:30},{id:"i2",title:"고객 관리 체계",done:false,weight:35},{id:"i3",title:"지역 제휴 체계",done:false,weight:35}]},
- {id:"jeong",name:"JEONG",goal:"황제가 실제로 매일 사용하는 개인 운영체제 완성",next:"실사용에서 불편한 기능 하나 개선",status:"active",note:"",milestones:[{id:"j1",title:"Google 연동",done:true,weight:20},{id:"j2",title:"하루 운영",done:true,weight:20},{id:"j3",title:"프로젝트·사람",done:false,weight:20},{id:"j4",title:"활동·기록",done:false,weight:20},{id:"j5",title:"AI·Life Graph",done:false,weight:20}]},
- {id:"nextlevel",name:"넥스트레벨",goal:"자기 삶을 찾고 살아가도록 돕는 구조 설계",next:"구조 한 부분 정리",status:"planning",note:"",milestones:[]},
- {id:"running",name:"We are Run",goal:"러닝과 사유를 연결한 신뢰도 높은 채널 운영",next:"러닝 기록 또는 콘텐츠 하나",status:"active",note:"",milestones:[]},
- {id:"education",name:"교회·교육",goal:"학생이 스스로 생각하도록 돕는 교육",next:"가까운 수업 준비 확인",status:"active",note:"",milestones:[]}
-];
+const defaultProjects:Project[]=[];
 const defaultState:LocalState={
- schemaVersion:3,morningDate:"",goal:"",reason:"",enjoyment:"",gratitude:["","",""] ,tasks:[],people:[],projects:defaultProjects,activities:[],notes:[],reviews:{},chapters:[{id:"c1",title:"JEONG를 현실로 만드는 시기",startDate:todayKey(),endDate:"",description:"생각을 실제로 사용하는 시스템으로 만드는 챕터",active:true}],contexts:DEFAULT_CONTEXTS,calendarContextMappings:[],contextCalendarPreferences:[],recurringTasks:[],recurringTaskCompletions:[],plans:[],goals:[]
+ schemaVersion:3,morningDate:"",goal:"",reason:"",enjoyment:"",gratitude:["","",""] ,tasks:[],people:[],projects:defaultProjects,activities:[],notes:[],reviews:{},chapters:[],contexts:DEFAULT_CONTEXTS,calendarContextMappings:[],contextCalendarPreferences:[],calendarEventContextOverrides:[],recurringTasks:[],recurringTaskCompletions:[],plans:[],goals:[],personalInsightPreferences:[],operatingReminderPreferences:[]
 };
-function progress(p:Project){const total=p.milestones.reduce((a,m)=>a+Math.max(0,m.weight),0); if(!total)return p.status==="done"?100:0; return Math.round(p.milestones.filter(m=>m.done).reduce((a,m)=>a+m.weight,0)/total*100)}
 function monthDays(cursor:Date){const first=new Date(cursor.getFullYear(),cursor.getMonth(),1); const start=new Date(cursor.getFullYear(),cursor.getMonth(),1-first.getDay()); return Array.from({length:42},(_,i)=>{const d=new Date(start);d.setDate(start.getDate()+i);return d})}
 function rangeFor(mode:CalendarMode,cursor:Date){if(mode==="month"){const days=monthDays(cursor);const start=new Date(days[0]);start.setHours(0,0,0,0);const end=new Date(days[days.length-1]);end.setDate(end.getDate()+1);end.setHours(0,0,0,0);return {start,end}}; if(mode==="week"){const s=new Date(cursor);s.setDate(s.getDate()-((s.getDay()+6)%7));s.setHours(0,0,0,0);const e=new Date(s);e.setDate(e.getDate()+7);return {start:s,end:e}} const s=new Date(cursor);s.setHours(0,0,0,0);const e=new Date(s);e.setDate(e.getDate()+1);return {start:s,end:e}}
 function gratitudeArray(value:unknown){
@@ -137,6 +155,49 @@ function emptyReview(date:string,state:LocalState):Review{return {
  morningGratitude:date===todayKey()?gratitudeArray(state.gratitude):["","",""],
  eveningGratitude:["","",""]
 }}
+
+function EventDateTimeField({label,value,allDay,onChange}:{label:string;value:string;allDay:boolean;onChange:(value:string)=>void}){
+ const date=dateInput(value);
+ const matched=value.match(/T(\d{2}):(\d{2})/);
+ const hour24=matched?Number(matched[1]):9;
+ const minute=matched?Number(matched[2]):0;
+ const period=hour24>=12?"PM":"AM";
+ const hour12=hour24%12||12;
+ const [hourDraft,setHourDraft]=useState(String(hour12));
+ const [minuteDraft,setMinuteDraft]=useState(String(minute).padStart(2,"0"));
+ useEffect(()=>{
+  setHourDraft(String(hour12));
+  setMinuteDraft(String(minute).padStart(2,"0"));
+ },[hour12,minute,value]);
+ const compose=(nextDate=date,nextPeriod=period,nextHour=hour12,nextMinute=minute)=>{
+  if(allDay){onChange(nextDate);return;}
+  const safeHour=Math.min(12,Math.max(1,Number.isFinite(nextHour)?nextHour:hour12));
+  const safeMinute=Math.min(59,Math.max(0,Number.isFinite(nextMinute)?nextMinute:minute));
+  const baseHour=safeHour%12+(nextPeriod==="PM"?12:0);
+  onChange(`${nextDate}T${String(baseHour).padStart(2,"0")}:${String(safeMinute).padStart(2,"0")}`);
+ };
+ const commitHour=()=>{
+  const raw=Number(hourDraft);
+  const next=hourDraft.trim()&&Number.isFinite(raw)?Math.min(12,Math.max(1,raw)):hour12;
+  setHourDraft(String(next));
+  compose(date,period,next,minute);
+ };
+ const commitMinute=()=>{
+  const raw=Number(minuteDraft);
+  const next=minuteDraft.trim()&&Number.isFinite(raw)?Math.min(59,Math.max(0,raw)):minute;
+  setMinuteDraft(String(next).padStart(2,"0"));
+  compose(date,period,hour12,next);
+ };
+ return <label className="eventDateTimeControl"><span>{label}</span><div className="eventDateTimeInner">
+  <input className="eventDateOnly" type="date" value={date} onChange={event=>compose(event.target.value)}/>
+  {!allDay&&<div className="eventTimeSelects">
+   <select aria-label={`${label} 오전 오후`} value={period} onChange={event=>compose(date,event.target.value as "AM"|"PM",hour12,minute)}><option value="AM">오전</option><option value="PM">오후</option></select>
+   <input className="eventTimeNumber" aria-label={`${label} 시`} type="text" inputMode="numeric" pattern="[0-9]*" maxLength={2} value={hourDraft} onFocus={event=>event.currentTarget.select()} onChange={event=>setHourDraft(event.target.value.replace(/\D/g,"").slice(0,2))} onBlur={commitHour} onKeyDown={event=>{if(event.key==="Enter")event.currentTarget.blur()}}/>
+   <span className="eventTimeColon">:</span>
+   <input className="eventTimeNumber" aria-label={`${label} 분`} type="text" inputMode="numeric" pattern="[0-9]*" maxLength={2} value={minuteDraft} onFocus={event=>event.currentTarget.select()} onChange={event=>setMinuteDraft(event.target.value.replace(/\D/g,"").slice(0,2))} onBlur={commitMinute} onKeyDown={event=>{if(event.key==="Enter")event.currentTarget.blur()}}/>
+  </div>}
+ </div></label>;
+}
 function eventOccursOnDate(e:EventItem,date:string){
  const dayStart=parseYmd(date);
  const dayEnd=new Date(dayStart);
@@ -147,7 +208,8 @@ function eventOccursOnDate(e:EventItem,date:string){
   const startDate=parseYmd(eventDateKey(e.start));
   const rawEnd=e.end?parseYmd(eventDateKey(e.end)):new Date(startDate);
   const endDate=new Date(rawEnd);
-  if(!e.end||endDate.getTime()<=startDate.getTime())endDate.setDate(startDate.getDate()+1);
+  // Calendar API normalizes all-day end to an inclusive date for JEONG editing.
+  endDate.setDate(endDate.getDate()+1);
   return startDate.getTime()<dayEnd.getTime()&&endDate.getTime()>dayStart.getTime();
  }
 
@@ -186,28 +248,30 @@ function recurrenceRule(form:EventForm){
  return rule;
 }
 
-export function Dashboard(){
+export function Dashboard({user}: {user?:DashboardUser}){
  const [local,setLocal]=useState<LocalState>(defaultState); const [hydrated,setHydrated]=useState(false); const [theme,setTheme]=useState<"light"|"dark">("light");
  const [view,setView]=useState<View>("home"); const [search,setSearch]=useState(""); const [showMorning,setShowMorning]=useState(false);
- const [events,setEvents]=useState<EventItem[]>([]); const [mails,setMails]=useState<MailItem[]>([]); const [loading,setLoading]=useState(false); const [calendarError,setCalendarError]=useState("");
- const [calendarMode,setCalendarMode]=useState<CalendarMode>("month"); const [cursor,setCursor]=useState(new Date()); const [selectedDate,setSelectedDate]=useState(new Date()); const [eventForm,setEventForm]=useState<EventForm|null>(null);
- const [monthDisplay,setMonthDisplay]=useState<MonthDisplayMode>("calendar"); const [monthSearch,setMonthSearch]=useState(""); const [monthStatus,setMonthStatus]=useState<"all"|"planned"|"doing"|"done">("all");
- const [showSelectedDay,setShowSelectedDay]=useState(true);
+ const [dayExecutionMode,setDayExecutionMode]=useState<"todos"|"routines">("todos"); const [dayExecutionContext,setDayExecutionContext]=useState<ContextFilterValue>("ALL");
+ const [events,setEvents]=useState<EventItem[]>([]); const [operationalEvents,setOperationalEvents]=useState<EventItem[]>([]); const deletedEventTombstones=useRef<DeletedEventTombstone[]>([]); const [loading,setLoading]=useState(false); const [calendarError,setCalendarError]=useState(""); const [operationalCalendarError,setOperationalCalendarError]=useState(""); const [calendarReady,setCalendarReady]=useState(false);
+ const [calendarMode,setCalendarModeState]=useState<CalendarMode>("month"); const [cursor,setCursor]=useState(new Date()); const [selectedDate,setSelectedDate]=useState(new Date()); const [calendarTaskRange,setCalendarTaskRange]=useState<"day"|"week"|"month">("day"); const [calendarDayPreview,setCalendarDayPreview]=useState<Date|null>(null); const [eventReturnDate,setEventReturnDate]=useState<Date|null>(null); const [eventForm,setEventForm]=useState<EventForm|null>(null);
+ const [monthDisplay,setMonthDisplay]=useState<MonthDisplayMode>("calendar"); const [weekDisplay,setWeekDisplay]=useState<"calendar"|"list">("calendar"); const [monthSearch,setMonthSearch]=useState(""); const [monthStatus,setMonthStatus]=useState<"all"|"planned"|"doing"|"done">("all");
+ const setCalendarMode=(mode:CalendarMode)=>setCalendarModeState(mode);
  const [calendarOptions,setCalendarOptions]=useState<{id:string;name:string;primary:boolean;color?:string}[]>([]);
  const [visibleCalendarIds,setVisibleCalendarIds]=useState<string[]>(["primary"]);
- const [aiEngine,setAiEngine]=useState<AiEngine>("none");
- const [aiModel,setAiModel]=useState("llama3.2:3b");
- const [aiStatus,setAiStatus]=useState("");
- const [taskBucket,setTaskBucket]=useState<TaskBucket>("today"); const [taskTitle,setTaskTitle]=useState(""); const [taskWhen,setTaskWhen]=useState(""); const [taskDuration,setTaskDuration]=useState(60); const [taskSync,setTaskSync]=useState(false);
+ const [taskTitle,setTaskTitle]=useState(""); const [taskMemo,setTaskMemo]=useState("");
+ const [taskRepeatBlocks,setTaskRepeatBlocks]=useState([{startDay:1,endDay:3,target:1},{startDay:4,endDay:0,target:1}]);
+ const [taskRepeatMode,setTaskRepeatMode]=useState<"DAILY"|"WEEKDAYS"|"WEEKENDS"|"WEEKLY"|"BIWEEKLY"|"WEEKLY_BLOCKS"|"MONTHLY">("WEEKLY");
+ const [taskRepeatWeekdays,setTaskRepeatWeekdays]=useState<number[]>([new Date().getDay()]);
  const [taskContext,setTaskContext]=useState<string>("personal");
- const [taskSection,setTaskSection]=useState<TaskBucket|"recurring">("today");
- const [homePeriod,setHomePeriod]=useState<HomePeriod>("day");
- const [recurringEditor,setRecurringEditor]=useState<RecurringTaskDefinition|null|"new">(null);
- const [selectedProject,setSelectedProject]=useState<string>("jeong"); const [personName,setPersonName]=useState(""); const [personTag,setPersonTag]=useState("보험");
+ const [routineSection,setRoutineSection]=useState<"daily"|"weekly">("daily");
+ const [editingRecurringId,setEditingRecurringId]=useState<string|null>(null);
+ const [draggingRecurringId,setDraggingRecurringId]=useState<string|null>(null);
+ const [draggingMilestoneId,setDraggingMilestoneId]=useState<string|null>(null);
+ const [selectedProject,setSelectedProject]=useState<string>(""); const [projectEditing,setProjectEditing]=useState(false); const [personName,setPersonName]=useState(""); const [personTag,setPersonTag]=useState("보험");
  const [peopleFilter,setPeopleFilter]=useState<PeopleViewFilter>("all"); const [peopleSearch,setPeopleSearch]=useState(""); const [contactsImporting,setContactsImporting]=useState(false);
  const [activityType,setActivityType]=useState<ActivityType>("running"); const [activityTitle,setActivityTitle]=useState(""); const [activityDate,setActivityDate]=useState(todayKey()); const [activityDuration,setActivityDuration]=useState(60); const [activityAmount,setActivityAmount]=useState(0); const [activityNote,setActivityNote]=useState(""); const [activityLearned,setActivityLearned]=useState(""); const [activityApplied,setActivityApplied]=useState("");
  const [noteType,setNoteType]=useState<NoteType>("idea"); const [noteTitle,setNoteTitle]=useState(""); const [noteBody,setNoteBody]=useState(""); const [reviewDate,setReviewDate]=useState(todayKey());
- const previousViewRef=useRef<View>(view);
+ const [recordFilter,setRecordFilter]=useState<"all"|"activity"|"note"|"review">("all");
  const [chapterTitle,setChapterTitle]=useState(""); const [chapterDescription,setChapterDescription]=useState("");
  const [dayDate,setDayDate]=useState(todayKey());
  const [editingTask,setEditingTask]=useState<TaskItem|null>(null);
@@ -220,9 +284,9 @@ export function Dashboard(){
  const [activityProject,setActivityProject]=useState("");
  const [noteProject,setNoteProject]=useState("");
  const [aiType,setAiType]=useState<AiPromptType>("daily");
- const [aiPrompt,setAiPrompt]=useState("");
+
  const [aiIncludePeople,setAiIncludePeople]=useState(false);
- const [aiCopied,setAiCopied]=useState(false);
+
  const [toast,setToast]=useState<ToastState>(null);
  const [savingEvent,setSavingEvent]=useState(false);
  const [searchOpen,setSearchOpen]=useState(false);
@@ -234,16 +298,24 @@ export function Dashboard(){
  const [pageLoading,setPageLoading]=useState(false);
  const [newProjectName,setNewProjectName]=useState("");
  const [newProjectGoal,setNewProjectGoal]=useState("");
- const [newProjectContext,setNewProjectContext]=useState<string>("personal");
+ const [newProjectStartDate,setNewProjectStartDate]=useState("");
+ const [newProjectDueDate,setNewProjectDueDate]=useState("");
+ const [projectRoutineTitle,setProjectRoutineTitle]=useState("");
+ const [projectRoutineMode,setProjectRoutineMode]=useState<"DAILY"|"WEEKDAYS"|"WEEKENDS"|"WEEKLY"|"BIWEEKLY">("DAILY");
+ const [projectRoutineMilestone,setProjectRoutineMilestone]=useState("");
  const [newMilestoneTitle,setNewMilestoneTitle]=useState("");
  const [newMilestoneWeight,setNewMilestoneWeight]=useState(25);
+ const [newMilestoneStartDate,setNewMilestoneStartDate]=useState("");
+ const [newMilestoneDueDate,setNewMilestoneDueDate]=useState("");
+ const [newMilestoneRoutineIds,setNewMilestoneRoutineIds]=useState<string[]>([]);
  const [contextFilter,setContextFilter]=usePlanningContextFilter();
  const [planningAnchor,setPlanningAnchor]=useState(todayKey());
  useEffect(()=>{if(view!=="weekly-plan"&&view!=="monthly-plan")return;const next=new Date(`${planningAnchor}T12:00:00`);setCursor(next);setCalendarMode(view==="monthly-plan"?"month":"week")},[view,planningAnchor]);
+ useEffect(()=>{if(hydrated&&view==="home")setContextFilter("ALL")},[view,hydrated]);
 
  useEffect(()=>{const s=loadLocalState({defaultState,noteLabels});setLocal(s);setShowMorning(s.morningDate!==todayKey());const t=(localStorage.getItem("jeong_theme") as "light"|"dark"|null)??"light";setTheme(t);document.documentElement.dataset.theme=t;
- setAiEngine((localStorage.getItem("jeong_ai_engine") as AiEngine|null)??"none");setAiModel(localStorage.getItem("jeong_ai_model")??"llama3.2:3b");
  const savedCalendars=localStorage.getItem("jeong_visible_calendars");if(savedCalendars){try{setVisibleCalendarIds(JSON.parse(savedCalendars))}catch{}}
+ const requestedView=new URLSearchParams(window.location.search).get("view") as View|null;if(requestedView&&VALID_VIEWS.has(requestedView))setView(requestedView);
  setHydrated(true)},[]);
  useEffect(()=>{if(hydrated)saveLocalState(local)},[local,hydrated]);
  useEffect(()=>{
@@ -261,6 +333,28 @@ export function Dashboard(){
   window.addEventListener("pointermove",update,{passive:true});
   return()=>window.removeEventListener("pointermove",update);
  },[]);
+ const hasBlockingOverlay=showMorning||Boolean(calendarDayPreview)||Boolean(eventForm)||Boolean(editingTask)||Boolean(editingActivity)||Boolean(editingNote)||Boolean(editingPerson)||searchOpen||Boolean(projectDialog);
+ useEffect(()=>{
+  if(!hasBlockingOverlay)return;
+  const body=document.body;
+  const scrollY=window.scrollY;
+  const previous={position:body.style.position,top:body.style.top,left:body.style.left,right:body.style.right,width:body.style.width,overflowY:body.style.overflowY};
+  body.style.position="fixed";
+  body.style.top=`-${scrollY}px`;
+  body.style.left="0";
+  body.style.right="0";
+  body.style.width="100%";
+  body.style.overflowY="scroll";
+  return()=>{
+   body.style.position=previous.position;
+   body.style.top=previous.top;
+   body.style.left=previous.left;
+   body.style.right=previous.right;
+   body.style.width=previous.width;
+   body.style.overflowY=previous.overflowY;
+   window.scrollTo(0,scrollY);
+  };
+ },[hasBlockingOverlay]);
  useEffect(()=>{
   if(!hydrated)return;
   const current=todayKey();
@@ -268,13 +362,12 @@ export function Dashboard(){
   if(last===current)return;
   setLocal(prev=>{
    const reviews={...prev.reviews};
-   if(prev.goal||prev.reason||prev.enjoyment||prev.gratitude.some(Boolean)){
+   if(prev.goal||prev.enjoyment||prev.gratitude.some(Boolean)){
     reviews[last]={
     ...(reviews[last]??emptyReview(last,prev)),
     date:last,
     goal:prev.goal,
     enjoyment:prev.enjoyment,
-    reason:prev.reason,
     gratitude:prev.gratitude.filter(Boolean).join(" / "),
     morningGratitude:gratitudeArray(prev.gratitude),
     eveningGratitude:gratitudeArray((reviews[last] as Review|undefined)?.eveningGratitude)
@@ -286,47 +379,83 @@ export function Dashboard(){
   localStorage.setItem("jeong_last_active_date",current);
   setShowMorning(true);
  },[now,hydrated]);
- useEffect(()=>{
-  const saved=localStorage.getItem("jeong_weather_coords");
-  if(saved){try{const p=JSON.parse(saved);loadWeather(p.lat,p.lon,p.location||"현재 위치");return}catch{}}
-  if(!navigator.geolocation){loadWeather();return}
-  navigator.geolocation.getCurrentPosition(
-   pos=>{
-    const data={lat:pos.coords.latitude,lon:pos.coords.longitude,location:"현재 위치"};
-    localStorage.setItem("jeong_weather_coords",JSON.stringify(data));
-    loadWeather(data.lat,data.lon,data.location);
-   },
-   ()=>loadWeather(),
-   {enableHighAccuracy:false,timeout:6500,maximumAge:30*60*1000}
-  );
- },[]);
+ useEffect(()=>{requestWeather()},[]);
 
  const update=<K extends keyof LocalState>(key:K,value:LocalState[K])=>setLocal(s=>({...s,[key]:value}));
  const toggleTheme=()=>{const n=theme==="light"?"dark":"light";setTheme(n);localStorage.setItem("jeong_theme",n);document.documentElement.dataset.theme=n};
+ const tombstoneMatches=(event:EventItem,tombstone:DeletedEventTombstone)=>{
+  if(tombstone.calendarId&&event.calendarId&&tombstone.calendarId!==event.calendarId&&tombstone.calendarId!=="primary"&&event.calendarId!=="primary")return false;
+  if(tombstone.scope==="single")return event.id===tombstone.id;
+  const seriesId=tombstone.seriesId||tombstone.id;
+  if(event.id===seriesId)return true;
+  if(event.recurringEventId!==seriesId)return false;
+  if(tombstone.scope==="series")return true;
+  const eventStart=new Date(event.start).getTime();const from=new Date(tombstone.from||"").getTime();
+  return Number.isFinite(eventStart)&&Number.isFinite(from)&&eventStart>=from;
+ };
+ const applyDeletionTombstones=(items:EventItem[])=>{
+  const nowMs=Date.now();
+  deletedEventTombstones.current=deletedEventTombstones.current.filter(item=>item.expiresAt>nowMs);
+  return items.filter(event=>!deletedEventTombstones.current.some(tombstone=>tombstoneMatches(event,tombstone)));
+ };
+ const dedupeCalendarEvents=(items:EventItem[])=>{
+  const deduped=new Map<string,EventItem>();
+  for(const event of items){
+   const key=`${event.calendarId||"primary"}::${event.id}`;
+   const current=deduped.get(key);
+   if(!current||String(event.updated||"").localeCompare(String(current.updated||""))>=0)deduped.set(key,event);
+  }
+  return [...deduped.values()].sort((a,b)=>String(a.start).localeCompare(String(b.start)));
+ };
+ const replaceEditedEvent=(items:EventItem[],source:EventItem,saved:EventItem)=>{
+  const calendarId=saved.calendarId||source.calendarId||"primary";
+  const next=items.filter(event=>!(event.id===source.id&&(event.calendarId||"primary")===calendarId));
+  return dedupeCalendarEvents([...next,{...saved,calendarId}]);
+ };
 
  async function loadCalendar(){
  setLoading(true);setCalendarError("");
  const r=rangeFor(calendarMode,cursor);
  const q=new URLSearchParams({start:r.start.toISOString(),end:r.end.toISOString(),calendarIds:visibleCalendarIds.join(",")});
  try{
-  const [cr,mr,lr]=await Promise.all([
+  const [cr,lr]=await Promise.all([
    fetch(`/api/calendar?${q}`,{cache:"no-store"}),
-   fetch("/api/gmail",{cache:"no-store"}),
    fetch("/api/calendar/calendars",{cache:"no-store"})
   ]);
   const calendarEvents=cr.ok?((await cr.json()).events??[]):null;
   if(!cr.ok)setCalendarError("Google Calendar를 불러오지 못했습니다.");
-  if(mr.ok)setMails((await mr.json()).messages??[]);
   if(lr.ok){
    const list=(await lr.json()).calendars??[];
    const primaryId=list.find((calendar:any)=>calendar.primary)?.id;
    setCalendarOptions(list);
-   if(calendarEvents)setEvents(calendarEvents.map((event:EventItem)=>event.calendarId==="primary"&&primaryId?{...event,calendarId:primaryId}:event));
+   if(calendarEvents)setEvents(applyDeletionTombstones(dedupeCalendarEvents(calendarEvents.map((event:EventItem)=>event.calendarId==="primary"&&primaryId?{...event,calendarId:primaryId}:event))));
    if(!visibleCalendarIds.length&&list.length)setVisibleCalendarIds(list.filter((x:any)=>x.primary).map((x:any)=>x.id));
-  }else if(calendarEvents)setEvents(calendarEvents);
+  }else if(calendarEvents)setEvents(applyDeletionTombstones(dedupeCalendarEvents(calendarEvents)));
+ }catch{
+  setCalendarError("Google Calendar를 불러오지 못했습니다.");
  }finally{setLoading(false)}
 }
+ async function loadOperationalCalendar(){
+  setCalendarReady(false);setOperationalCalendarError("");
+  const start=new Date();start.setDate(start.getDate()-93);start.setHours(0,0,0,0);
+  const end=new Date();end.setDate(end.getDate()+45);end.setHours(23,59,59,999);
+  const q=new URLSearchParams({start:start.toISOString(),end:end.toISOString(),calendarIds:visibleCalendarIds.join(",")});
+  try{
+   const response=await fetch(`/api/calendar?${q}`,{cache:"no-store"});
+   if(!response.ok)throw new Error("calendar");
+   const data=await response.json();
+   const primaryId=calendarOptions.find(calendar=>calendar.primary)?.id;
+   setOperationalEvents(applyDeletionTombstones(dedupeCalendarEvents(((data.events??[]) as EventItem[]).map(event=>event.calendarId==="primary"&&primaryId?{...event,calendarId:primaryId}:event))));
+  }catch{
+   setOperationalEvents([]);
+   setOperationalCalendarError("Google Calendar 운영 데이터를 불러오지 못했습니다.");
+  }finally{
+   setCalendarReady(true);
+  }
+ }
+ async function refreshCalendarData(){await Promise.all([loadCalendar(),loadOperationalCalendar()])}
  useEffect(()=>{if(hydrated)loadCalendar()},[hydrated,calendarMode,cursor,visibleCalendarIds.join("|")]);
+ useEffect(()=>{if(hydrated)loadOperationalCalendar()},[hydrated,visibleCalendarIds.join("|")]);
  useEffect(()=>{if(hydrated)localStorage.setItem("jeong_visible_calendars",JSON.stringify(visibleCalendarIds))},[visibleCalendarIds,hydrated]);
 
  const rawCurrentReview=local.reviews[reviewDate];
@@ -337,24 +466,41 @@ export function Dashboard(){
   eveningGratitude:gratitudeArray(rawCurrentReview?.eveningGratitude)
  };
  const updateReview=(patch:Partial<Review>)=>setLocal(s=>({...s,reviews:{...s.reviews,[reviewDate]:{...(s.reviews[reviewDate]??emptyReview(reviewDate,s)),...patch,date:reviewDate}}}));
- const contextEvents=filterCalendarEventsByContext(events,local.calendarContextMappings,local.contexts,contextFilter);
+ const contextEvents=filterCalendarEventsByContext(events,local.calendarContextMappings,local.contexts,contextFilter,local.calendarEventContextOverrides??[]);
+ const operationalContextEvents=filterCalendarEventsByContext(operationalEvents,local.calendarContextMappings,local.contexts,contextFilter,local.calendarEventContextOverrides??[]);
+ const eventContextId=(event:{id?:string;recurringEventId?:string;calendarId?:string;contextId?:string;colorId?:string})=>getEventContextId(local.calendarEventContextOverrides??[],local.calendarContextMappings,event);
+ const eventTone=(event:EventItem)=>contextTone(eventContextId(event));
  const contextTasks=filterTasksByContext(local.tasks,local.contexts,contextFilter);
- const contextProjects=filterProjectsByContext(local.projects,local.contexts,contextFilter);
  const currentDateKey=todayKey(now);
- const todayRecurring=getRecurringTasksForDate({tasks:local.recurringTasks,date:currentDateKey,completions:local.recurringTaskCompletions,contexts:local.contexts,context:contextFilter});
- const dayRecurring=getRecurringTasksForDate({tasks:local.recurringTasks,date:dayDate,completions:local.recurringTaskCompletions,contexts:local.contexts,context:contextFilter});
- const todayEvents=contextEvents.filter(e=>eventOccursOnDate(e,todayKey()));
- const selectedDateKey=todayKey(selectedDate);
- const selectedDateEvents=contextEvents.filter(e=>eventOccursOnDate(e,selectedDateKey)).sort((a,b)=>a.start.localeCompare(b.start));
+ const todayEvents=operationalContextEvents.filter(e=>eventOccursOnDate(e,todayKey()));
+ const selectedDateKey=todayKey(calendarMode==="day"?cursor:selectedDate);
+ const calendarPanelDate=parseYmd(currentDateKey);
+ const calendarTodoDateKey=currentDateKey;
+ // The Calendar date controls schedules only. The right Todo rail always stays on today.
+ const selectedDayTasks=contextTasks.filter(task=>{
+  const scheduledDate=task.scheduledAt?.slice(0,10);
+  if(scheduledDate)return scheduledDate===calendarTodoDateKey;
+  return task.bucket==="today"&&(!task.done||task.doneAt===calendarTodoDateKey);
+ }).sort((a,b)=>Number(a.done)-Number(b.done)||(a.sortOrder??Number.MAX_SAFE_INTEGER)-(b.sortOrder??Number.MAX_SAFE_INTEGER)||(a.scheduledAt||"").localeCompare(b.scheduledAt||""));
+ const selectedDayTaskIds=new Set(selectedDayTasks.map(task=>task.id));
+ const isCurrentOrFutureTask=(task:TaskItem)=>!task.done&&(!task.scheduledAt||task.scheduledAt.slice(0,10)>=currentDateKey);
+ const selectedWeekTasks=contextTasks.filter(task=>task.bucket==="week"&&!selectedDayTaskIds.has(task.id)&&isCurrentOrFutureTask(task)).sort((a,b)=>(a.scheduledAt||"").localeCompare(b.scheduledAt||""));
+ const selectedMonthTasks=contextTasks.filter(task=>task.bucket==="month"&&!selectedDayTaskIds.has(task.id)&&isCurrentOrFutureTask(task)).sort((a,b)=>(a.scheduledAt||"").localeCompare(b.scheduledAt||""));
+ const selectedPanelTasks=calendarTaskRange==="day"?selectedDayTasks:calendarTaskRange==="week"?selectedWeekTasks:selectedMonthTasks;
+ const calendarDayPreviewKey=calendarDayPreview?todayKey(calendarDayPreview):"";
+ const calendarDayPreviewEvents=calendarDayPreview?contextEvents.filter(event=>eventOccursOnDate(event,calendarDayPreviewKey)).sort((a,b)=>a.start.localeCompare(b.start)):[];
  const weekDates=(()=>{
   const start=new Date(cursor);
   start.setHours(0,0,0,0);
-  start.setDate(start.getDate()-start.getDay());
+  start.setDate(start.getDate()-((start.getDay()+6)%7));
   return Array.from({length:7},(_,i)=>{const d=new Date(start);d.setDate(start.getDate()+i);return d});
  })();
  const agendaDayEvents=(date:Date)=>contextEvents
   .filter(e=>eventOccursOnDate(e,todayKey(date)))
   .sort((a,b)=>a.start.localeCompare(b.start));
+
+ // Calendar boards are historical views, so they must keep completed/past events.
+ // Only the explicit list views and the selected-date detail use the upcoming filter.
  const dayModeEvents=agendaDayEvents(cursor);
  const monthStart=new Date(cursor.getFullYear(),cursor.getMonth(),1);
  const monthEnd=new Date(cursor.getFullYear(),cursor.getMonth()+1,1);
@@ -376,6 +522,11 @@ export function Dashboard(){
   (acc[key]??=[]).push(e);
   return acc;
  },{});
+ const weekListGroups=weekDates.reduce<Record<string,EventItem[]>>((acc,date)=>{
+  const items=agendaDayEvents(date);
+  if(items.length)acc[todayKey(date)]=items;
+  return acc;
+ },{});
  const filteredPeople=local.people
   .filter(p=>(p.name+" "+p.phone+" "+p.email+" "+p.organization+" "+p.tags.join(" ")+" "+p.note).toLowerCase().includes(peopleSearch.trim().toLowerCase()))
   .filter(p=>{
@@ -391,13 +542,7 @@ export function Dashboard(){
   });
 
 
- const todayTasks=contextTasks.filter(t=>t.bucket==="today"&&!t.done);
- const duePeople=local.people.filter(p=>p.nextContact&&p.nextContact<=todayKey());
- const activeProjects=contextProjects.filter(p=>p.status!=="done");
- const hour=now.getHours();
  const greeting="좋은 하루입니다, 황제.";
- const isNight=theme==="dark";
- const briefing=[todayEvents.length?`오늘 일정 ${todayEvents.length}건`:`오늘 일정 없음`,todayTasks.length?`오늘 할 일 ${todayTasks.length}건`:`오늘 오늘 할 일이 없습니다`,duePeople.length?`연락 확인 ${duePeople.length}건`:`연락 확인 없음`,activeProjects.length?`진행 프로젝트 ${activeProjects.length}개`:"진행 프로젝트 없음"];
  const activityTitleLabel:Record<ActivityType,string>={
   running:"훈련 이름",workout:"운동 이름",martial:"훈련 이름",reading:"책 이름",
   study:"공부 내용",church:"교육·교회 활동",photo:"촬영 내용",other:"활동 이름"
@@ -407,16 +552,23 @@ export function Dashboard(){
   reading:"예: 설득의 심리학",study:"예: 철학 1강 정리",church:"예: 중등부 교안 작성",
   photo:"예: 야간 인물 촬영",other:"원하는 활동 이름을 직접 입력"
  };
- const selectedProjectData=contextProjects.find(p=>p.id===selectedProject)??contextProjects[0];
+ const selectedProjectData=local.projects.find(p=>p.id===selectedProject)??local.projects[0];
+ const projectIntelligence=useMemo(()=>local.projects.map(project=>getProjectIntelligence({project,tasks:local.tasks,goals:local.goals,activities:local.activities,notes:local.notes,recurringTasks:local.recurringTasks,recurringTaskCompletions:local.recurringTaskCompletions,now})),[local.projects,local.tasks,local.goals,local.activities,local.notes,local.recurringTasks,local.recurringTaskCompletions,now]);
+ const selectedProjectIntelligence=selectedProjectData?projectIntelligence.find(item=>item.project.id===selectedProjectData.id):undefined;
+ const projectProgressValue=(project:Project)=>projectIntelligence.find(item=>item.project.id===project.id)?.calculatedProgress??(project.status==="done"?100:0);
+ const projectProgressNeedsPeriod=(project:Project)=>{const info=projectIntelligence.find(item=>item.project.id===project.id);return Boolean(info?.connectedRoutines.length&&(!project.startDate||!project.dueDate)&&!info.connectedTodos.length&&!project.milestones.length)};
  const reviewDates=Object.keys(local.reviews).sort((a,b)=>b.localeCompare(a));
- useEffect(()=>{
-  if(view==="review"&&previousViewRef.current!=="review"){
-   setReviewDate(reviewDates[0]??todayKey());
-  }
-  previousViewRef.current=view;
- },[view,reviewDates.join("|")]);
- const timeline=[...local.activities.map(a=>({date:a.date,kind:activityLabels[a.type],title:a.title,note:a.note})),...local.notes.map(n=>({date:n.date,kind:noteLabels[n.type],title:n.title,note:n.body})),...Object.values(local.reviews as Record<string,Review>).map((r:Review)=>({date:r.date,kind:"리뷰",title:r.goal||"하루 리뷰",note:r.joy||r.good})),...local.tasks.filter(t=>t.done).map(t=>({date:t.doneAt||t.scheduledAt?.slice(0,10)||todayKey(),kind:"완료",title:t.title,note:""}))].sort((a,b)=>b.date.localeCompare(a.date));
- const monthPrefix=todayKey().slice(0,7); const monthActivities=local.activities.filter(a=>a.date.startsWith(monthPrefix));
+ const projectNameById=(projectId?:string)=>projectId?local.projects.find(project=>project.id===projectId)?.name:undefined;
+ const hasEveningReview=(review:Review)=>Boolean(review.status||review.good.trim()||review.learned.trim()||review.joy.trim()||gratitudeArray(review.eveningGratitude).some(Boolean));
+ const eveningReviews=Object.values(local.reviews as Record<string,Review>).filter(hasEveningReview);
+ const timeline:TimelineItem[]=[...local.activities.map(a=>({date:a.date,kind:activityLabels[a.type],title:a.title,note:[a.note,a.learned?`배운 것: ${a.learned}`:"",a.applied?`적용: ${a.applied}`:""].filter(Boolean).join(" · "),project:projectNameById(a.projectId)})),...local.notes.map(n=>({date:n.date,kind:noteLabels[n.type],title:n.title,note:n.body,project:projectNameById(n.projectId)})),...eveningReviews.map(r=>({date:r.date,kind:"리뷰",title:r.goal||"하루 리뷰",note:[r.good?`잘한 점: ${r.good}`:"",r.learned?`배운 점: ${r.learned}`:"",r.joy?`즐거움: ${r.joy}`:""].filter(Boolean).join(" · ")})),...local.tasks.filter(t=>t.done).map(t=>({date:t.doneAt||t.scheduledAt?.slice(0,10)||todayKey(),kind:"완료",title:t.title,note:t.note??"",project:projectNameById(t.projectId)}))].sort((a,b)=>b.date.localeCompare(a.date));
+ const activityKinds=new Set(Object.values(activityLabels));
+ const noteKinds=new Set(Object.values(noteLabels));
+ const filteredTimeline=timeline.filter(item=>recordFilter==="all"||recordFilter==="review"&&item.kind==="리뷰"||recordFilter==="activity"&&activityKinds.has(item.kind)||recordFilter==="note"&&noteKinds.has(item.kind));
+ const recordFilterLabel=recordFilter==="all"?"전체":recordFilter==="review"?"리뷰":recordFilter==="activity"?"활동":"노트";
+ const filteredTimelineGroups=groupTimeline(filteredTimeline);
+ const timelineGroups=groupTimeline(timeline);
+
  const searchResults=useMemo(()=>{const q=search.trim().toLowerCase();if(!q)return[];return [
   ...local.tasks.filter(x=>x.title.toLowerCase().includes(q)).map(x=>({kind:"할 일",title:x.title,note:bucketLabels[x.bucket]})),
   ...local.projects.filter(x=>(x.name+x.goal+x.next+x.note).toLowerCase().includes(q)).map(x=>({kind:"프로젝트",title:x.name,note:x.next})),
@@ -448,7 +600,7 @@ export function Dashboard(){
   if([95,96,99].includes(code))return "⛈";
   return "◌";
  };
- async function loadWeather(lat=35.1595,lon=126.8526,location="광주"){
+ async function loadWeather(lat:number,lon:number,location="현재 위치"){
   setWeatherLoading(true);
   try{
    const q=new URLSearchParams({lat:String(lat),lon:String(lon),location});
@@ -458,9 +610,32 @@ export function Dashboard(){
   }catch{setWeather(null)}
   finally{setWeatherLoading(false)}
  }
+ function requestWeather(){
+  const saved=localStorage.getItem("jeong_weather_coords");
+  if(saved){
+   try{
+    const parsed=JSON.parse(saved);
+    if(Number.isFinite(parsed?.lat)&&Number.isFinite(parsed?.lon)){void loadWeather(parsed.lat,parsed.lon,parsed.location||"현재 위치");return}
+   }catch{}
+  }
+  if(!navigator.geolocation){setWeather(null);setWeatherLoading(false);return}
+  setWeatherLoading(true);
+  navigator.geolocation.getCurrentPosition(
+   position=>{
+    const coords={lat:position.coords.latitude,lon:position.coords.longitude,location:"현재 위치"};
+    localStorage.setItem("jeong_weather_coords",JSON.stringify(coords));
+    void loadWeather(coords.lat,coords.lon,coords.location);
+   },
+   ()=>{setWeather(null);setWeatherLoading(false)},
+   {enableHighAccuracy:false,timeout:6500,maximumAge:30*60*1000}
+  );
+ }
  function navigateTo(next:View,options?:{preserveOrigin?:boolean}){
   if(next===view)return;
   if(!options?.preserveOrigin)setPreviousView(view);
+  if(next==="review")setReviewDate(todayKey());
+  // Keep JEONG navigation in browser/PWA history so Android back returns inside the app first.
+  if(typeof window!=="undefined")window.history.pushState({jeongView:next},"",window.location.href);
   setPageLoading(true);
   setView(next);
   window.setTimeout(()=>setPageLoading(false),180);
@@ -471,12 +646,24 @@ export function Dashboard(){
   setView(target);
   window.setTimeout(()=>setPageLoading(false),180);
  }
+ useEffect(()=>{
+  if(typeof window==="undefined")return;
+  if(!window.history.state?.jeongView)window.history.replaceState({jeongView:view},"",window.location.href);
+  const onPopState=(event:PopStateEvent)=>{
+   const next=event.state?.jeongView as View|undefined;
+   if(next&&VALID_VIEWS.has(next)){setPageLoading(true);setView(next);window.setTimeout(()=>setPageLoading(false),120);return}
+   // A history entry without JEONG state is the app boundary; keep Home as the safe root.
+   if(view!=="home"){window.history.pushState({jeongView:"home"},"",window.location.href);setView("home")}
+  };
+  window.addEventListener("popstate",onPopState);
+  return()=>window.removeEventListener("popstate",onPopState);
+ },[view]);
  function notify(message:string,kind:"success"|"info"|"error"="success"){
   setToast({message,kind});
   window.setTimeout(()=>setToast(null),3000);
  }
  function openSearchResult(kind:string){
-  if(kind==="할 일")navigateTo("tasks");
+  if(kind==="할 일")navigateTo("home");
   else if(kind==="프로젝트")navigateTo("projects");
   else if(kind==="사람")navigateTo("people");
   else if(Object.values(activityLabels).includes(kind))navigateTo("activities");
@@ -506,11 +693,12 @@ export function Dashboard(){
   const calendarId=getDefaultCalendarId(local.contextCalendarPreferences,local.calendarContextMappings,contextId,visibleCalendarIds[0]||"primary");
   return {title:"",start:toLocalInput(st.toISOString()),end:toLocalInput(en.toISOString()),allDay:false,location:"",description:"",
    recurrence:"none",recurrenceUntil:"",recurrenceCount:0,recurrenceInterval:1,weeklyDays:[],
-   monthlyMode:"date",holidayPolicy:"skip",excludeHolidays:false,excludeWeekends:false,reminders:[30],attendees:"",addMeet:false,
+   monthlyMode:"date",holidayPolicy:"skip",excludeHolidays:false,excludeWeekends:false,reminders:[30],useDefaultReminders:false,attendees:"",addMeet:false,
    visibility:"default",transparency:"opaque",colorId:"",editScope:"single",calendarId,contextId};
  }
- function openNewEvent(date=selectedDate){setEventForm(defaultEventForm(date))}
- function parseRecurrence(lines:string[]|undefined,start:string){
+ function openNewEvent(date=selectedDate,returnDate:Date|null=null){setEventReturnDate(returnDate);setEventForm(defaultEventForm(date))}
+ function closeEventEditor(){const returnDate=eventReturnDate;setEventForm(null);setEventReturnDate(null);if(returnDate){setSelectedDate(returnDate);setCalendarDayPreview(returnDate)}}
+ function parseRecurrence(lines:string[]|undefined){
   const result={recurrence:"none" as Recurrence,recurrenceUntil:"",recurrenceCount:0,recurrenceInterval:1,weeklyDays:[] as string[],monthlyMode:"date" as EventForm["monthlyMode"]};
   const rule=lines?.find(x=>x.startsWith("RRULE:"));if(!rule)return result;
   const pairs=Object.fromEntries(rule.replace("RRULE:","").split(";").map(x=>x.split("=")));
@@ -536,19 +724,31 @@ export function Dashboard(){
   if(!r.ok)return null;
   return (await r.json()).event as EventItem;
  }
- async function openEvent(e:EventItem){
-  const master=e.recurringEventId?await fetchSeriesMaster(e.recurringEventId,e.calendarId||"primary"):e;
-  const parsed=parseRecurrence(master?.recurrence,e.start);
+ async function openEvent(e:EventItem,returnDate:Date|null=null){
+  setEventReturnDate(returnDate);
+  // Open the editor immediately. Recurrence metadata for an instance can arrive a moment later.
+  // This avoids making every schedule click wait for a network round-trip.
+  const immediateParsed=parseRecurrence(e.recurrence);
   setEventForm({id:e.id,seriesId:e.recurringEventId,title:e.title,
    start:e.allDay?dateInput(e.start):toLocalInput(e.start),
    end:e.allDay?dateInput(e.end):toLocalInput(e.end),allDay:!!e.allDay,location:e.location,description:e.description,
-   ...parsed,excludeHolidays:false,excludeWeekends:false,holidayPolicy:"skip",
-   reminders:e.reminders?.length?e.reminders:[30],attendees:(e.attendees??[]).join(", "),addMeet:!!e.hangoutLink,
+   ...immediateParsed,excludeHolidays:false,excludeWeekends:false,holidayPolicy:"skip",
+   reminders:e.reminders?.length?e.reminders:(e.useDefaultReminders?[30]:[]),useDefaultReminders:!!e.useDefaultReminders,attendees:(e.attendees??[]).join(", "),addMeet:!!e.hangoutLink,
    visibility:(e.visibility as EventForm["visibility"])??"default",transparency:(e.transparency as EventForm["transparency"])??"opaque",
-   colorId:e.colorId??"",editScope:e.recurringEventId?"single":"series",calendarId:e.calendarId||"primary",contextId:getCalendarContextId(local.calendarContextMappings,e.calendarId)});
+   colorId:e.colorId??"",editScope:e.recurringEventId?"single":"series",calendarId:e.calendarId||"primary",contextId:eventContextId(e)});
+  if(e.recurringEventId){
+   const master=await fetchSeriesMaster(e.recurringEventId,e.calendarId||"primary");
+   if(master){
+    const parsed=parseRecurrence(master.recurrence);
+    setEventForm(current=>current?.id===e.id?{...current,...parsed}:current);
+   }
+  }
  } async function saveEvent(e:FormEvent){
   e.preventDefault();if(!eventForm||savingEvent)return;
   setSavingEvent(true);
+  const sourceEvent=eventForm.id?events.find(item=>item.id===eventForm.id&&(!eventForm.calendarId||item.calendarId===eventForm.calendarId))
+   ??operationalEvents.find(item=>item.id===eventForm.id&&(!eventForm.calendarId||item.calendarId===eventForm.calendarId))
+   :undefined;
   const targetId=eventForm.editScope==="series"&&eventForm.seriesId?eventForm.seriesId:eventForm.id;
   const rule=recurrenceRule(eventForm);
   let excludedDates:string[]=[];let movedDates:{from:string;to:string}[]=[];
@@ -573,19 +773,34 @@ export function Dashboard(){
    ?`RDATE;VALUE=DATE:${compactYmd(item.to)}`
    :`RDATE;TZID=Asia/Seoul:${compactYmd(item.to)}T${timedSuffix}`);
   const recurrenceLines=rule?[rule,...exLines,...rLines]:[];
-  const body={...eventForm,id:targetId,instanceId:eventForm.id,
+  const body={...eventForm,colorId:contextEventColorId(eventForm.contextId),id:targetId,instanceId:eventForm.id,
    splitFrom:eventForm.start,calendarId:eventForm.calendarId,
    start:eventForm.allDay?eventForm.start:new Date(eventForm.start).toISOString(),
    end:eventForm.allDay?eventForm.end:new Date(eventForm.end).toISOString(),
-   recurrence:recurrenceLines,attendees:eventForm.attendees.split(",").map(x=>x.trim()).filter(Boolean)};
-  const method=targetId?"PATCH":"POST";
+   // A single recurring occurrence must not receive the master RRULE again.
+   // Re-sending it can detach/create an exception that looks like a duplicate.
+   recurrence:eventForm.seriesId&&eventForm.editScope==="single"?undefined:recurrenceLines,
+   attendees:eventForm.attendees.split(",").map(x=>x.trim()).filter(Boolean)};
+  const isEditing=Boolean(eventForm.id);
+  if(isEditing&&!targetId){setSavingEvent(false);notify("수정할 일정 식별자를 찾지 못했습니다.","error");return}
+  const method=isEditing?"PATCH":"POST";
   const r=await fetch("/api/calendar",{method,headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
   if(!r.ok){const detail=await r.text();console.error(detail);setSavingEvent(false);notify("Google Calendar 저장에 실패했습니다.","error");return}
-  setEventForm(null);await loadCalendar();setSavingEvent(false);notify(eventForm.id?"일정을 수정했습니다.":"일정을 저장했습니다.");
+  const savedPayload=await r.json().catch(()=>null) as {event?:EventItem}|null;
+  const savedEvent=savedPayload?.event;
+  if(isEditing&&sourceEvent&&savedEvent&&eventForm.editScope!=="series"){
+   setEvents(current=>replaceEditedEvent(current,sourceEvent,savedEvent));
+   setOperationalEvents(current=>replaceEditedEvent(current,sourceEvent,savedEvent));
+  }
+  const contextTarget:EventItem={...(savedEvent??{} as EventItem),id:savedEvent?.id??targetId??eventForm.id??"",recurringEventId:savedEvent?.recurringEventId??eventForm.seriesId,calendarId:savedEvent?.calendarId??eventForm.calendarId,title:savedEvent?.title??eventForm.title,start:savedEvent?.start??eventForm.start,end:savedEvent?.end??eventForm.end,location:savedEvent?.location??eventForm.location,description:savedEvent?.description??eventForm.description};
+  const overrideKey=calendarEventContextKey(contextTarget);
+  if(overrideKey&&eventForm.contextId){
+   setLocal(state=>({...state,calendarEventContextOverrides:[...(state.calendarEventContextOverrides??[]).filter(item=>item.eventKey!==overrideKey),{eventKey:overrideKey,contextId:eventForm.contextId,updatedAt:new Date().toISOString()}]}));
+  }
+  closeEventEditor();await refreshCalendarData();setSavingEvent(false);notify(eventForm.id?"일정을 수정했습니다.":"일정을 저장했습니다.");
  }
  async function deleteEvent(scope:"single"|"future"|"series"="single"){
   if(!eventForm?.id)return;
-  const isSeries=!!eventForm.seriesId;
   const message=scope==="series"
    ?"이 반복 일정 전체를 삭제할까요? 이전·이후 일정이 모두 삭제됩니다."
    :scope==="future"
@@ -598,40 +813,109 @@ export function Dashboard(){
   });
   const r=await fetch(`/api/calendar?${q}`,{method:"DELETE"});
   if(!r.ok){alert("Google Calendar 일정 삭제에 실패했습니다.");return}
-  setEventForm(null);await loadCalendar();notify("일정을 삭제했습니다.","info");
+  const tombstone:DeletedEventTombstone={id:eventForm.id,calendarId:eventForm.calendarId,seriesId:eventForm.seriesId||undefined,scope,from:eventForm.start,expiresAt:Date.now()+45_000};
+  deletedEventTombstones.current=[...deletedEventTombstones.current.filter(item=>item.expiresAt>Date.now()),tombstone];
+  setEvents(current=>current.filter(event=>!tombstoneMatches(event,tombstone)));
+  setOperationalEvents(current=>current.filter(event=>!tombstoneMatches(event,tombstone)));
+  const deletedContextKeys=new Set(
+   [...events,...operationalEvents]
+    .filter(event=>tombstoneMatches(event,tombstone))
+    .map(event=>calendarEventContextKey(event))
+    .filter((key):key is string=>Boolean(key))
+  );
+  if(deletedContextKeys.size)setLocal(state=>({...state,calendarEventContextOverrides:(state.calendarEventContextOverrides??[]).filter(item=>!deletedContextKeys.has(item.eventKey))}));
+  closeEventEditor();await refreshCalendarData();notify("일정을 삭제했습니다.","info");
  }
- async function testAiEngine(){
-  localStorage.setItem("jeong_ai_engine",aiEngine);localStorage.setItem("jeong_ai_model",aiModel);
-  if(aiEngine==="none"){setAiStatus("AI 엔진을 선택하지 않았습니다.");return}
-  if(aiEngine!=="ollama"){setAiStatus("연결 구조가 준비되었습니다. 나중에 API 키를 설정하면 사용할 수 있습니다.");return}
-  setAiStatus("로컬 AI 확인 중…");
-  try{const r=await fetch("/api/ai/status?engine=ollama");const data=await r.json();setAiStatus(data.ok?`Ollama 연결됨 · ${data.models?.length??0}개 모델`:"Ollama가 실행 중이지 않습니다.");}
-  catch{setAiStatus("로컬 AI에 연결하지 못했습니다.");}
+ function recurrenceForQuickTask(previous?:RecurringTaskDefinition):RecurringTaskDefinition["recurrence"]{
+  if(previous&&quickModeForTask(previous)===taskRepeatMode&&taskRepeatMode!=="WEEKLY"&&taskRepeatMode!=="BIWEEKLY")return previous.recurrence;
+  if(taskRepeatMode==="DAILY")return {type:"DAILY"};
+  if(taskRepeatMode==="WEEKDAYS")return {type:"WEEKDAYS"};
+  if(taskRepeatMode==="WEEKENDS")return {type:"WEEKLY",weekdays:[0,6],interval:1};
+  if(taskRepeatMode==="MONTHLY")return {type:"MONTHLY",dayOfMonth:parseYmd(currentDateKey).getDate()};
+  if(taskRepeatMode==="WEEKLY_BLOCKS")return {type:"WEEKLY_BLOCKS",blocks:taskRepeatBlocks.map(block=>({...block,target:Math.max(1,block.target)}))};
+  const weekdays=taskRepeatWeekdays.length?[...taskRepeatWeekdays].sort((a,b)=>a-b):[parseYmd(currentDateKey).getDay()];
+  return {type:"WEEKLY",weekdays,interval:taskRepeatMode==="BIWEEKLY"?2:1};
  }
- async function addTask(){if(!taskTitle.trim())return;const task:TaskItem={id:uid(),title:taskTitle.trim(),done:false,bucket:taskBucket,scheduledAt:taskWhen,durationMinutes:taskDuration,syncCalendar:taskSync,projectId:taskProject||undefined,contextId:taskContext||undefined};if(taskSync){if(!taskWhen)return alert("캘린더 저장에는 날짜와 시간이 필요합니다.");const s=new Date(taskWhen),e=new Date(s.getTime()+taskDuration*60000);const calendarId=getDefaultCalendarId(local.contextCalendarPreferences,local.calendarContextMappings,taskContext,visibleCalendarIds[0]||"primary");const r=await fetch("/api/calendar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:task.title,start:s.toISOString(),end:e.toISOString(),location:"",description:"JEONG 할 일",recurrence:[],reminders:[30],calendarId})});if(!r.ok)return alert("캘린더 저장에 실패했습니다.");task.calendarEventId=(await r.json()).event?.id;task.calendarId=calendarId;loadCalendar()}update("tasks",[...local.tasks,task]);setTaskTitle("");setTaskWhen("");setTaskSync(false)}
+ function quickModeForTask(task:RecurringTaskDefinition):typeof taskRepeatMode{
+  if(task.recurrence.type==="DAILY")return "DAILY";
+  if(task.recurrence.type==="WEEKDAYS")return "WEEKDAYS";
+  if(task.recurrence.type==="MONTHLY")return "MONTHLY";
+  if(task.recurrence.type==="WEEKLY_BLOCKS")return "WEEKLY_BLOCKS";
+  const weekdays=[...task.recurrence.weekdays].sort((a,b)=>a-b);
+  if((task.recurrence.interval??1)===1&&weekdays.length===2&&weekdays[0]===0&&weekdays[1]===6)return "WEEKENDS";
+  return task.recurrence.interval===2?"BIWEEKLY":"WEEKLY";
+ }
+ function routineSectionForTask(task:RecurringTaskDefinition):"daily"|"weekly"{
+  const mode=quickModeForTask(task);
+  // "주간 루틴"은 사용자가 주기를 정확히 '매주'로 만든 항목만 모읍니다.
+  // 평일/주말/격주/기존 월간 데이터는 일반 '루틴'에서 관리합니다.
+  return mode==="WEEKLY"||mode==="WEEKLY_BLOCKS"?"weekly":"daily";
+ }
+ function setRoutineMode(mode:typeof taskRepeatMode){
+  setTaskRepeatMode(mode);
+  setRoutineSection(mode==="WEEKLY"||mode==="WEEKLY_BLOCKS"?"weekly":"daily");
+  if(mode==="WEEKENDS")setTaskRepeatWeekdays([0,6]);
+  else if(mode==="WEEKDAYS")setTaskRepeatWeekdays([1,2,3,4,5]);
+  else if((mode==="WEEKLY"||mode==="BIWEEKLY")&&!taskRepeatWeekdays.length)setTaskRepeatWeekdays([parseYmd(currentDateKey).getDay()]);
+ }
+ function toggleRoutineWeekday(day:number){
+  setTaskRepeatWeekdays(current=>current.includes(day)?current.filter(item=>item!==day):[...current,day].sort((a,b)=>a-b));
+ }
+ function resetTaskComposer(){
+  setTaskTitle("");setTaskMemo("");setTaskProject("");setTaskRepeatWeekdays([parseYmd(currentDateKey).getDay()]);setEditingRecurringId(null);
+ }
+ function editRecurringInline(task:RecurringTaskDefinition){
+  const mode=quickModeForTask(task);
+  const weekdays=task.recurrence.type==="WEEKLY"?[...task.recurrence.weekdays]:(mode==="WEEKDAYS"?[1,2,3,4,5]:mode==="WEEKENDS"?[0,6]:[parseYmd(currentDateKey).getDay()]);
+  if(task.recurrence.type==="WEEKLY_BLOCKS")setTaskRepeatBlocks(task.recurrence.blocks.map(block=>({...block})));
+  setRoutineSection(routineSectionForTask(task));setEditingRecurringId(task.id);setTaskTitle(task.title);setTaskMemo(task.description||"");setTaskProject(task.projectId||"");setTaskContext(task.contextId||"personal");setTaskRepeatMode(mode);setTaskRepeatWeekdays(weekdays);
+  requestAnimationFrame(()=>document.querySelector<HTMLInputElement>(".taskTitleField")?.focus());
+ }
+ function reorderRecurringTask(dragId:string,targetId:string){
+  if(dragId===targetId)return;
+  const next=[...local.recurringTasks];const from=next.findIndex(item=>item.id===dragId);const to=next.findIndex(item=>item.id===targetId);if(from<0||to<0)return;
+  const [moved]=next.splice(from,1);next.splice(to,0,moved);update("recurringTasks",next.map((item,index)=>({...item,sortOrder:index})));
+ }
+ function reorderMilestone(dragId:string,targetId:string){
+  if(!selectedProjectData||dragId===targetId)return;
+  const milestones=[...selectedProjectData.milestones];const from=milestones.findIndex(item=>item.id===dragId);const to=milestones.findIndex(item=>item.id===targetId);if(from<0||to<0)return;
+  const [moved]=milestones.splice(from,1);milestones.splice(to,0,moved);
+  update("projects",local.projects.map(project=>project.id===selectedProjectData.id?{...project,milestones}:project));
+ }
+ async function saveRoutineDefinition(){
+  if(!taskTitle.trim())return;
+  const previous=editingRecurringId?local.recurringTasks.find(task=>task.id===editingRecurringId):undefined;
+  const timestamp=new Date().toISOString();
+  let next:RecurringTaskDefinition={id:previous?.id||uid(),title:taskTitle.trim(),description:taskMemo.trim(),contextId:taskContext||undefined,projectId:taskProject||undefined,recurrence:recurrenceForQuickTask(previous),startDate:previous?.startDate||currentDateKey,endDate:undefined,timeOfDay:previous?.timeOfDay,durationMinutes:previous?.durationMinutes,priority:previous?.priority??"normal",showOnCalendar:previous?.showOnCalendar??false,calendarId:previous?.calendarId,calendarEventId:previous?.calendarEventId,isActive:previous?.isActive??true,createdAt:previous?.createdAt||timestamp,updatedAt:timestamp,sortOrder:previous?.sortOrder??local.recurringTasks.length};
+  if(previous?.showOnCalendar){try{next=await syncRecurringCalendar(next,previous)}catch{notify("연결된 Google Calendar 반복 일정 수정에 실패했습니다.","error");return}}
+  update("recurringTasks",previous?local.recurringTasks.map(task=>task.id===previous.id?next:task):[...local.recurringTasks,next]);
+  notify(previous?"루틴을 수정했습니다.":"루틴을 추가했습니다.");resetTaskComposer();
+ }
  async function syncRecurringCalendar(next:RecurringTaskDefinition,previous?:RecurringTaskDefinition){
   const shouldSync=next.isActive&&next.showOnCalendar&&!!next.timeOfDay;
-  const calendarId=next.calendarId||getDefaultCalendarId(local.contextCalendarPreferences,local.calendarContextMappings,next.contextId||"personal",visibleCalendarIds[0]||"primary");
-  if(previous?.calendarEventId&&(!shouldSync||previous.calendarId!==calendarId)){
+  const calendarId=getDefaultCalendarId(local.contextCalendarPreferences,local.calendarContextMappings,next.contextId||"personal",next.calendarId||visibleCalendarIds[0]||"primary");
+  const movingCalendar=Boolean(previous?.calendarEventId&&previous.calendarId&&previous.calendarId!==calendarId);
+  if(previous?.calendarEventId&&!shouldSync){
    const deleteResponse=await fetch(`/api/calendar?id=${encodeURIComponent(previous.calendarEventId)}&calendarId=${encodeURIComponent(previous.calendarId||"primary")}`,{method:"DELETE"});
    if(!deleteResponse.ok)throw new Error("calendar_delete_failed");
-   next={...next,calendarEventId:undefined};
+   return {...next,calendarId:next.showOnCalendar?calendarId:undefined,calendarEventId:undefined};
   }
   if(!shouldSync)return {...next,calendarId:next.showOnCalendar?calendarId:undefined,calendarEventId:undefined};
+  if(!next.durationMinutes||next.durationMinutes<=0)throw new Error("calendar_duration_required");
   const start=new Date(`${next.startDate}T${next.timeOfDay}:00`);
-  const end=new Date(start.getTime()+(next.durationMinutes||30)*60000);
-  const body={id:next.calendarEventId,title:next.title,start:start.toISOString(),end:end.toISOString(),location:"",description:next.description||"JEONG 반복 업무",recurrence:[recurrenceToGoogleRrule(next)],reminders:[30],calendarId};
-  const response=await fetch("/api/calendar",{method:next.calendarEventId?"PATCH":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  const end=new Date(start.getTime()+next.durationMinutes*60000);
+  const body={id:movingCalendar?undefined:next.calendarEventId,title:next.title,start:start.toISOString(),end:end.toISOString(),location:"",description:next.description||"JEONG 루틴",recurrence:[recurrenceToGoogleRrule(next)],reminders:[30],calendarId};
+  const response=await fetch("/api/calendar",{method:body.id?"PATCH":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
   if(!response.ok)throw new Error("calendar_sync_failed");
-  return {...next,calendarId,calendarEventId:(await response.json()).event?.id||next.calendarEventId};
- }
- async function saveRecurringTask(value:Omit<RecurringTaskDefinition,"id"|"createdAt"|"updatedAt"|"calendarEventId">){
-  const previous=recurringEditor&&recurringEditor!=="new"?recurringEditor:undefined;
-  const timestamp=new Date().toISOString();
-  let next:RecurringTaskDefinition={...value,id:previous?.id||uid(),createdAt:previous?.createdAt||timestamp,updatedAt:timestamp,calendarEventId:previous?.calendarEventId};
-  try{next=await syncRecurringCalendar(next,previous)}catch{notify("반복 업무의 Google Calendar 저장에 실패했습니다.","error");return}
-  update("recurringTasks",previous?local.recurringTasks.map(task=>task.id===previous.id?next:task):[...local.recurringTasks,next]);
-  setRecurringEditor(null);notify(previous?"반복 업무를 수정했습니다.":"반복 업무를 만들었습니다.");loadCalendar();
+  const saved=(await response.json()).event as EventItem|undefined;
+  if(movingCalendar&&previous?.calendarEventId){
+   const deleted=await fetch(`/api/calendar?id=${encodeURIComponent(previous.calendarEventId)}&calendarId=${encodeURIComponent(previous.calendarId||"primary")}`,{method:"DELETE"});
+   if(!deleted.ok){
+    if(saved?.id)await fetch(`/api/calendar?id=${encodeURIComponent(saved.id)}&calendarId=${encodeURIComponent(calendarId)}`,{method:"DELETE"});
+    throw new Error("calendar_move_cleanup_failed");
+   }
+  }
+  return {...next,calendarId,calendarEventId:saved?.id||next.calendarEventId};
  }
  function setRecurringCompletion(taskId:string,date:string,status:RecurringTaskCompletion["status"]){
   const existing=local.recurringTaskCompletions.find(item=>item.recurringTaskId===taskId&&item.occurrenceDate===date);
@@ -642,7 +926,19 @@ export function Dashboard(){
   let next={...task,isActive,updatedAt:new Date().toISOString()};
   try{next=await syncRecurringCalendar(next,task)}catch{notify("Google Calendar 연결 변경에 실패했습니다.","error");return}
   update("recurringTasks",local.recurringTasks.map(item=>item.id===task.id?next:item));
-  notify(isActive?"반복 업무를 다시 시작했습니다.":"반복 업무를 일시 중지했습니다.","info");loadCalendar();
+  notify(isActive?"루틴을 다시 시작했습니다.":"루틴을 일시 중지했습니다.","info");refreshCalendarData();
+ }
+ async function removeRecurringTask(task:RecurringTaskDefinition){
+  const calendarNote=task.calendarEventId?"\n연결된 Google Calendar 반복 일정도 함께 삭제됩니다.":"";
+  if(!confirm(`'${task.title}' 루틴을 삭제할까요?${calendarNote}`))return;
+  if(task.calendarEventId){
+   const response=await fetch(`/api/calendar?id=${encodeURIComponent(task.calendarEventId)}&calendarId=${encodeURIComponent(task.calendarId||"primary")}`,{method:"DELETE"});
+   if(!response.ok){notify("Google Calendar 반복 일정 삭제에 실패했습니다.","error");return}
+  }
+  setLocal(state=>({...state,recurringTasks:state.recurringTasks.filter(item=>item.id!==task.id),recurringTaskCompletions:state.recurringTaskCompletions.filter(item=>item.recurringTaskId!==task.id)}));
+  if(editingRecurringId===task.id)resetTaskComposer();
+  notify("루틴을 삭제했습니다.","info");
+  if(task.calendarEventId)refreshCalendarData();
  }
  function addPerson(){if(!personName.trim())return;update("people",[...local.people,{id:uid(),name:personName.trim(),tags:[personTag],lastContact:"",nextContact:"",note:""}]);setPersonName("")}
  function normalizedPhone(value=""){return value.replace(/[^\d+]/g,"").replace(/^82(?=10)/,"0")}
@@ -727,25 +1023,57 @@ export function Dashboard(){
   reader.readAsText(file);
  }
 
- function addActivity(){if(!activityTitle.trim())return;const unit=activityType==="running"?"km":activityType==="reading"?"page":activityType==="workout"?"세트":"";update("activities",[...local.activities,{id:uid(),date:activityDate,type:activityType,title:activityTitle,duration:activityDuration,amount:activityAmount,unit,note:activityNote,learned:activityLearned,applied:activityApplied,meta:{},projectId:activityProject||undefined}]);setActivityTitle("");setActivityNote("");setActivityLearned("");setActivityApplied("");setActivityAmount(0)}
+ function addActivity(){
+  const title=activityTitle.trim();
+  if(!title)return notify(`${activityTitleLabel[activityType]}을 입력해 주세요.`,"error");
+  const unit=activityType==="running"?"km":activityType==="reading"?"page":activityType==="workout"?"세트":"";
+  update("activities",[...local.activities,{id:uid(),date:activityDate,type:activityType,title,duration:activityDuration,amount:activityAmount,unit,note:activityNote,learned:activityLearned,applied:activityApplied,meta:{},projectId:activityProject||undefined}]);
+  setActivityTitle("");setActivityNote("");setActivityLearned("");setActivityApplied("");setActivityAmount(0);
+  notify("활동 기록을 저장했습니다.");
+ }
 
  function createProject(){
   const name=newProjectName.trim();
   if(!name)return notify("프로젝트 이름을 입력해 주세요.","error");
-  const project:Project={id:uid(),name,goal:newProjectGoal.trim(),next:"",status:"planning",milestones:[],note:"",contextId:newProjectContext||undefined};
+  const project:Project={id:uid(),name,goal:newProjectGoal.trim(),next:"",status:"planning",milestones:[],note:"",startDate:newProjectStartDate||todayKey(),...(newProjectDueDate?{dueDate:newProjectDueDate}:{})};
   update("projects",[...local.projects,project]);
   setSelectedProject(project.id);
-  setNewProjectName("");setNewProjectGoal("");setProjectDialog(null);
+  setNewProjectName("");setNewProjectGoal("");setNewProjectStartDate("");setNewProjectDueDate("");setProjectDialog(null);
   notify("새 프로젝트를 만들었습니다.");
+ }
+ function updateProjectPeriod(projectId:string,nextStart?:string,nextDue?:string){
+  const project=local.projects.find(item=>item.id===projectId);
+  if(!project)return;
+  const effectiveStart=nextStart||undefined;
+  const effectiveDue=nextDue||undefined;
+  update("projects",local.projects.map(item=>item.id===projectId?{...item,startDate:effectiveStart,dueDate:effectiveDue}:item));
+  update("recurringTasks",local.recurringTasks.map(task=>task.projectId===projectId?{...task,startDate:effectiveStart||task.startDate,endDate:effectiveDue,updatedAt:new Date().toISOString()}:task));
+ }
+ function addProjectRoutine(){
+  if(!selectedProjectData)return;
+  const clean=projectRoutineTitle.trim();
+  if(!clean)return notify("루틴 이름을 입력해 주세요.","error");
+  const day=parseYmd(currentDateKey).getDay();
+  const recurrence:RecurringTaskDefinition["recurrence"]=projectRoutineMode==="DAILY"?{type:"DAILY"}:projectRoutineMode==="WEEKDAYS"?{type:"WEEKDAYS"}:projectRoutineMode==="WEEKENDS"?{type:"WEEKLY",weekdays:[0,6],interval:1}:{type:"WEEKLY",weekdays:[day],interval:projectRoutineMode==="BIWEEKLY"?2:1};
+  const timestamp=new Date().toISOString();
+  const effectiveStart=selectedProjectData.startDate||currentDateKey;
+  const routine:RecurringTaskDefinition={id:uid(),title:clean,description:"",projectId:selectedProjectData.id,milestoneId:projectRoutineMilestone||undefined,recurrence,startDate:effectiveStart,endDate:selectedProjectData.dueDate,priority:"normal",showOnCalendar:false,isActive:true,createdAt:timestamp,updatedAt:timestamp,sortOrder:local.recurringTasks.length};
+  if(!selectedProjectData.startDate)update("projects",local.projects.map(project=>project.id===selectedProjectData.id?{...project,startDate:effectiveStart}:project));
+  update("recurringTasks",[...local.recurringTasks,routine]);
+  setProjectRoutineTitle("");
+  setProjectRoutineMilestone("");
+  notify("프로젝트 루틴을 추가했습니다.");
  }
  function createMilestone(){
   if(!selectedProjectData)return;
   const title=newMilestoneTitle.trim();
   if(!title)return notify("중간 목표 이름을 입력해 주세요.","error");
+  const milestoneId=uid();
   update("projects",local.projects.map(p=>p.id===selectedProjectData.id
-   ?{...p,milestones:[...p.milestones,{id:uid(),title,done:false,weight:Math.max(0,Math.min(100,newMilestoneWeight||0))}]}
+   ?{...p,milestones:[...p.milestones,{id:milestoneId,title,done:false,weight:Math.max(0,Math.min(100,newMilestoneWeight||0)),...(newMilestoneStartDate?{startDate:newMilestoneStartDate}:{}),...(newMilestoneDueDate?{dueDate:newMilestoneDueDate}:{})}]}
    :p));
-  setNewMilestoneTitle("");setNewMilestoneWeight(25);setProjectDialog(null);
+  if(newMilestoneRoutineIds.length)update("recurringTasks",local.recurringTasks.map(task=>newMilestoneRoutineIds.includes(task.id)?{...task,projectId:selectedProjectData.id,milestoneId,updatedAt:new Date().toISOString()}:task));
+  setNewMilestoneTitle("");setNewMilestoneWeight(25);setNewMilestoneStartDate("");setNewMilestoneDueDate("");setNewMilestoneRoutineIds([]);setProjectDialog(null);
   notify("중간 목표를 추가했습니다.");
  }
  function setCalendarContext(calendarId:string,contextId?:string){
@@ -766,22 +1094,32 @@ export function Dashboard(){
   const old=local.tasks.find(t=>t.id===editingTask.id);
   let next={...editingTask};
   if(next.syncCalendar&&next.scheduledAt){
+   if(!next.scheduledAt.includes("T"))return alert("Google Calendar 연결에는 날짜와 시간을 함께 입력해 주세요.");
    const st=new Date(next.scheduledAt), en=new Date(st.getTime()+next.durationMinutes*60000);
-   const calendarId=next.calendarId??getDefaultCalendarId(local.contextCalendarPreferences,local.calendarContextMappings,next.contextId??"",visibleCalendarIds[0]||"primary");
-   const body={id:next.calendarEventId,title:next.title,start:st.toISOString(),end:en.toISOString(),location:"",description:"JEONG 할 일",recurrence:[],reminders:[30],calendarId};
-   const r=await fetch("/api/calendar",{method:next.calendarEventId?"PATCH":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+   const calendarId=getDefaultCalendarId(local.contextCalendarPreferences,local.calendarContextMappings,next.contextId??"",next.calendarId||visibleCalendarIds[0]||"primary");
+   const movingCalendar=Boolean(old?.calendarEventId&&old.calendarId&&old.calendarId!==calendarId);
+   const body={id:movingCalendar?undefined:next.calendarEventId,title:next.title,start:st.toISOString(),end:en.toISOString(),location:"",description:"JEONG 할 일",recurrence:[],reminders:[30],calendarId};
+   const r=await fetch("/api/calendar",{method:body.id?"PATCH":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
    if(!r.ok)return alert("Google Calendar 동기화에 실패했습니다.");
-   if(!next.calendarEventId)next.calendarEventId=(await r.json()).event?.id;
+   const saved=(await r.json()).event as EventItem|undefined;
+   if(saved?.id)next.calendarEventId=saved.id;
+   if(movingCalendar&&old?.calendarEventId){
+    const deleted=await fetch(`/api/calendar?id=${encodeURIComponent(old.calendarEventId)}&calendarId=${encodeURIComponent(old.calendarId||"primary")}`,{method:"DELETE"});
+    if(!deleted.ok){
+     if(saved?.id)await fetch(`/api/calendar?id=${encodeURIComponent(saved.id)}&calendarId=${encodeURIComponent(calendarId)}`,{method:"DELETE"});
+     return alert("기존 Google Calendar 일정을 정리하지 못해 변경을 취소했습니다.");
+    }
+   }
    next.calendarId=calendarId;
   }else if(old?.calendarEventId&&!next.syncCalendar){
    if(confirm("연결된 Google Calendar 일정도 삭제할까요?"))await fetch(`/api/calendar?id=${encodeURIComponent(old.calendarEventId)}&calendarId=${encodeURIComponent(old.calendarId||"primary")}`,{method:"DELETE"});
    next.calendarEventId=undefined;
   }
-  update("tasks",local.tasks.map(t=>t.id===next.id?next:t));setEditingTask(null);loadCalendar();
+  update("tasks",local.tasks.map(t=>t.id===next.id?next:t));setEditingTask(null);refreshCalendarData();
  }
  async function removeTask(t:TaskItem){
   if(t.calendarEventId&&confirm("연결된 Google Calendar 일정도 함께 삭제할까요?"))await fetch(`/api/calendar?id=${encodeURIComponent(t.calendarEventId)}&calendarId=${encodeURIComponent(t.calendarId||"primary")}`,{method:"DELETE"});
-  update("tasks",local.tasks.filter(x=>x.id!==t.id));loadCalendar();
+  update("tasks",local.tasks.filter(x=>x.id!==t.id));refreshCalendarData();
  }
  function saveActivityEdit(){if(!editingActivity)return;update("activities",local.activities.map(a=>a.id===editingActivity.id?editingActivity:a));setEditingActivity(null)}
  function saveNoteEdit(){if(!editingNote)return;update("notes",local.notes.map(n=>n.id===editingNote.id?editingNote:n));setEditingNote(null)}
@@ -794,137 +1132,322 @@ export function Dashboard(){
  }
  function importBackup(file:File){
   const reader=new FileReader();
-  reader.onload=()=>{try{const data=JSON.parse(String(reader.result));setLocal({...defaultState,...data});alert("백업을 복원했습니다.")}catch{alert("올바른 JEONG 백업 파일이 아닙니다.")}};
+  reader.onload=()=>{try{const data=JSON.parse(String(reader.result));const normalized=normalizeLocalState(data,{defaultState,noteLabels});setLocal(normalized);alert("백업을 복원했습니다.")}catch{alert("올바른 JEONG 백업 파일이 아닙니다.")}};
   reader.readAsText(file);
  }
  const dayEvents=contextEvents.filter(e=>new Date(e.start).toDateString()===new Date(`${dayDate}T00:00:00`).toDateString());
- const dayTasks=contextTasks.filter(t=>(t.scheduledAt?.slice(0,10)||"")===dayDate||(t.bucket==="today"&&((!t.done&&dayDate===todayKey())||(t.done&&t.doneAt===dayDate))));
  const dayActivities=local.activities.filter(a=>a.date===dayDate);
- const dayNotes=local.notes.filter(n=>n.date===dayDate);
  const dayReview=local.reviews[dayDate];
 
 
  function buildAiPrompt(type:AiPromptType){
   const today=todayKey();
-  const todayEvents=events.filter(e=>new Date(e.start).toDateString()===new Date().toDateString());
-  const todayTasks=local.tasks.filter(t=>!t.done&&(t.bucket==="today"||t.scheduledAt?.slice(0,10)===today));
-  const weekTasks=local.tasks.filter(t=>!t.done&&(t.bucket==="week"||t.bucket==="today"));
-  const todayActivities=local.activities.filter(a=>a.date===today);
-  const todayReview=local.reviews[today];
-  const projectLines=local.projects.map(p=>`- ${p.name}: ${progress(p)}%, 다음 행동: ${p.next||"미입력"}`).join("\n");
-  const peopleLines=aiIncludePeople?local.people.filter(p=>p.nextContact&&p.nextContact<=today).map(p=>`- ${p.name}: 다음 연락 ${p.nextContact}, 태그 ${p.tags.join(", ")}`).join("\n"):"(개인정보 보호를 위해 제외)";
-  const data=`[사용자 정보]\n호칭: 황제\n\n[오늘 기준]\n날짜: ${today}\n목표: ${local.goal||"미입력"}\n이유: ${local.reason||"미입력"}\n즐길 것: ${local.enjoyment||"미입력"}\n감사: ${local.gratitude.filter(Boolean).join(" / ")||"미입력"}\n\n[오늘 일정]\n${todayEvents.map(e=>`- ${eventTime(e.start)} ${e.title}${e.location?` (${e.location})`:""}`).join("\n")||"- 없음"}\n\n[오늘 할 일]\n${todayTasks.map(t=>`- ${t.done?"완료":"미완료"}: ${t.title}`).join("\n")||"- 없음"}\n\n[이번 주 미완료 할 일]\n${weekTasks.map(t=>`- ${t.title}`).join("\n")||"- 없음"}\n\n[오늘 활동]\n${todayActivities.map(a=>`- ${activityLabels[a.type]}: ${a.title}, ${a.duration}분${a.amount?`, ${a.amount}${a.unit}`:""}`).join("\n")||"- 없음"}\n\n[프로젝트]\n${projectLines||"- 없음"}\n\n[연락 확인]\n${peopleLines||"- 없음"}\n\n[오늘 리뷰]\n${todayReview?`목표 결과: ${todayReview.status||"미선택"} / 잘한 점: ${todayReview.good||"-"} / 배운 점: ${todayReview.learned||"-"} / 즐거웠던 순간: ${todayReview.joy||"-"}`:"- 아직 없음"}`;
-  const requests:Record<AiPromptType,string>={
-   morning:"위 데이터를 바탕으로 오늘 아침 브리핑을 작성해줘. 사실과 일정부터 정리하고, 가장 중요한 일 1개와 준비할 것만 이유와 함께 제시해줘. 결정은 내가 할 수 있도록 선택지를 남겨줘.",
-   daily:"위 데이터를 바탕으로 오늘 상태를 정리해줘. 이미 끝난 것, 남은 것, 놓치기 쉬운 것, 다음 행동 후보를 구분하고 각 제안의 이유를 짧게 설명해줘.",
-   weekly:"위 데이터를 바탕으로 이번 주 점검을 해줘. 진행된 것, 멈춘 것, 다음 주로 넘길 것, 프로젝트별 다음 행동을 정리해줘. 과장하거나 새로운 사실을 만들지 마.",
-   project:"위 프로젝트 정보를 중심으로 막힌 지점과 다음 행동을 정리해줘. 진행률 숫자만 보지 말고 중간 목표와 실제 기록을 기준으로 판단해줘.",
-   free:"위 JEONG 데이터를 참고자료로 사용해줘. 내가 이어서 질문할 때 데이터에 없는 내용은 추측하지 말고 확인해줘."
-  };
-  return `너는 JEONG의 분석 파트너다. 사용자의 선택을 대신하지 말고, 흩어진 정보를 정리해 선택할 수 있게 돕는다. 업무에 필요 없는 철학적 문구와 과한 격려는 제외한다.\n\n${requests[type]}\n\n${data}`;
+  const todayRoutineOccurrences=getOccurrencesForDate(local.recurringTasks,currentDateKey,local.recurringTaskCompletions);
+  const todayRoutines=todayRoutineOccurrences.map(occurrence=>{
+   const project=occurrence.task.projectId?local.projects.find(item=>item.id===occurrence.task.projectId):undefined;
+   const milestone=project&&occurrence.task.milestoneId?project.milestones.find(item=>item.id===occurrence.task.milestoneId):undefined;
+   return {title:occurrence.task.title,status:occurrence.status==="done"?"done" as const:occurrence.status==="skipped"?"skipped" as const:"pending" as const,project:project?.name,milestone:milestone?.title};
+  });
+  const events=operatingContext.calendar.events.map(event=>{
+   const eventStart=new Date(event.start).getTime();
+   const eventEnd=new Date(event.end||event.start).getTime();
+   const nowMs=now.getTime();
+   const state=eventEnd<nowMs?"done" as const:eventStart<=nowMs&&eventEnd>=nowMs?"current" as const:event===operatingContext.calendar.nextEvent?"next" as const:"upcoming" as const;
+   return {title:event.title,start:event.start,end:event.end,context:event.context,state};
+  });
+  const taskState=(task:TaskItem)=>({title:task.title,dueDate:task.dueDate||task.scheduledAt?.slice(0,10),project:projectNameById(task.projectId),context:local.contexts.find(context=>context.id===task.contextId)?.name,carried:Boolean(task.carriedFrom||task.carryHistory?.length)});
+  const projects=operatingContext.projects.map(info=>({
+   name:info.project.name,
+   goal:info.project.goal,
+   status:info.project.status,
+   progress:info.calculatedProgress,
+   start:info.project.startDate,
+   due:info.project.dueDate,
+   nextAction:info.nextAction?.title||info.project.next,
+   stalled:info.stalled,
+   risks:info.risks,
+   milestones:info.project.milestones.map(milestone=>({
+    title:milestone.title,
+    done:milestone.done,
+    start:milestone.startDate??info.project.startDate,
+    due:milestone.dueDate??info.project.dueDate,
+    routines:info.connectedRoutines.filter(routine=>routine.milestoneId===milestone.id).map(routine=>routine.title),
+   })),
+   routineCompleted:info.routineCompleted,
+   routineScheduled:info.routineScheduled,
+   recentActivity:info.recentActivity,
+  }));
+  const recentReviews=[...eveningReviews].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,3).map(review=>({date:review.date,status:review.status||undefined,goal:review.goal,enjoyment:review.enjoyment,reason:review.reason,good:review.good,learned:review.learned,joy:review.joy,eveningGratitude:gratitudeArray(review.eveningGratitude).filter(Boolean)}));
+  const peopleLines=aiIncludePeople?local.people.filter(person=>person.nextContact&&person.nextContact<=today).map(person=>`${person.name}: 다음 연락 ${person.nextContact}${person.tags.length?` · 태그 ${person.tags.join(", ")}`:""}`):undefined;
+  return buildChatGptLifeStatePrompt(type,{
+   nowLabel:now.toLocaleString("ko-KR"),
+   date:currentDateKey,
+   phase:operatingContext.phase,
+   morning:{goal:operatingContext.morning.goal,enjoyment:local.enjoyment,gratitude:local.gratitude.filter(Boolean)},
+   calendarState:operatingContext.calendar.state,
+   events,
+   todos:{
+    completed:operatingContext.todos.completed,
+    total:operatingContext.todos.total,
+    incomplete:operatingContext.todos.incomplete.map(taskState),
+    overdue:operatingContext.todos.overdue.map(taskState),
+    carry:operatingContext.todos.carry.map(taskState),
+    replanningReasons:operatingContext.replanning.reasons,
+   },
+   routines:todayRoutines,
+   weeklyGoals:operatingContext.goals.weekly.map(goal=>goal.title),
+   monthlyGoals:operatingContext.goals.monthly.map(goal=>goal.title),
+   projects,
+   focusProject:type==="project"?selectedProjectData?.name:undefined,
+   recentRecords:timeline.slice(0,10).map(item=>({date:item.date,kind:item.kind,title:item.title,project:item.project,detail:item.note})),
+   recentReviews,
+   facts30d:{
+    todoRate:personalIntelligence.todo.completionRate,
+    carry:personalIntelligence.todo.carryCount,
+    overdue:personalIntelligence.todo.overdue,
+    routineRate:personalIntelligence.routine.completionRate,
+    routineCompleted:personalIntelligence.routine.completed,
+    routineScheduled:personalIntelligence.routine.scheduled,
+    calendarAvailable:personalIntelligence.calendar.available,
+    calendarCount:personalIntelligence.calendar.count,
+    calendarMinutes:personalIntelligence.calendar.minutes,
+    morningDays:personalIntelligence.records.morningDirections,
+    reviewDays:personalIntelligence.records.eveningReviews,
+    stalledProjects:personalIntelligence.projects.stalled.map(info=>info.project.name),
+    strugglingRoutines:personalIntelligence.routine.struggling.slice(0,5).map(item=>`${item.title} ${item.completionRate}%`),
+   },
+   comparison30d:{
+    todoRateDelta:personalIntelligence.comparison.todoRateDelta,
+    carryDelta:personalIntelligence.comparison.carryDelta,
+    overdueDelta:personalIntelligence.comparison.overdueDelta,
+    calendarMinutesDelta:personalIntelligence.comparison.calendarMinutesDelta,
+    morningDelta:personalIntelligence.comparison.morningDelta,
+    reviewDelta:personalIntelligence.comparison.reviewDelta,
+   },
+   weekly:{
+    todoRate:weeklyIntelligence.todo.total?Math.round(weeklyIntelligence.todo.completed/weeklyIntelligence.todo.total*100):0,
+    incomplete:weeklyIntelligence.todo.incomplete.length,
+    routineRate:weeklyIntelligence.routine.completionRate,
+    calendarMinutes:weeklyIntelligence.calendar.minutes,
+    projectActivity:weeklyIntelligence.projects.length,
+   },
+   monthly:{
+    todoRate:monthlyIntelligence.todo.completionRate,
+    incomplete:monthlyIntelligence.todo.incomplete.length,
+    routineRate:monthlyIntelligence.routine.completionRate,
+    calendarMinutes:monthlyIntelligence.calendar.minutes,
+    projectActivity:monthlyIntelligence.projects.length,
+   },
+   peopleLines,
+  });
  }
- function prepareAi(type:AiPromptType){setAiType(type);setAiPrompt(buildAiPrompt(type));setAiCopied(false)}
- async function copyAiPrompt(){try{await navigator.clipboard.writeText(aiPrompt);setAiCopied(true)}catch{alert("복사하지 못했습니다. 텍스트를 직접 선택해 복사해 주세요.")}}
- async function openChatGPT(){if(!aiPrompt)prepareAi(aiType);await copyAiPrompt();window.open("https://chatgpt.com/","_blank","noopener,noreferrer")}
+ function prepareAi(type:AiPromptType){setAiType(type)}
+ async function openChatGPT(){
+  const prompt=buildAiPrompt(aiType);
+  window.open("https://chatgpt.com/","_blank","noopener,noreferrer");
+  try{
+   await navigator.clipboard.writeText(prompt);
+   notify("현재 Life State를 복사했습니다. ChatGPT 입력창에 붙여넣어 주세요.","info");
+  }catch{
+   notify("클립보드 복사에 실패했습니다. 브라우저의 클립보드 권한을 확인해 주세요.","error");
+  }
+ }
 
 
- const aiSetupGuide:Record<AiEngine,{title:string;cost:string;steps:string[];env?:string;link?:string;linkLabel?:string;note:string}>={
-  none:{title:"AI 연결 안 함",cost:"추가 비용 없음",steps:["JEONG의 일정·할 일·프로젝트·기록 기능만 사용합니다.","나중에 언제든 다른 AI 엔진으로 변경할 수 있습니다."],note:"AI를 연결하지 않아도 JEONG의 기본 기능은 계속 작동합니다."},
-  ollama:{title:"Ollama · 무료 로컬 AI",cost:"API 사용료 없음",steps:["Ollama Windows 버전을 설치합니다.","설치 후 PowerShell 또는 명령 프롬프트에서 ollama run llama3.2:3b 를 한 번 실행합니다.","JEONG 설정에서 모델 이름을 llama3.2:3b 로 입력합니다.","설정 저장·연결 확인을 누릅니다."],link:"https://ollama.com/download/windows",linkLabel:"Ollama Windows 다운로드",note:"AI가 내 컴퓨터에서 실행됩니다. 처음 모델을 내려받을 때 저장 공간과 시간이 필요하며, 컴퓨터 성능에 따라 응답 속도가 달라집니다."},
-  openai:{title:"OpenAI API",cost:"사용량에 따라 별도 과금",steps:["OpenAI Platform에서 API 키를 생성합니다.","JEONG 폴더의 .env.local 파일을 메모장으로 엽니다.","아래 환경변수를 한 줄 추가하고 저장합니다.","JEONG 실행 창을 완전히 종료한 뒤 다시 실행합니다."],env:"OPENAI_API_KEY=발급받은_키",link:"https://platform.openai.com/api-keys",linkLabel:"OpenAI API 키 관리",note:"ChatGPT Plus 구독과 API 사용료는 별도입니다. 비밀키는 GitHub나 채팅에 올리지 마세요."},
-  claude:{title:"Claude API",cost:"사용량에 따라 별도 과금",steps:["Claude Console의 Settings → API keys에서 키를 만듭니다.","JEONG 폴더의 .env.local 파일을 엽니다.","아래 환경변수를 추가하고 저장합니다.","JEONG를 완전히 종료한 뒤 다시 실행합니다."],env:"ANTHROPIC_API_KEY=발급받은_키",link:"https://console.anthropic.com/settings/keys",linkLabel:"Claude API 키 관리",note:"Claude 웹 구독과 Claude API 결제는 별도일 수 있습니다. 키는 외부에 공개하지 마세요."},
-  gemini:{title:"Gemini API",cost:"무료 할당량 또는 사용량 과금 정책 적용",steps:["Google AI Studio에서 Gemini API 키를 생성합니다.","JEONG 폴더의 .env.local 파일을 엽니다.","아래 환경변수를 추가하고 저장합니다.","JEONG를 완전히 종료한 뒤 다시 실행합니다."],env:"GEMINI_API_KEY=발급받은_키",link:"https://aistudio.google.com/app/api-keys",linkLabel:"Gemini API 키 만들기",note:"사용 가능한 무료 할당량과 요금은 계정·모델·정책에 따라 달라질 수 있습니다."}
- };
- const currentAiGuide=aiSetupGuide[aiEngine];
  const planningRange=view==="monthly-plan"?getMonthRange(planningAnchor):getWeekRange(planningAnchor);
  const currentWeekRange=getWeekRange(todayKey());
  const currentMonthRange=getMonthRange(todayKey());
- const activeContextId=contextFilter==="ALL"?undefined:local.contexts.find(context=>context.key===contextFilter)?.id;
- const currentWeeklyPlan=getPlanForPeriod(local.plans,"WEEK",currentWeekRange.start,activeContextId);
- const currentMonthlyPlan=getPlanForPeriod(local.plans,"MONTH",currentMonthRange.start,activeContextId);
- const currentWeeklyGoals=getGoalsForPeriod(local.goals,"WEEK",currentWeekRange.start).filter(goal=>goal.status==="active");
- const homeSummaryInput={state:local,events,date:currentDateKey,context:contextFilter};
- const homeSummary=homePeriod==="day"?getDailyHomeSummary(homeSummaryInput):homePeriod==="week"?getWeeklyHomeSummary(homeSummaryInput):getMonthlyHomeSummary(homeSummaryInput);
+ const weeklyIntelligence=getWeeklySummary({weekStart:currentWeekRange.start,goals:local.goals,plans:local.plans,tasks:local.tasks,events:operationalEvents.map(event=>({id:event.id,title:event.title,start:event.start,end:event.end,context:event.calendarName})),projects:local.projects,reviews:local.reviews,recurringTasks:local.recurringTasks,recurringTaskCompletions:local.recurringTaskCompletions});
+ const monthlyIntelligence=getMonthlySummary({month:currentMonthRange.start.slice(0,7),now,goals:local.goals,plans:local.plans,tasks:local.tasks,events:operationalEvents.map(event=>({id:event.id,title:event.title,start:event.start,end:event.end,calendarId:event.calendarId})),projects:local.projects,reviews:local.reviews,activities:local.activities,notes:local.notes,recurringTasks:local.recurringTasks,recurringTaskCompletions:local.recurringTaskCompletions});
+ const personalIntelligence=getPersonalIntelligence({now,tasks:local.tasks,events:calendarReady&&!operationalCalendarError?operationalEvents.map(event=>({id:event.id,title:event.title,start:event.start,end:event.end})):undefined,contexts:local.contexts,projects:local.projects,goals:local.goals,reviews:local.reviews,plans:local.plans,preferences:local.personalInsightPreferences??[],recurringTasks:local.recurringTasks,recurringTaskCompletions:local.recurringTaskCompletions});
+ const homeSummaryInput={state:local,events:operationalEvents.map(event=>({...event,contextId:eventContextId(event)})),date:currentDateKey,context:contextFilter};
+ const homeSummary=getDailyHomeSummary(homeSummaryInput);
+ async function setVisibleRoutineDefinitionsActive(isActive:boolean){
+  const contextId=contextFilter==="ALL"?undefined:local.contexts.find(context=>context.key===contextFilter)?.id;
+  const targets=local.recurringTasks.filter(task=>(contextFilter==="ALL"||task.contextId===contextId)&&routineSectionForTask(task)===routineSection&&task.isActive!==isActive);
+  if(!targets.length){notify(isActive?"이미 모든 루틴이 활성화되어 있습니다.":"이미 모든 루틴이 중지되어 있습니다.","info");return}
+  const updated=new Map<string,RecurringTaskDefinition>();
+  for(const task of targets){
+   let next={...task,isActive,updatedAt:new Date().toISOString()};
+   try{next=await syncRecurringCalendar(next,task)}catch{notify(`${task.title}의 Google Calendar 연결 변경에 실패했습니다.`,"error");continue}
+   updated.set(task.id,next);
+  }
+  if(!updated.size)return;
+  setLocal(state=>({...state,recurringTasks:state.recurringTasks.map(task=>updated.get(task.id)??task)}));
+  notify(isActive?"현재 목록의 루틴을 모두 시작했습니다.":"현재 목록의 루틴을 모두 중지했습니다.","info");
+  if([...updated.values()].some(task=>task.calendarEventId||task.showOnCalendar))refreshCalendarData();
+ }
+ const morningBriefing=createMorningBriefing({date:currentDateKey,now,direction:{morningDate:local.morningDate,goal:local.goal},schedules:todayEvents.map(event=>({id:event.id,title:event.title,start:event.start,end:event.end,context:event.calendarName})),todos:contextTasks,projects:local.projects});
+ const currentDailyRecord=getDailyRecord({date:currentDateKey,goal:local.goal,reason:"",enjoyment:local.enjoyment,gratitude:local.gratitude,tasks:contextTasks,events:todayEvents.map(event=>({id:event.id,title:event.title,start:event.start,end:event.end,context:event.calendarName})),projects:local.projects,reviews:local.reviews});
+ const dailyContinuity=createDailyContinuity({date:currentDateKey,tasks:contextTasks,reviews:local.reviews,projects:local.projects});
+ const proactiveReminders=createProactiveReminders({now,date:currentDateKey,events:morningBriefing.schedules,todos:contextTasks,projects:local.projects,directionComplete:morningBriefing.direction.isComplete,continuity:dailyContinuity,projectIntelligence,monthlySummary:monthlyIntelligence});
+ const operatingContext=useMemo(()=>getOperatingContext({date:currentDateKey,now,calendarAvailable:calendarReady&&!operationalCalendarError,events:morningBriefing.schedules,tasks:local.tasks,projects:local.projects,goals:local.goals,morningBriefing,dailyRecord:currentDailyRecord,continuity:dailyContinuity,projectIntelligence,personalIntelligence,reminders:proactiveReminders,dismissedReminderIds:(local.operatingReminderPreferences??[]).map(item=>item.reminderId)}),[calendarReady,operationalCalendarError,currentDateKey,currentDailyRecord,dailyContinuity,local.goals,local.operatingReminderPreferences,local.projects,local.tasks,morningBriefing,now,personalIntelligence,proactiveReminders,projectIntelligence]);
+ function saveEveningReview(){
+  const next={...currentReview,reason:"",date:reviewDate,eveningGratitude:gratitudeArray(currentReview.eveningGratitude)};
+  update("reviews",{...local.reviews,[reviewDate]:next});
+  notify("저녁 리뷰를 저장했습니다.");
+ }
+ function carryContinuityTasks(taskIds:string[]){
+  const ids=new Set(taskIds);
+  update("tasks",local.tasks.map(task=>ids.has(task.id)?carryTaskForward(task,currentDateKey):task));
+  notify(`${taskIds.length}개의 미완료 할 일을 오늘로 가져왔습니다.`);
+ }
+ const isHomeScheduleDone=(event:EventItem)=>!event.allDay&&new Date(event.end||event.start).getTime()<=now.getTime();
+ const isHomeScheduleOngoing=(event:EventItem)=>!event.allDay&&!isHomeScheduleDone(event)&&new Date(event.start).getTime()<=now.getTime();
+ const homeTodayScheduleBase=[...todayEvents].sort((a,b)=>Number(isHomeScheduleDone(a))-Number(isHomeScheduleDone(b))||a.start.localeCompare(b.start));
+ const homeCurrentSchedule=homeTodayScheduleBase.find(event=>isHomeScheduleOngoing(event));
+ const homeUpcomingSchedule=homeTodayScheduleBase.find(event=>!event.allDay&&!isHomeScheduleDone(event)&&new Date(event.start).getTime()>now.getTime())
+  ??homeTodayScheduleBase.find(event=>event.allDay&&!isHomeScheduleDone(event));
+ const homeNextSchedule=homeCurrentSchedule??homeUpcomingSchedule;
+ const homeFeaturedScheduleKey=homeNextSchedule?`${homeNextSchedule.calendarId||""}-${homeNextSchedule.id}-${homeNextSchedule.start}`:"";
+ const homeTodaySchedule=homeNextSchedule
+  ? homeTodayScheduleBase.filter(event=>`${event.calendarId||""}-${event.id}-${event.start}`!==homeFeaturedScheduleKey)
+  : homeTodayScheduleBase;
+ const homePrimaryReminderCandidate=operatingContext.primaryReminder?.type==="current_event"?operatingContext.reminders.find(reminder=>reminder.type!=="current_event"):operatingContext.primaryReminder;
+ const homePrimaryReminder=homePrimaryReminderCandidate?.type==="upcoming_event"?undefined:homePrimaryReminderCandidate;
+ const homePeriodTaskVisible=(task:TaskItem)=>!task.done||task.doneAt?.slice(0,10)===currentDateKey;
+ const taskScheduledDate=(task:TaskItem)=>task.scheduledAt?.slice(0,10)||"";
+ const taskInPeriod=(task:TaskItem,start:string,end:string)=>{const date=taskScheduledDate(task);return Boolean(date&&date>=start&&date<=end)};
+ const homeWeekTasks=contextTasks.filter(task=>task.bucket==="week"&&taskInPeriod(task,currentWeekRange.start,currentWeekRange.end)&&homePeriodTaskVisible(task)).sort((a,b)=>(a.sortOrder??Number.MAX_SAFE_INTEGER)-(b.sortOrder??Number.MAX_SAFE_INTEGER)||(a.scheduledAt||"").localeCompare(b.scheduledAt||""));
+ const homeWeekRoutines=local.recurringTasks.filter(task=>task.isActive&&routineSectionForTask(task)==="weekly"&&(contextFilter==="ALL"||local.contexts.find(context=>context.key===contextFilter)?.id===task.contextId)).sort((a,b)=>(a.sortOrder??local.recurringTasks.indexOf(a))-(b.sortOrder??local.recurringTasks.indexOf(b)));
+ const weeklyRoutineCompletionDate=(taskId:string)=>local.recurringTaskCompletions.filter(item=>item.recurringTaskId===taskId&&item.status==="done"&&item.occurrenceDate>=currentWeekRange.start&&item.occurrenceDate<=currentWeekRange.end).map(item=>item.occurrenceDate).sort().at(-1);
+ const homeWeekEntries=[
+  ...homeWeekTasks.map(task=>({id:`task-${task.id}`,title:task.title,routine:false as const,done:task.done,taskId:task.id})),
+  ...homeWeekRoutines.map(task=>{const completedDate=weeklyRoutineCompletionDate(task.id);return {id:`routine-${task.id}`,title:task.title,routine:true as const,done:completedDate===currentDateKey,taskId:task.id,completedDate}}).filter(item=>!item.completedDate||item.completedDate===currentDateKey),
+ ];
+ const homeMonthTasks=contextTasks.filter(task=>task.bucket==="month"&&taskInPeriod(task,currentMonthRange.start,currentMonthRange.end)&&homePeriodTaskVisible(task)).sort((a,b)=>(a.sortOrder??Number.MAX_SAFE_INTEGER)-(b.sortOrder??Number.MAX_SAFE_INTEGER)||(a.scheduledAt||"").localeCompare(b.scheduledAt||""));
+ function toggleHomePeriodTask(taskId:string){
+  update("tasks",local.tasks.map(task=>task.id===taskId?{...task,done:!task.done,doneAt:task.done?undefined:currentDateKey}:task));
+ }
+ function addHomeTask(title:string,bucket:TaskBucket,contextId?:string){
+  const clean=title.trim();if(!clean)return;
+  const period=taskPeriodForBucket(bucket,currentDateKey);
+  const resolvedContextId=contextId??"personal";
+  const task:TaskItem={id:uid(),title:clean,done:false,bucket,scheduledAt:period.start?`${period.start}T00:00:00`:"",durationMinutes:0,syncCalendar:false,contextId:resolvedContextId,sortOrder:local.tasks.length,...(period.end?{dueDate:period.end}:{})};
+  update("tasks",[...local.tasks,task]);
+  notify(bucket==="today"?"오늘 할 일을 추가했습니다.":bucket==="week"?"이번 주 할 일을 추가했습니다.":bucket==="month"?"이번 달 할 일을 추가했습니다.":"언젠가 할 일을 추가했습니다.");
+ }
+ function addHomeRoutine(title:string,mode:"DAILY"|"WEEKDAYS"|"WEEKENDS"|"WEEKLY"|"BIWEEKLY",contextId?:string){
+  const clean=title.trim();if(!clean)return;
+  const resolvedContextId=contextId??"personal";
+  const day=parseYmd(currentDateKey).getDay();
+  const recurrence:RecurringTaskDefinition["recurrence"]=mode==="DAILY"?{type:"DAILY"}:mode==="WEEKDAYS"?{type:"WEEKDAYS"}:mode==="WEEKENDS"?{type:"WEEKLY",weekdays:[0,6],interval:1}:{type:"WEEKLY",weekdays:[day],interval:mode==="BIWEEKLY"?2:1};
+  const timestamp=new Date().toISOString();
+  const routine:RecurringTaskDefinition={id:uid(),title:clean,description:"",contextId:resolvedContextId,recurrence,startDate:currentDateKey,priority:"normal",showOnCalendar:false,isActive:true,createdAt:timestamp,updatedAt:timestamp,sortOrder:local.recurringTasks.length};
+  update("recurringTasks",[...local.recurringTasks,routine]);
+  notify("루틴을 추가했습니다.");
+ }
+ function toggleHomeWeeklyRoutine(taskId:string){
+  const hasCurrentWeekCompletion=local.recurringTaskCompletions.some(item=>item.recurringTaskId===taskId&&item.status==="done"&&item.occurrenceDate>=currentWeekRange.start&&item.occurrenceDate<=currentWeekRange.end);
+  if(hasCurrentWeekCompletion){
+   update("recurringTaskCompletions",local.recurringTaskCompletions.filter(item=>!(item.recurringTaskId===taskId&&item.occurrenceDate>=currentWeekRange.start&&item.occurrenceDate<=currentWeekRange.end)));
+   return;
+  }
+  update("recurringTaskCompletions",[...local.recurringTaskCompletions,{recurringTaskId:taskId,occurrenceDate:currentDateKey,status:"done",completedAt:new Date().toISOString()}]);
+ }
  const upsertPlan=(plan:Plan)=>update("plans",[...local.plans.filter(item=>item.id!==plan.id),plan]);
  const upsertGoal=(goal:Goal)=>update("goals",[...local.goals.filter(item=>item.id!==goal.id),goal]);
  const viewTitles:Record<string,string>={
-  home:"오늘",day:"하루 기록","weekly-plan":"이번 주 계획","monthly-plan":"이번 달 계획",calendar:"캘린더",tasks:"할 일",projects:"프로젝트",
+  home:"오늘",day:"하루 기록","weekly-plan":"이번 주 계획","monthly-plan":"이번 달 계획",calendar:"캘린더",routines:"루틴 관리",projects:"프로젝트",
   people:"관계",records:"전체 기록",analytics:"분석",activities:"활동 기록",
-  notes:"노트",review:"리뷰",timeline:"타임라인",chapters:"삶의 시기",ai:"AI",settings:"설정"
+  notes:"노트",review:"리뷰",timeline:"타임라인",chapters:"삶의 시기",ai:"AI",settings:"설정",profile:"개인정보"
  };
 
 
  const groups=[
   {label:"",items:[{v:"home",t:"홈",icon:"⌂"}]},
-  {label:"오늘",items:[{v:"day",t:"오늘",icon:"◷"}]},
-  {label:"계획",items:[{v:"weekly-plan",t:"이번 주",icon:"◇"},{v:"monthly-plan",t:"이번 달",icon:"◫"}]},
-  {label:"일정",items:[{v:"calendar",t:"캘린더",icon:"▦"},{v:"tasks",t:"할 일",icon:"☑"}]},
+  {label:"일정",items:[{v:"calendar",t:"캘린더",icon:"▦"}]},
   {label:"운영",items:[{v:"projects",t:"프로젝트",icon:"▤"},{v:"people",t:"관계",icon:"♙"}]},
   {label:"기록",items:[{v:"records",t:"기록",icon:"✎"}]},
   {label:"분석",items:[{v:"analytics",t:"분석",icon:"⌁"}]},
-  {label:"AI",items:[{v:"ai",t:"AI 도우미",icon:"✧"}]}
+  {label:"연결",items:[{v:"ai",t:"ChatGPT 연결",icon:"✧"}]},
+  {label:"",items:[{v:"settings",t:"설정",icon:"⚙"}]}
  ] as const;
- if(!hydrated)return null;
+ if(!hydrated)return <main className="jeongLoadingPage" aria-live="polite" aria-busy="true"><div className="jeongLoadingSeal" aria-hidden="true">整</div><strong>JEONG을 정리하고 있습니다.</strong><span>잠시만 기다려 주세요.</span></main>;
   return <div className={`lifeShell ${view==="review"?reviewStyles.reviewShell:""}`}>
-  {showMorning&&<div className="overlay"><form className="morningCard" onSubmit={saveMorning}><div className="modalHead"><div><span>오늘 시작</span><h2>{greeting}</h2></div><button type="button" className="softBtn" onClick={()=>setShowMorning(false)}>나중에</button></div>{currentWeeklyPlan?.direction&&<p className="morningPlanReference">이번 주 방향 · {currentWeeklyPlan.direction}</p>}<label>연결할 주간 목표<select value={local.parentWeeklyGoalId??""} onChange={e=>update("parentWeeklyGoalId",e.target.value||undefined)}><option value="">연결하지 않음</option>{currentWeeklyGoals.map(goal=><option key={goal.id} value={goal.id}>{goal.title}</option>)}</select></label><label>오늘 목표<textarea required value={local.goal} onChange={e=>update("goal",e.target.value)}/></label><label>선택한 이유<textarea value={local.reason} onChange={e=>update("reason",e.target.value)}/></label><label>오늘 즐길 것<textarea value={local.enjoyment} onChange={e=>update("enjoyment",e.target.value)}/></label><fieldset><legend>감사 3가지</legend>{[0,1,2].map(i=><input key={i} value={local.gratitude[i]??""} onChange={e=>update("gratitude",local.gratitude.map((x,j)=>j===i?e.target.value:x))}/>)}</fieldset><button className="goldBtn">오늘 시작하기</button></form></div>}
+  {showMorning&&<div className="overlay"><form className="morningCard" onSubmit={saveMorning}><div className="modalHead"><div><span>오늘 시작</span><h2>{greeting}</h2></div><button type="button" className="softBtn" onClick={()=>setShowMorning(false)}>나중에</button></div><label>오늘 목표<textarea required value={local.goal} onChange={e=>update("goal",e.target.value)}/></label><label>오늘 즐길 것<textarea value={local.enjoyment} onChange={e=>update("enjoyment",e.target.value)}/></label><fieldset><legend>감사 3가지</legend>{[0,1,2].map(i=><input key={i} value={local.gratitude[i]??""} onChange={e=>update("gratitude",local.gratitude.map((x,j)=>j===i?e.target.value:x))}/>)}</fieldset><button className="goldBtn">오늘 시작하기</button></form></div>}
   <JeongShellNavigation groups={groups} activeView={view} onNavigate={next=>navigateTo(next as View)}/>
   <main className={`contentArea ${themeStyles.themeScope} view-${view} ${view==="home"?homeStyles.homeScope:""} ${view==="review"?reviewStyles.reviewScope:""} ${pageLoading?"pageLoading":""}`}>{view==="home"?<HomeHero
    title={greeting} theme={theme}
-   dateLabel={now.toLocaleDateString("ko-KR",{year:"numeric",month:"long",day:"numeric",weekday:"short"})} timeLabel={now.toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"})}
-   weatherLoading={weatherLoading} weatherIcon={weatherIcon(weather?.code??0)} weatherTemperature={weather?`${Math.round(weather.temperature)}°`:"—"} weatherLabel={weather?weatherLabel(weather.code):"날씨 확인 불가"} weatherDetail={weather?`${weather.location} · 체감 ${Math.round(weather.apparent)}°`:"광주 기준으로 다시 시도"}
-   onWeather={()=>loadWeather()} onSearch={()=>setSearchOpen(true)} onTheme={toggleTheme} onMenu={()=>setShowMorning(true)}
+   dateLabel={now.toLocaleDateString("ko-KR",{year:"numeric",month:"long",day:"numeric",weekday:"long"})} timeLabel={now.toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"})}
+   weatherLoading={weatherLoading} weatherIcon={weatherIcon(weather?.code??0)} weatherTemperature={weather?`${Math.round(weather.temperature)}°`:"—"} weatherLabel={weather?weatherLabel(weather.code):"날씨 확인 불가"} weatherDetail={weather?`${weather.location} · 체감 ${Math.round(weather.apparent)}°`:"위치 권한을 허용하면 날씨를 표시합니다."}
+   onWeather={requestWeather} onSearch={()=>setSearchOpen(true)} onTheme={toggleTheme} onMenu={()=>setShowMorning(true)}
   />:<JeongHero
    title={viewTitles[view]??"JEONG"} isHome={false} isReview={view==="review"} theme={theme}
    dateLabel={now.toLocaleDateString("ko-KR",{year:"numeric",month:"long",day:"numeric",weekday:"short"})}
    timeLabel={now.toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"})}
    weatherLoading={weatherLoading} weatherIcon={weatherIcon(weather?.code??0)} weatherTemperature={weather?`${Math.round(weather.temperature)}°`:"—"}
-   weatherLabel={weather?weatherLabel(weather.code):"날씨 확인 불가"} weatherDetail={weather?`${weather.location} · 체감 ${Math.round(weather.apparent)}°`:"광주 기준으로 다시 시도"}
-   onWeather={()=>loadWeather()} onSearch={()=>setSearchOpen(true)} onTheme={toggleTheme} onMenu={()=>setShowMorning(true)}
+   weatherLabel={weather?weatherLabel(weather.code):"날씨 확인 불가"} weatherDetail={weather?`${weather.location} · 체감 ${Math.round(weather.apparent)}°`:"위치 권한을 허용하면 날씨를 표시합니다."}
+   onWeather={requestWeather} onSearch={()=>setSearchOpen(true)} onTheme={toggleTheme} onMenu={()=>setShowMorning(true)}
   />}
 
   {view==="home"&&<>
+   <div className={homeStyles.homeLayout}>
    <section className={homeStyles.workspace}>
     <header className={homeStyles.workspaceHeader}>
-     <div><span>오늘의 운영</span><h2>하루를 시작하고, 중요한 것에 집중합니다.</h2></div>
-     <HomePeriodSwitcher value={homePeriod} onChange={setHomePeriod}/>
-     <ContextFilter contexts={local.contexts} value={contextFilter} onChange={setContextFilter}/>
-     <button className={`goldBtn morningSaveButton ${local.morningDate===todayKey()?"saved":""}`} onClick={()=>{setLocal(persistMorning);notify("오늘 아침 기록을 저장했습니다.")}}>{local.morningDate===todayKey()?"✓ 저장 완료":"오늘 아침 기록 저장"}</button>
+     <div><span>오늘의 운영</span></div>
+     <div className={homeStyles.homeHeaderActions}>
+      <button className={`goldBtn morningSaveButton ${local.morningDate===todayKey()?"saved":""}`} onClick={()=>setShowMorning(true)}>{local.morningDate===todayKey()?"아침 기록 수정":"오늘 아침 기록"}</button>
+      <button className={`softBtn ${homeStyles.homeReviewQuickButton}`} onClick={()=>{setReviewDate(currentDateKey);navigateTo("review")}}>{currentDailyRecord.eveningReview?"리뷰 수정":"리뷰 작성"}</button>
+     </div>
     </header>
     <div className={homeStyles.workspaceBody}>
      <aside className={homeStyles.dailyRail}>
       <label><span>운영 날짜</span><input type="date" value={dayDate} onChange={e=>{setDayDate(e.target.value);if(e.target.value!==todayKey())setView("day")}}/></label>
-      <div className={homeStyles.railMetric}><i className="overviewIcon orange">▣</i><span>다음 일정</span><strong>{todayEvents.find(e=>new Date(e.end).getTime()>Date.now())?.title??"일정 없음"}</strong><small>{todayEvents.find(e=>new Date(e.end).getTime()>Date.now())?eventTime(todayEvents.find(e=>new Date(e.end).getTime()>Date.now())!.start):"오늘 일정 완료"}</small></div>
-      <div className={homeStyles.railMetric}><i className="overviewIcon blue">▦</i><span>오늘 일정</span><strong>{todayEvents.length}개</strong><small>{todayEvents.filter(e=>new Date(e.end).getTime()>Date.now()).length}개 남음</small></div>
-      <div className={homeStyles.railMetric}><i className="overviewIcon green">✓</i><span>남은 할 일</span><strong>{contextTasks.filter(t=>t.bucket==="today"&&!t.done).length}개</strong><small>오늘 처리할 항목</small></div>
-      <div className={homeStyles.railProgress}><div className="progressRing" style={{"--progress":`${Math.round(contextTasks.filter(t=>t.bucket==="today"&&t.done&&t.doneAt===todayKey()).length/Math.max(1,contextTasks.filter(t=>t.bucket==="today"&&(!t.done||t.doneAt===todayKey())).length)*100)}%`} as React.CSSProperties}><strong>{Math.round(contextTasks.filter(t=>t.bucket==="today"&&t.done&&t.doneAt===todayKey()).length/Math.max(1,contextTasks.filter(t=>t.bucket==="today"&&(!t.done||t.doneAt===todayKey())).length)*100)}%</strong></div><span>오늘 진행률<small>목표 대비</small></span></div>
+      <section className={homeStyles.railSchedule} aria-label="오늘 스케줄">
+       <button type="button" className={homeStyles.railScheduleFocus} onClick={()=>homeNextSchedule?openEvent(homeNextSchedule):navigateTo("calendar")}>
+        <span>{homeCurrentSchedule?"현재 일정":homeNextSchedule?"다음 일정":"일정 없음"}</span>
+        {homeNextSchedule
+         ? <><strong>{homeNextSchedule.title||"제목 없는 일정"}</strong><time>{homeNextSchedule.allDay?"종일":homeCurrentSchedule?`${eventTime24(homeNextSchedule.start)}–${eventTime24(homeNextSchedule.end)} · 진행 중`:`${eventTime24(homeNextSchedule.start)}–${eventTime24(homeNextSchedule.end)}`}</time></>
+         : <strong>오늘 남은 일정이 없습니다.</strong>}
+       </button>
+       <header><span>오늘 스케줄</span><b>{homeTodaySchedule.length+(homeNextSchedule?1:0)}</b></header>
+       <div>{homeTodaySchedule.map(event=>{const completed=isHomeScheduleDone(event);return <button type="button" key={`${event.calendarId||""}-${event.id}-${event.start}`} className={completed?homeStyles.completedSchedule:""} aria-label={`${event.title||"제목 없는 일정"}${completed?" · 종료":""}`} onClick={()=>openEvent(event)}><time>{event.allDay?"종일":eventTime(event.start)}</time><strong>{event.title||"제목 없는 일정"}</strong>{isHomeScheduleOngoing(event)&&<em>진행 중</em>}</button>})}{!homeTodaySchedule.length&&!homeNextSchedule&&<small>오늘 스케줄이 없습니다.</small>}</div>
+      </section>
      </aside>
      <article className={homeStyles.operationPanel}>
-      <div className={homeStyles.operationTitle}><span>Morning Direction</span><h2>오늘의 방향을 정합니다.</h2>{(currentWeeklyPlan?.direction||currentMonthlyPlan?.direction)&&<small>이번 주 · {currentWeeklyPlan?.direction||"미정"}　/　이번 달 · {currentMonthlyPlan?.direction||"미정"}</small>}</div>
-      <div className="morningGrid">
-       <label>🎯 그날 목표<select value={local.parentWeeklyGoalId??""} onChange={e=>update("parentWeeklyGoalId",e.target.value||undefined)}><option value="">주간 목표 연결 안 함</option>{currentWeeklyGoals.map(goal=><option key={goal.id} value={goal.id}>{goal.title}</option>)}</select><textarea value={local.goal} onChange={e=>update("goal",e.target.value)} placeholder="오늘의 가장 중요한 목표는?"/></label>
-       <label>💗 그날 즐길 것<textarea value={local.enjoyment} onChange={e=>update("enjoyment",e.target.value)} placeholder="오늘 무엇을 누리고 즐길 것인가?"/></label>
-       <label>⭐ 선택한 이유<textarea value={local.reason} onChange={e=>update("reason",e.target.value)} placeholder="왜 이 목표가 오늘 가장 중요한가?"/></label>
-       <label>🌿 감사 3가지<div className="gratitudeList">{[0,1,2].map(i=><div key={i}><b>{i+1}.</b><input value={local.gratitude[i]??""} onChange={e=>update("gratitude",local.gratitude.map((x,j)=>j===i?e.target.value:x))}/></div>)}</div></label>
+      <div className={homeStyles.operationTitle}><span>Morning Direction</span><h2>오늘의 방향을 정합니다.</h2></div>
+      {local.morningDate===todayKey()
+       ? <div className={homeStyles.morningSummary}>
+          <div><span>🎯 오늘의 목표</span><strong>{local.goal||"오늘의 목표를 기록해 주세요."}</strong></div>
+          <div><span>💗 오늘 즐길 것</span><strong>{local.enjoyment||"오늘 누리고 싶은 것을 기록해 주세요."}</strong></div>
+          <div className={homeStyles.gratitudeSummary}><span>🌿 감사</span><ol>{[0,1,2].map(index=><li key={index}><b>{index+1}.</b><em>{local.gratitude[index]?.trim()||"—"}</em></li>)}</ol></div>
+         </div>
+       : <div className={homeStyles.morningEmpty}><strong>오늘의 방향을 아직 기록하지 않았습니다.</strong><p>가장 중요한 목표와 오늘 누릴 것을 정하면 하루의 우선순위를 한눈에 볼 수 있어요.</p><button className="goldBtn" onClick={()=>setShowMorning(true)}>오늘 아침 기록하기</button></div>}
+      <div className={homeStyles.periodTaskGrid} aria-label="주간 및 월간 할 일">
+       <section className={homeStyles.periodTaskCard}>
+        <div className={homeStyles.periodTaskHeader}><span>이번 주 할 일</span><strong>{homeWeekEntries.length}개</strong></div>
+        <div className={homeStyles.periodTaskChecklist}>
+         {homeWeekEntries.map(item=><button type="button" key={item.id} className={`${homeStyles.periodTaskCheckRow} ${item.done?homeStyles.done:""}`} role="checkbox" aria-checked={item.done} onClick={()=>item.routine?toggleHomeWeeklyRoutine(item.taskId):toggleHomePeriodTask(item.taskId)}><i aria-hidden="true">{item.done?"✓":""}</i><small>{item.title}{item.routine?" ↻":""}</small></button>)}
+         {!homeWeekEntries.length&&<small className={homeStyles.periodTaskEmpty}>남은 주간 할 일이 없습니다.</small>}
+        </div>
+       </section>
+       <section className={homeStyles.periodTaskCard}>
+        <div className={homeStyles.periodTaskHeader}><span>이번 달 할 일</span><strong>{homeMonthTasks.length}개</strong></div>
+        <div className={homeStyles.periodTaskChecklist}>
+         {homeMonthTasks.map(task=><button type="button" key={task.id} className={`${homeStyles.periodTaskCheckRow} ${task.done?homeStyles.done:""}`} role="checkbox" aria-checked={task.done} onClick={()=>toggleHomePeriodTask(task.id)}><i aria-hidden="true">{task.done?"✓":""}</i><small>{task.title}</small></button>)}
+         {!homeMonthTasks.length&&<small className={homeStyles.periodTaskEmpty}>남은 월간 할 일이 없습니다.</small>}
+        </div>
+       </section>
       </div>
+      {homePrimaryReminder&&homePrimaryReminder.action!=="morning"&&<div className="briefBubble homeOperatingAction"><strong>{homePrimaryReminder.title}</strong><p>{homePrimaryReminder.message}</p><div><button className="softBtn" onClick={()=>homePrimaryReminder.action==="calendar"?navigateTo("calendar"):homePrimaryReminder.action==="tasks"?navigateTo("home"):homePrimaryReminder.action==="projects"?navigateTo("projects"):homePrimaryReminder.action==="morning"?setShowMorning(true):undefined}>확인하기</button><button className="softBtn" onClick={()=>update("operatingReminderPreferences",[...(local.operatingReminderPreferences??[]),{reminderId:homePrimaryReminder.id,dismissedAt:new Date().toISOString()}])}>숨기기</button>{operatingContext.replanning.needed&&<button className="softBtn" onClick={()=>{prepareAi("daily");navigateTo("ai")}}>ChatGPT와 다시 계획</button>}</div></div>}
+      {dailyContinuity.carryOverCandidates.length>0&&<div className="briefBubble"><strong>이전부터 이어진 할 일 {dailyContinuity.carryOverCandidates.length}개</strong><p>{dailyContinuity.carryOverCandidates.slice(0,3).map(item=>`${item.title}${item.carryCount?` · ${item.carryCount}회 미룸`:""}`).join(" · ")}</p><button className="softBtn" onClick={()=>carryContinuityTasks(dailyContinuity.carryOverCandidates.map(item=>item.todoId))}>모두 오늘로 가져오기</button></div>}
      </article>
     </div>
    </section>
-   {false&&<section className={homeStyles.supportGrid}>
-    <article className="premiumCard reportPanel"><div className="cardTitle"><h2>🧠 오늘 보고</h2></div><div className="briefBubble"><strong>현재 상태</strong>{briefing.map(x=><p key={x}>• {x}</p>)}<p className="recommend">추천 · {todayTasks[0]?.title??todayEvents[0]?.title??"오늘 목표를 시작할 첫 행동 하나를 정하세요."}</p></div></article>
-    <aside className="rightRail"><article className="premiumCard"><div className="cardTitle"><h2>▣ 오늘 일정</h2><button onClick={()=>navigateTo("calendar")}>전체 보기</button></div><div className="compactList">{todayEvents.slice(0,5).map(e=>{const s=eventStatus(e);return <article key={e.id} onClick={()=>openEvent(e)}><time>{eventTime(e.start)}</time><div><strong>{e.title}</strong><small>{e.location||"장소 미입력"}</small></div><span className={s==="완료"?"done":s==="진행 중"?"doing":"planned"}>{s}</span></article>})}{!todayEvents.length&&<p>오늘 일정이 없습니다.</p>}</div></article><article className="premiumCard"><div className="cardTitle"><h2>⚠ 확인이 필요한 것</h2><button onClick={()=>setView("tasks")}>전체 보기</button></div><div className="attentionList">{todayTasks.slice(0,3).map(t=><article key={t.id}><b>□</b><div><strong>{t.title}</strong><small>{t.scheduledAt?new Date(t.scheduledAt).toLocaleString("ko-KR"):"오늘 할 일"}</small></div></article>)}{duePeople.slice(0,2).map(p=><article key={p.id}><b>●</b><div><strong>{p.name} 연락</strong><small>{p.note||p.tags.join(" · ")}</small></div></article>)}{!todayTasks.length&&!duePeople.length&&<p>확인할 항목이 없습니다.</p>}</div></article><article className="premiumCard"><div className="cardTitle"><h2>↻ 오늘 반복 업무</h2><button onClick={()=>{setTaskSection("recurring");setView("tasks")}}>전체 보기</button></div><div className="attentionList">{todayRecurring.slice(0,3).map(item=><article key={item.task.id}><b>{item.status==="done"?"✓":item.status==="skipped"?"–":"□"}</b><div><strong>{item.task.title}</strong><small>{describeRecurrence(item.task)}{item.task.timeOfDay?` · ${item.task.timeOfDay}`:""}</small></div></article>)}{!todayRecurring.length&&<p>오늘 반복 업무가 없습니다.</p>}</div><small>{todayRecurring.filter(item=>item.status==="done").length} / {todayRecurring.length} 완료</small></article><article className="premiumCard"><div className="cardTitle"><h2>📁 진행 중인 프로젝트</h2><button onClick={()=>setView("projects")}>전체 보기</button></div>{activeProjects.slice(0,3).map(p=><div className="miniProject" key={p.id}><div><strong>{p.name}</strong><span>{progress(p)}%</span></div><i><b style={{width:`${progress(p)}%`}}/></i></div>)}</article></aside>
-   </section>}
-   <HomeOperations summary={homeSummary} onNavigate={target=>{
-    if(target==="recurring"){setTaskSection("recurring");navigateTo("tasks");return}
-    navigateTo(target)
-   }}/>
+   <div className={homeStyles.homeTodoRail}>
+    <HomeOperations summary={homeSummary} contexts={local.contexts} onAddTask={addHomeTask} onAddRoutine={addHomeRoutine} onEditTask={taskId=>{const task=local.tasks.find(item=>item.id===taskId);if(task)setEditingTask({...task})}} onDeleteTask={taskId=>{const task=local.tasks.find(item=>item.id===taskId);if(task)void removeTask(task)}} onToggleTask={taskId=>update("tasks",local.tasks.map(item=>item.id===taskId?{...item,done:!item.done,doneAt:item.done?undefined:todayKey()}:item))} onToggleRecurring={(taskId,occurrenceDate)=>setRecurringCompletion(taskId,occurrenceDate,"done")} onSetTasksDone={(taskIds,done)=>{const ids=new Set(taskIds);update("tasks",local.tasks.map(item=>ids.has(item.id)?{...item,done,doneAt:done?todayKey():undefined}:item))}} onSetRoutinesDone={(items,done)=>{const keys=new Set(items.map(item=>`${item.taskId}|${item.occurrenceDate}`));const remaining=local.recurringTaskCompletions.filter(item=>!keys.has(`${item.recurringTaskId}|${item.occurrenceDate}`));update("recurringTaskCompletions",done?[...remaining,...items.map(item=>({recurringTaskId:item.taskId,occurrenceDate:item.occurrenceDate,status:"done" as const,completedAt:new Date().toISOString()}))]:remaining)}}/>
+   </div>
+   <div className={homeStyles.homeProjectWide}><HomeProjectSummary summary={homeSummary} onNavigate={target=>navigateTo(target)}/></div>
+   </div>
   </>}
 
   {(view==="weekly-plan"||view==="monthly-plan")&&<PlanningWorkspace
    horizon={view==="monthly-plan"?"MONTH":"WEEK"} range={planningRange}
    contexts={local.contexts} contextFilter={contextFilter} onContextFilter={setContextFilter}
    plans={local.plans} goals={local.goals} projects={local.projects} tasks={local.tasks}
+   reviews={local.reviews}
    recurringTasks={local.recurringTasks} completions={local.recurringTaskCompletions} events={events}
-   eventContextId={event=>getCalendarContextId(local.calendarContextMappings,event.calendarId)}
    onNavigate={direction=>{const next=view==="monthly-plan"?(direction<0?getPreviousMonth(planningAnchor):getNextMonth(planningAnchor)):(direction<0?getPreviousWeek(planningAnchor):getNextWeek(planningAnchor));setPlanningAnchor(next.start)}}
    onUpsertPlan={upsertPlan} onUpsertGoal={upsertGoal} onRemoveGoal={id=>update("goals",local.goals.filter(goal=>goal.id!==id&&goal.parentGoalId!==id))}
   />}
@@ -933,89 +1456,73 @@ export function Dashboard(){
   {view==="day"&&(()=>{
  const now=Date.now();
  const sorted=[...dayEvents].sort((a,b)=>new Date(a.start).getTime()-new Date(b.start).getTime());
- const upcoming=sorted.find(e=>new Date(e.end).getTime()>now);
- const completed=sorted.filter(e=>new Date(e.end).getTime()<=now);
- const remainingTasks=dayTasks.filter(t=>!t.done);
- const primary=remainingTasks[0]?.title || dayReview?.goal || (dayDate===todayKey()?local.goal:"") || "";
+ const upcoming=dayDate===todayKey()?sorted.find(e=>new Date(e.end).getTime()>now):undefined;
+ const executionContextId=dayExecutionContext==="ALL"?undefined:local.contexts.find(context=>context.key===dayExecutionContext)?.id;
+ const allDayTasks=local.tasks.filter(t=>(t.scheduledAt?.slice(0,10)||"")===dayDate||(t.bucket==="today"&&((!t.done&&dayDate===todayKey())||(t.done&&t.doneAt===dayDate))));
+ const filteredDayTasks=allDayTasks.filter(task=>!executionContextId||task.contextId===executionContextId).sort((a,b)=>Number(a.done)-Number(b.done)||(a.sortOrder??Number.MAX_SAFE_INTEGER)-(b.sortOrder??Number.MAX_SAFE_INTEGER)||a.title.localeCompare(b.title));
+ const remainingTasks=allDayTasks.filter(t=>!t.done);
+ const dayRoutines=getOccurrencesForDate(local.recurringTasks,dayDate,local.recurringTaskCompletions)
+  .filter(item=>!executionContextId||item.task.contextId===executionContextId)
+  .sort((a,b)=>Number(a.status==="done")-Number(b.status==="done")||(a.task.sortOrder??Number.MAX_SAFE_INTEGER)-(b.task.sortOrder??Number.MAX_SAFE_INTEGER)||a.task.title.localeCompare(b.task.title));
+ const executionRows=dayExecutionMode==="todos"?filteredDayTasks:dayRoutines;
+ const executionDone=dayExecutionMode==="todos"?filteredDayTasks.filter(item=>item.done).length:dayRoutines.filter(item=>item.status==="done").length;
+ const dayGoal=dayDate===todayKey()?(local.goal||dayReview?.goal):(dayReview?.goal||"");
+ const dayEnjoyment=dayDate===todayKey()?(local.enjoyment||dayReview?.enjoyment):(dayReview?.enjoyment||"");
  return <div className="dayWorkspace">
   <section className="dayHero premiumCard">
    <div className="dayHeroCopy">
     <span>{dayDate===todayKey()?"오늘의 흐름":"하루 기록"}</span>
     <h2>{dayDate===todayKey()?"오늘을 한눈에 봅니다.":`${dayDate}의 기록`}</h2>
-    <p>{dayEvents.length}개 일정 · {remainingTasks.length}개 남은 할 일 · {dayActivities.length}개 활동 기록</p>
+    <p>{dayEvents.length}개 일정 · {remainingTasks.length}개 남은 할 일 · 루틴 {getOccurrencesForDate(local.recurringTasks,dayDate,local.recurringTaskCompletions).filter(item=>item.status==="done").length}/{getOccurrencesForDate(local.recurringTasks,dayDate,local.recurringTaskCompletions).length} · {dayActivities.length}개 활동 기록</p>
    </div>
-   <ContextFilter contexts={local.contexts} value={contextFilter} onChange={setContextFilter}/>
-   <div className="dayHistoryControls"><label className="dayDateControl"><span>날짜</span><input type="date" value={dayDate} onChange={e=>setDayDate(e.target.value)}/></label><button onClick={()=>{setDayDate(todayKey());setView("home")}}>오늘로 돌아가기</button></div>
-  </section>
-
-  <section className="dayPriority premiumCard">
-   <div>
-    <span>오늘 가장 중요한 것</span>
-    <strong>{primary || "아직 정하지 않았습니다."}</strong>
-   </div>
-   {!primary&&<button onClick={()=>setView("home")}>오늘 목표 작성</button>}
+   <div className="dayHistoryControls"><label className="dayDateControl"><span>날짜</span><input type="date" value={dayDate} max={todayKey()} onChange={e=>setDayDate(e.target.value)}/></label><button onClick={()=>{setDayDate(todayKey());navigateTo("home")}}>오늘로 돌아가기</button></div>
   </section>
 
   <section className="dayMainGrid">
    <div className="dayLeftColumn">
     <article className="premiumCard dayCompactCard">
-     <div className="dayCardHead"><div><span>아침</span><h3>오늘의 방향</h3></div><button onClick={()=>setView("home")}>수정</button></div>
+     <div className="dayCardHead"><div><span>아침</span><h3>오늘의 방향</h3></div>{dayDate===todayKey()&&<button onClick={()=>navigateTo("home")}>수정</button>}</div>
      <div className="directionRows">
-      <div><b>목표</b><p>{dayReview?.goal||local.goal||"오늘 목표를 작성해 주세요."}</p></div>
-      <div><b>즐길 것</b><p>{dayReview?.enjoyment||local.enjoyment||"오늘 누리고 싶은 것을 적어 주세요."}</p></div>
+      <div><b>목표</b><p>{dayGoal||"기록 없음"}</p></div>
+      <div><b>즐길 것</b><p>{dayEnjoyment||"기록 없음"}</p></div>
      </div>
     </article>
 
-    <article className="premiumCard dayCompactCard">
-     <div className="dayCardHead"><div><span>실행</span><h3>오늘 할 일</h3></div><button onClick={()=>setView("tasks")}>전체 보기</button></div>
-     <div className="dayList">
-      {dayTasks.slice(0,6).map(t=><div className={`dayTaskRow ${t.done?"done":""}`} key={t.id}>
-       <button type="button" className={`dayTaskToggle ${t.done?"checked":""}`} role="checkbox" aria-checked={t.done} aria-label={`${t.title} ${t.done?"미완료로 변경":"완료 처리"}`} onClick={e=>{e.preventDefault();e.stopPropagation();update("tasks",local.tasks.map(x=>x.id===t.id?{...x,done:!x.done,doneAt:x.done?undefined:todayKey()}:x))}}><span aria-hidden="true">{t.done?"✓":""}</span></button>
-       <button type="button" className="dayTaskEditArea" onClick={()=>setEditingTask({...t})}><span>{t.title}</span>{t.scheduledAt&&<time>{eventTime(t.scheduledAt)}</time>}</button>
+    <article className="premiumCard dayCompactCard reviewCard">
+     <div className="dayCardHead"><div><span>저녁</span><h3>하루 리뷰</h3></div><button onClick={()=>{setReviewDate(dayDate);navigateTo("review")}}>{dayReview?"열기":"작성"}</button></div>
+     {dayReview?<div className="reviewPreview"><p><b>잘한 점</b>{dayReview.good||"—"}</p><p><b>배운 점</b>{dayReview.learned||"—"}</p><p><b>즐거웠던 순간</b>{dayReview.joy||"—"}</p></div>:<button className="dayEmptyAction" onClick={()=>{setReviewDate(dayDate);navigateTo("review")}}>이 날의 리뷰 작성하기</button>}
+    </article>
+
+    <article className="premiumCard dayCompactCard dayExecutionCard">
+     <div className="dayCardHead dayExecutionHead"><div><span>실행</span><h3>{dayExecutionMode==="todos"?"이 날의 할 일":"이 날의 루틴"}</h3></div><small>{executionDone}/{executionRows.length} 완료</small></div>
+     <div className="dayExecutionTabs" role="tablist" aria-label="할 일과 루틴 전환">
+      <button type="button" role="tab" aria-selected={dayExecutionMode==="todos"} className={dayExecutionMode==="todos"?"active":""} onClick={()=>setDayExecutionMode("todos")}>할 일 <span>{filteredDayTasks.length}</span></button>
+      <button type="button" role="tab" aria-selected={dayExecutionMode==="routines"} className={dayExecutionMode==="routines"?"active":""} onClick={()=>setDayExecutionMode("routines")}>루틴 <span>{dayRoutines.length}</span></button>
+     </div>
+     <div className="dayExecutionContext"><ContextFilter contexts={local.contexts} value={dayExecutionContext} onChange={setDayExecutionContext} ariaLabel="과거 날짜 실행 맥락 필터"/></div>
+     <div className="dayList dayExecutionList">
+      {dayExecutionMode==="todos"&&filteredDayTasks.map(t=><div className={`dayExecutionRow ${t.done?"done":""}`} key={t.id}>
+       <button type="button" className="dayExecutionToggle" role="checkbox" aria-checked={t.done} aria-label={`${t.title} ${t.done?"미완료로 변경":"완료 처리"}`} onClick={()=>update("tasks",local.tasks.map(x=>x.id===t.id?{...x,done:!x.done,doneAt:x.done?undefined:dayDate}:x))}><i aria-hidden="true">{t.done?"✓":""}</i><span>{t.title}</span><small>{t.done?"완료":"할 일"}</small></button>
       </div>)}
-      {!dayTasks.length&&<button className="dayEmptyAction" onClick={()=>setView("tasks")}>+ 오늘 할 일 추가</button>}
-     </div>
-    </article>
-
-    <article className="premiumCard dayCompactCard">
-     <div className="dayCardHead"><div><span>반복</span><h3>오늘의 반복 업무</h3></div><button onClick={()=>{setTaskSection("recurring");setView("tasks")}}>관리</button></div>
-     <div className="dayList">
-      {dayRecurring.slice(0,8).map(item=><div className={`dayTaskRow ${item.status?"done":""}`} key={item.task.id}>
-       <button type="button" className={`dayTaskToggle ${item.status==="done"?"checked":""}`} aria-label={`${item.task.title} 완료`} onClick={()=>setRecurringCompletion(item.task.id,item.occurrenceDate,"done")}><span>{item.status==="done"?"✓":""}</span></button>
-       <div className="dayTaskEditArea"><span>{item.task.title}</span><ContextTag contexts={local.contexts} contextId={item.task.contextId}/>{item.task.timeOfDay&&<time>{item.task.timeOfDay}</time>}</div>
-       <button type="button" className="taskEditBtn" onClick={()=>setRecurringCompletion(item.task.id,item.occurrenceDate,"skipped")}>{item.status==="skipped"?"되돌리기":"건너뜀"}</button>
-      </div>)}
-      {!dayRecurring.length&&<button className="dayEmptyAction" onClick={()=>{setTaskSection("recurring");setView("tasks")}}>+ 반복 업무 추가</button>}
-     </div>
-    </article>
-
-    <article className="premiumCard dayCompactCard">
-     <div className="dayCardHead"><div><span>기록</span><h3>활동과 노트</h3></div></div>
-     <div className="dayRecordSplit">
-      <section><h4>활동</h4>{dayActivities.slice(0,3).map(a=><button className="dayRecordRow" key={a.id} onClick={()=>setEditingActivity({...a})}><span>{activityLabels[a.type]} · {a.title}</span><small>{a.duration}분</small></button>)}{!dayActivities.length&&<button className="dayEmptyAction" onClick={()=>navigateTo("activities")}>+ 활동 기록</button>}</section>
-      <section><h4>노트</h4>{dayNotes.slice(0,3).map(n=><button className="dayRecordRow" key={n.id} onClick={()=>setEditingNote({...n})}><span>{noteLabels[n.type]} · {n.title}</span></button>)}{!dayNotes.length&&<button className="dayEmptyAction" onClick={()=>navigateTo("notes")}>+ 노트 남기기</button>}</section>
+      {dayExecutionMode==="routines"&&dayRoutines.map(item=><button type="button" key={`${item.task.id}-${item.occurrenceDate}`} className={`dayExecutionToggle dayRoutineToggle ${item.status==="done"?"done":""}`} role="checkbox" aria-checked={item.status==="done"} onClick={()=>setRecurringCompletion(item.task.id,item.occurrenceDate,"done")}><i aria-hidden="true">{item.status==="done"?"✓":""}</i><span>{item.task.title}</span><small>{item.status==="done"?"완료":describeRecurrence(item.task)}</small></button>)}
+      {!executionRows.length&&<p className="dayEmptyText">{dayExecutionMode==="todos"?"이 날짜에 기록된 할 일이 없습니다.":"이 날짜에 예정된 루틴이 없습니다."}</p>}
      </div>
     </article>
    </div>
 
    <div className="dayRightColumn">
     <article className="premiumCard dayScheduleCard">
-     <div className="dayCardHead"><div><span>일정</span><h3>오늘의 시간</h3></div><button onClick={()=>navigateTo("calendar")}>캘린더</button></div>
+     <div className="dayCardHead"><div><span>일정</span><h3>스케줄</h3></div><button onClick={()=>navigateTo("calendar")}>캘린더</button></div>
      {upcoming&&<div className="nextSchedule"><span>{new Date(upcoming.start).getTime()<=now?"진행 중":"다음 일정"}</span><strong>{upcoming.title}</strong><p>{eventTime(upcoming.start)}{upcoming.location?` · ${upcoming.location}`:""}</p></div>}
      <div className="scheduleTimeline">
-      {sorted.slice(0,8).map(e=>{
+      {sorted.map(e=>{
        const end=new Date(e.end).getTime();
        const start=new Date(e.start).getTime();
-       const state=end<=now?"past":start<=now?"current":"future";
-       return <button className={`scheduleRow ${state}`} key={e.id} onClick={()=>openEvent(e)}><time>{eventTime(e.start)}</time><span>{e.title}</span><b>{state==="past"?"완료":state==="current"?"진행 중":"예정"}</b></button>
+       const state=dayDate<todayKey()?"past":end<=now?"past":start<=now?"current":"future";
+       return <button className={`scheduleRow ${state}`} key={`${e.calendarId||""}-${e.id}-${e.start}`} onClick={()=>openEvent(e)}><time>{eventTime(e.start)}</time><span>{e.title}</span><b>{state==="past"?"완료":state==="current"?"진행 중":"예정"}</b></button>
       })}
-      {!sorted.length&&<button className="dayEmptyAction" onClick={()=>navigateTo("calendar")}>+ 일정 추가</button>}
+      {!sorted.length&&<button className="dayEmptyAction" onClick={()=>navigateTo("calendar")}>이 날짜에는 일정이 없습니다.</button>}
      </div>
-    </article>
-
-    <article className="premiumCard dayCompactCard reviewCard">
-     <div className="dayCardHead"><div><span>저녁</span><h3>하루 리뷰</h3></div><button onClick={()=>{setReviewDate(dayDate);setView("review")}}>{dayReview?"열기":"작성"}</button></div>
-     {dayReview?<div className="reviewPreview"><p><b>잘한 점</b>{dayReview.good||"—"}</p><p><b>배운 점</b>{dayReview.learned||"—"}</p><p><b>즐거웠던 순간</b>{dayReview.joy||"—"}</p></div>:<button className="dayEmptyAction" onClick={()=>{setReviewDate(dayDate);setView("review")}}>오늘을 돌아보고 기록하기</button>}
     </article>
    </div>
   </section>
@@ -1023,35 +1530,35 @@ export function Dashboard(){
 })()}
 
   {view==="calendar"&&<div className="calendarWorkspace"><section className="premiumCard calendarPage"><div className="calendarCompactHeader">
-    <div><span>일정</span><h2>{calendarMode==="week"?"주간 일정":calendarMode==="month"?"월간 일정":"하루 일정"}</h2></div>
+    <div><span>시간</span><h2>{calendarMode==="week"?"주간 시간":calendarMode==="month"?"월간 시간":"하루 시간"}</h2></div>
     <ContextFilter contexts={local.contexts} value={contextFilter} onChange={setContextFilter}/>
     <div className="calendarHeaderHint">
  {calendarMode==="month"?"날짜를 눌러 관리 · 일정 문구를 눌러 수정":calendarMode==="week"?"일정 카드를 눌러 수정 · 요일을 눌러 날짜 관리":"일정을 눌러 수정·삭제"}
 </div>
    </div>
    <details className="eventOptionSection">
-    <summary>캘린더 분류</summary>
+    <summary>캘린더 분류 관리</summary>
     <div className={planningContextStyles.mapping}>
      {calendarOptions.map(calendar=>{
       const contextId=getCalendarContextId(local.calendarContextMappings,calendar.id);
       return <div className={planningContextStyles.mappingRow} key={calendar.id}>
        <strong>{calendar.name}</strong>
-       <ContextPicker contexts={local.contexts} value={contextId} onChange={value=>setCalendarContext(calendar.id,value)} label="Context"/>
+       <ContextPicker contexts={local.contexts} value={contextId} onChange={value=>setCalendarContext(calendar.id,value)} label="맥락"/>
        {contextId&&<label>기본 캘린더 <input type="radio" name={`default-${contextId}`} checked={local.contextCalendarPreferences.some(preference=>preference.contextId===contextId&&preference.defaultCalendarId===calendar.id)} onChange={()=>setDefaultContextCalendar(contextId,calendar.id)}/></label>}
       </div>})}
     </div>
    </details>
    <div className="calendarToolbar compactToolbar">
     <div className="calendarPrimaryControls"><button onClick={()=>{const n=new Date();setCursor(n);setSelectedDate(n)}}>오늘</button><button onClick={()=>{const d=new Date(cursor);calendarMode==="month"?d.setMonth(d.getMonth()-1):calendarMode==="week"?d.setDate(d.getDate()-7):d.setDate(d.getDate()-1);setCursor(d)}}>‹</button><button onClick={()=>{const d=new Date(cursor);calendarMode==="month"?d.setMonth(d.getMonth()+1):calendarMode==="week"?d.setDate(d.getDate()+7):d.setDate(d.getDate()+1);setCursor(d)}}>›</button><strong>{cursor.toLocaleDateString("ko-KR",{year:"numeric",month:"long",day:calendarMode==="day"?"numeric":undefined})}</strong></div>
-    <div className={`calendarCenterControls ${calendarMode!=="month"?"isReserved":""}`} aria-hidden={calendarMode!=="month"}><div className="monthDisplayTabs"><button disabled={calendarMode!=="month"} className={calendarMode==="month"&&monthDisplay==="calendar"?"active":""} onClick={()=>setMonthDisplay("calendar")}>달력</button><button disabled={calendarMode!=="month"} className={calendarMode==="month"&&monthDisplay==="list"?"active":""} onClick={()=>setMonthDisplay("list")}>목록</button></div></div>
-    <div className="calendarSecondaryControls"><div className="calendarModeTabs"><button className={calendarMode==="month"?"active":""} onClick={()=>setCalendarMode("month")}>월</button><button className={calendarMode==="week"?"active":""} onClick={()=>setCalendarMode("week")}>주</button><button className={calendarMode==="day"?"active":""} onClick={()=>setCalendarMode("day")}>일</button></div><button className="goldBtn" onClick={()=>openNewEvent(selectedDate)}>+ 일정 추가</button></div>
+    <div className={`calendarCenterControls ${calendarMode==="day"?"isReserved":""}`} aria-hidden={calendarMode==="day"}><div className="monthDisplayTabs">{calendarMode==="month"?<><button className={monthDisplay==="calendar"?"active":""} onClick={()=>setMonthDisplay("calendar")}>달력</button><button className={monthDisplay==="list"?"active":""} onClick={()=>setMonthDisplay("list")}>목록</button></>:calendarMode==="week"?<><button className={weekDisplay==="calendar"?"active":""} onClick={()=>setWeekDisplay("calendar")}>보드</button><button className={weekDisplay==="list"?"active":""} onClick={()=>setWeekDisplay("list")}>목록</button></>:null}</div></div>
+    <div className="calendarSecondaryControls"><div className="calendarModeTabs"><button className={calendarMode==="month"?"active":""} onClick={()=>setCalendarMode("month")}>월</button><button className={calendarMode==="week"?"active":""} onClick={()=>setCalendarMode("week")}>주</button><button className={calendarMode==="day"?"active":""} onClick={()=>setCalendarMode("day")}>일</button></div><button className="goldBtn" onClick={()=>openNewEvent(calendarMode==="day"?cursor:selectedDate)}>+ 일정 추가</button></div>
    </div>
    {calendarError&&<p className="calendarError">{calendarError}</p>}
    {calendarMode==="month"&&monthDisplay==="calendar"&&<div className="monthCalendar"><div className="weekHeader">{["일","월","화","수","목","금","토"].map(x=><span key={x}>{x}</span>)}</div><div className="monthGrid">{monthDays(cursor).map(d=>{
     const key=todayKey(d);const de=contextEvents.filter(e=>eventOccursOnDate(e,key));
     return <button key={d.toISOString()} className={`${d.getMonth()!==cursor.getMonth()?"outside":""} ${key===selectedDateKey?"selected":""} ${key===todayKey()?"todayCell":""}`}
-     onClick={()=>{setSelectedDate(d);setShowSelectedDay(true)}} onDoubleClick={()=>openNewEvent(d)}>
-     <b>{d.getDate()}</b>{de.slice(0,2).map(e=><span key={e.id} title={`${eventTime(e.start)} ${e.title}`} onClick={ev=>{ev.stopPropagation();setSelectedDate(d);openEvent(e)}} aria-label={`${e.title} 일정 수정`}>{eventTime(e.start)} {e.title}</span>)}{de.length>2&&<small>+{de.length-2}개</small>}
+    onClick={()=>{setSelectedDate(d);setCalendarDayPreview(d)}}>
+     <b>{d.getDate()}</b>{de.slice(0,3).map(e=><span className={`calendarEventTone context-${eventTone(e)}`} key={e.id} title={`${eventTime(e.start)} ${e.title}`} onClick={ev=>{ev.stopPropagation();setSelectedDate(d);openEvent(e)}} aria-label={`${e.title} 일정 수정`}>{eventTime(e.start)} {e.title}</span>)}{de.length>3&&<small>+{de.length-3}개</small>}
     </button>})}</div></div>}
 
    {calendarMode==="month"&&monthDisplay==="list"&&<section className="monthListView">
@@ -1065,7 +1572,7 @@ export function Dashboard(){
     <div className="monthAgendaList">
      {Object.entries(monthEventGroups).map(([date,items])=><section key={date}>
       <header><div><span>{new Date(`${date}T00:00:00`).toLocaleDateString("ko-KR",{weekday:"short"})}</span><h3>{new Date(`${date}T00:00:00`).toLocaleDateString("ko-KR",{month:"long",day:"numeric"})}</h3></div><button onClick={()=>openNewEvent(new Date(`${date}T00:00:00`))}>+ 일정</button></header>
-      <div>{items.map(e=><article key={`${e.calendarId||""}-${e.id}`} onClick={()=>openEvent(e)} role="button" tabIndex={0}>
+      <div>{items.map(e=><article className={`calendarEventTone context-${eventTone(e)}`} key={`${e.calendarId||""}-${e.id}`} onClick={()=>openEvent(e)} role="button" tabIndex={0}>
        <time>{e.allDay?"종일":eventTime(e.start)}</time>
        <div><strong>{e.title}</strong><small>{[e.location,e.calendarName].filter(Boolean).join(" · ")||"세부 정보 없음"}</small></div>
        <span className={`monthListStatus ${eventStatus(e)==="완료"?"done":eventStatus(e)==="진행 중"?"doing":"planned"}`}>{eventStatus(e)}</span>
@@ -1074,18 +1581,18 @@ export function Dashboard(){
      {!monthEvents.length&&<div className="monthListEmpty"><strong>조건에 맞는 일정이 없습니다.</strong><button onClick={()=>openNewEvent(new Date(cursor.getFullYear(),cursor.getMonth(),1))}>이번 달 첫 일정 추가</button></div>}
     </div>
    </section>}
-   {calendarMode==="week"&&<div className="weekAgenda">
+   {calendarMode==="week"&&weekDisplay==="calendar"&&<div className="weekAgenda">
  {weekDates.map(d=>{
   const dayItems=agendaDayEvents(d);
   const key=todayKey(d);
   return <section key={key} className={`weekDayColumn ${key===todayKey()?"today":""}`}>
-   <button className="weekDayHead" onClick={()=>{setSelectedDate(d);setShowSelectedDay(true)}}>
+   <button className="weekDayHead" onClick={()=>{setSelectedDate(d);setCalendarDayPreview(d)}}>
     <span>{d.toLocaleDateString("ko-KR",{weekday:"short"})}</span>
     <strong>{d.getDate()}</strong>
     <small>{dayItems.length}개</small>
    </button>
    <div className="weekDayEvents">
-    {dayItems.map(e=><article key={`${e.calendarId||""}-${e.id}-${e.start}`} onClick={()=>openEvent(e)} role="button" tabIndex={0} title="눌러서 일정 수정·삭제" onKeyDown={ev=>{if(ev.key==="Enter")openEvent(e)}}>
+    {dayItems.map(e=><article className={`calendarEventTone context-${eventTone(e)}`} key={`${e.calendarId||""}-${e.id}-${e.start}`} onClick={()=>openEvent(e)} role="button" tabIndex={0} title="눌러서 일정 수정·삭제" onKeyDown={ev=>{if(ev.key==="Enter")openEvent(e)}}>
      <div className="weekEventContent">
       <strong>{e.title||"제목 없는 일정"}</strong>
       <time>{e.allDay?"종일":eventTime(e.start)}</time>
@@ -1098,49 +1605,58 @@ export function Dashboard(){
   </section>
  })}
 </div>}
+   {calendarMode==="week"&&weekDisplay==="list"&&<section className="monthListView weekListView"><div className="monthListTools"><strong>이번 주 남은 일정 {Object.values(weekListGroups).flat().length}개</strong></div><div className="monthAgendaList">{Object.entries(weekListGroups).map(([date,items])=><section key={date}><header><div><span>{new Date(`${date}T00:00:00`).toLocaleDateString("ko-KR",{weekday:"short"})}</span><h3>{new Date(`${date}T00:00:00`).toLocaleDateString("ko-KR",{month:"long",day:"numeric"})}</h3></div><button onClick={()=>setSelectedDate(new Date(`${date}T00:00:00`))}>상세 보기</button></header><div>{items.map(event=><article className={`calendarEventTone context-${eventTone(event)}`} key={`${event.calendarId||""}-${event.id}-${event.start}`} onClick={()=>openEvent(event)} role="button" tabIndex={0}><time>{event.allDay?"종일":`${eventTime(event.start)} – ${eventTime(event.end||event.start)}`}</time><div><strong>{event.title||"제목 없는 일정"}</strong><small>{[event.location,event.calendarName].filter(Boolean).join(" · ")||"추가 정보 없음"}</small></div></article>)}</div></section>)}{!Object.keys(weekListGroups).length&&<div className="monthListEmpty"><strong>이번 주에 남은 일정이 없습니다.</strong></div>}</div></section>}
 {calendarMode==="day"&&<div className="dayAgenda">
  <div className="dayAgendaHead"><div><span>{cursor.toLocaleDateString("ko-KR",{weekday:"long"})}</span><h2>{cursor.toLocaleDateString("ko-KR",{month:"long",day:"numeric"})}</h2></div><b>{dayModeEvents.length}개 일정</b></div>
- <div className="agendaView">{dayModeEvents.map(e=><article key={`${e.calendarId||""}-${e.id}-${e.start}`} onClick={()=>openEvent(e)} role="button" tabIndex={0} title="눌러서 일정 수정·삭제" onKeyDown={ev=>{if(ev.key==="Enter")openEvent(e)}}><time>{e.allDay?"종일":eventTime(e.start)}</time><div><strong>{e.title||"제목 없는 일정"}</strong><small>{e.location||"세부 정보 없음"}</small></div><span>{eventStatus(e)}</span></article>)}{!dayModeEvents.length&&<button className="emptyDayEvent" onClick={()=>openNewEvent(cursor)}>이 날짜에는 일정이 없습니다.<br/><b>새 일정 추가</b></button>}</div>
+ <div className="agendaView">{dayModeEvents.map(e=><article className={`calendarEventTone context-${eventTone(e)}`} key={`${e.calendarId||""}-${e.id}-${e.start}`} onClick={()=>openEvent(e)} role="button" tabIndex={0} title="눌러서 일정 수정·삭제" onKeyDown={ev=>{if(ev.key==="Enter")openEvent(e)}}><time>{e.allDay?"종일":eventTime(e.start)}</time><div><strong>{e.title||"제목 없는 일정"}</strong><small>{e.location||"세부 정보 없음"}</small></div><span>{eventStatus(e)}</span></article>)}{!dayModeEvents.length&&<button className="emptyDayEvent" onClick={()=>openNewEvent(cursor)}>이 날짜에는 일정이 없습니다.<br/><b>새 일정 추가</b></button>}</div>
 </div>}
   </section>
-  {showSelectedDay&&<aside className="premiumCard selectedDayPanel">
+  <aside className="premiumCard selectedDayPanel taskSidePanel">
    <div className="selectedDayHead">
- <button className="selectedDayCloseBtn" aria-label="선택 날짜 패널 닫기" title="닫기" onClick={()=>setShowSelectedDay(false)}>×</button>
- <div className="selectedDayIdentity"><span>선택한 날짜</span><h2>{selectedDate.toLocaleDateString("ko-KR",{month:"long",day:"numeric",weekday:"long"})}</h2></div>
- <button className="selectedDayAddBtn" onClick={()=>openNewEvent(selectedDate)}>+ 일정 추가</button>
- <button className="selectedDayViewBtn" onClick={()=>{setCursor(selectedDate);setCalendarMode("day");setShowSelectedDay(true)}}>일간 일정으로 보기</button>
-</div>
-   <div className="selectedDayList">{selectedDateEvents.map(e=><article key={e.id} onClick={()=>openEvent(e)}><time>{eventTime(e.start)}</time><div><strong>{e.title}</strong><small>{[e.location,e.hangoutLink?"Google Meet":""].filter(Boolean).join(" · ")||"세부 정보 없음"}</small></div><span>{eventStatus(e)}</span></article>)}{!selectedDateEvents.length&&<button className="emptyDayEvent" onClick={()=>openNewEvent(selectedDate)}>이 날짜에는 일정이 없습니다.<br/><b>새 일정 추가</b></button>}</div>
-  </aside>}
+    <div className="selectedDayIdentity"><span>할 일</span><h2>{calendarPanelDate.toLocaleDateString("ko-KR",{month:"long",day:"numeric",weekday:"long"})}</h2><small>캘린더는 스케줄, 오른쪽은 할 일만 표시합니다.</small></div>
+    <button className="selectedDayAddBtn" onClick={()=>navigateTo("home")}>홈에서 추가</button>
+   </div>
+   <div className="selectedDayRangeTabs" role="tablist" aria-label="할 일 범위">
+    <button type="button" className={calendarTaskRange==="day"?"active":""} aria-selected={calendarTaskRange==="day"} onClick={()=>setCalendarTaskRange("day")}>하루</button>
+    <button type="button" className={calendarTaskRange==="week"?"active":""} aria-selected={calendarTaskRange==="week"} onClick={()=>setCalendarTaskRange("week")}>주</button>
+    <button type="button" className={calendarTaskRange==="month"?"active":""} aria-selected={calendarTaskRange==="month"} onClick={()=>setCalendarTaskRange("month")}>달</button>
+   </div>
+   <section className="selectedRangeTasks calendarTaskPanel" aria-live="polite">
+    <header><span>{calendarTaskRange==="day"?"하루 할 일":calendarTaskRange==="week"?"이번 주 할 일":"이번 달 할 일"}</span><b>{selectedPanelTasks.length}개</b></header>
+    <div>
+     {selectedPanelTasks.map(task=><div className={`dayTaskRow ${task.done?"done":""}`} key={task.id}><button type="button" className={`dayTaskToggle ${task.done?"checked":""}`} role="checkbox" aria-checked={task.done} aria-label={`${task.title} ${task.done?"미완료로 변경":"완료 처리"}`} onClick={()=>update("tasks",local.tasks.map(item=>item.id===task.id?{...item,done:!item.done,doneAt:item.done?undefined:calendarTodoDateKey}:item))}><span aria-hidden="true">{task.done?"✓":""}</span></button><span>{task.title}</span></div>)}
+     {!selectedPanelTasks.length&&<p className="selectedGoalEmpty">{calendarTaskRange==="day"?"오늘 남은 할 일이 없습니다.":calendarTaskRange==="week"?"이번 주 남은 할 일이 없습니다.":"이번 달 남은 할 일이 없습니다."}</p>}
+    </div>
+   </section>
+  </aside>
  </div>}
 
-  {view==="tasks"&&<>
-   {taskSection!=="recurring"&&<section className="premiumCard taskComposer">
-    <input value={taskTitle} onChange={e=>setTaskTitle(e.target.value)} placeholder="할 일을 입력하세요"/>
-    <select value={taskBucket} onChange={e=>setTaskBucket(e.target.value as TaskBucket)}>{Object.entries(bucketLabels).map(([v,l])=><option value={v} key={v}>{l}</option>)}</select>
-    <input type="datetime-local" value={taskWhen} onChange={e=>setTaskWhen(e.target.value)}/>
-    <input type="number" min="15" step="15" value={taskDuration} onChange={e=>setTaskDuration(Number(e.target.value))}/>
-    <select value={taskProject} onChange={e=>setTaskProject(e.target.value)}><option value="">프로젝트 없음</option>{local.projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select>
-    <ContextPicker contexts={local.contexts} value={taskContext} onChange={value=>setTaskContext(value??"personal")} allowUnassigned={false}/>
-    <label><input type="checkbox" checked={taskSync} onChange={e=>setTaskSync(e.target.checked)}/> 캘린더에도 저장</label><button className="goldBtn" onClick={addTask}>추가</button>
-   </section>}
-   <section className="premiumCard">
-    <div className="cardTitle"><ContextFilter contexts={local.contexts} value={contextFilter} onChange={setContextFilter}/>{taskSection==="recurring"&&<button className="goldBtn" onClick={()=>setRecurringEditor("new")}>+ 반복 업무</button>}</div>
-    <div className="taskTabs">{(Object.keys(bucketLabels) as TaskBucket[]).map(bucket=><button className={taskSection===bucket?"active":""} onClick={()=>{setTaskBucket(bucket);setTaskSection(bucket)}} key={bucket}>{bucketLabels[bucket]}</button>)}<button className={taskSection==="recurring"?"active":""} onClick={()=>setTaskSection("recurring")}>반복 업무</button></div>
-    {taskSection!=="recurring"?<div className="rows">{contextTasks.filter(t=>t.bucket===taskSection&&(taskSection!=="today"||!t.done||t.doneAt===todayKey())).sort((a,b)=>Number(a.done)-Number(b.done)).map(t=><article key={t.id}><button type="button" className={`taskCheck ${t.done?"checked":""}`} role="checkbox" aria-checked={t.done} aria-label={`${t.title} ${t.done?"미완료로 변경":"완료 처리"}`} onClick={e=>{e.preventDefault();e.stopPropagation();update("tasks",local.tasks.map(x=>x.id===t.id?{...x,done:!x.done,doneAt:x.done?undefined:todayKey()}:x))}}><span aria-hidden="true">{t.done?"✓":""}</span></button><div className={t.done?"lineDone":""}><strong>{t.title}</strong><ContextTag contexts={local.contexts} contextId={t.contextId}/><small>{t.scheduledAt?new Date(t.scheduledAt).toLocaleString("ko-KR"):"날짜 없음"}{t.calendarEventId?" · Google Calendar":""}</small></div><div className="taskRowActions"><button className="taskEditBtn" aria-label="할 일 수정" title="수정" onClick={()=>setEditingTask({...t})}><span aria-hidden="true">✎</span><em>수정</em></button><button className="taskDeleteBtn" aria-label="할 일 삭제" title="삭제" onClick={()=>removeTask(t)}><span aria-hidden="true">×</span><em>삭제</em></button></div></article>)}</div>:<div className="rows">{local.recurringTasks.filter(task=>contextFilter==="ALL"||local.contexts.find(context=>context.key===contextFilter)?.id===task.contextId).sort((a,b)=>Number(b.isActive)-Number(a.isActive)).map(task=><article key={task.id}><button type="button" className={`taskCheck ${task.isActive?"checked":""}`} aria-label={`${task.title} ${task.isActive?"일시 중지":"다시 시작"}`} onClick={()=>setRecurringActive(task,!task.isActive)}><span>{task.isActive?"↻":"Ⅱ"}</span></button><div><strong>{task.title}</strong><ContextTag contexts={local.contexts} contextId={task.contextId}/><small>{describeRecurrence(task)}{task.timeOfDay?` · ${task.timeOfDay}`:""} · {task.priority==="high"?"높은 우선순위":task.priority==="low"?"낮은 우선순위":"보통"}{task.showOnCalendar?" · Google Calendar":""}{!task.isActive?" · 일시 중지":""}</small></div><div className="taskRowActions"><button className="taskEditBtn" onClick={()=>setRecurringEditor(task)}>수정</button><button className="taskDeleteBtn" onClick={()=>setRecurringActive(task,false)}>삭제(보관)</button></div></article>)}{!local.recurringTasks.some(task=>contextFilter==="ALL"||local.contexts.find(context=>context.key===contextFilter)?.id===task.contextId)&&<p>반복 업무가 없습니다.</p>}</div>}
+
+
+  {view==="routines"&&<>
+   <section className="premiumCard taskComposer compactTaskComposer oneLineTaskComposer hasRecurringQuick">
+    <input className="taskTitleField" value={taskTitle} onChange={e=>setTaskTitle(e.target.value)} placeholder="루틴을 입력하세요"/>
+    <select className="taskProjectField" value={taskProject} onChange={e=>setTaskProject(e.target.value)} aria-label="프로젝트"><option value="">프로젝트 없음</option>{local.projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select>
+    <div className="taskContextField"><ContextPicker contexts={local.contexts} label="맥락" value={taskContext} onChange={value=>setTaskContext(value??"personal")} allowUnassigned={false}/></div>
+    <button className="goldBtn taskAddBtn" onClick={saveRoutineDefinition}>{editingRecurringId?"수정 완료":"루틴 추가"}</button>
+    <textarea className="taskMemoField" value={taskMemo} onChange={e=>setTaskMemo(e.target.value)} placeholder="메모 (선택)"/>
+    <div className="taskRecurringQuick"><label><span>루틴 주기</span><select value={taskRepeatMode} onChange={e=>setRoutineMode(e.target.value as typeof taskRepeatMode)}><option value="DAILY">매일</option><option value="WEEKDAYS">평일</option><option value="WEEKENDS">주말</option><option value="WEEKLY">매주 요일</option><option value="WEEKLY_BLOCKS">주간 구간</option><option value="BIWEEKLY">격주</option></select></label>{taskRepeatMode==="WEEKLY_BLOCKS"&&<div className="routineBlockEditor"><span>주간 실행 구간</span>{taskRepeatBlocks.map((block,index)=><div key={index}><select value={block.startDay} onChange={e=>setTaskRepeatBlocks(rows=>rows.map((row,i)=>i===index?{...row,startDay:Number(e.target.value)}:row))}>{[[1,"월"],[2,"화"],[3,"수"],[4,"목"],[5,"금"],[6,"토"],[0,"일"]].map(([v,l])=><option key={v} value={v}>{l}</option>)}</select><b>~</b><select value={block.endDay} onChange={e=>setTaskRepeatBlocks(rows=>rows.map((row,i)=>i===index?{...row,endDay:Number(e.target.value)}:row))}>{[[1,"월"],[2,"화"],[3,"수"],[4,"목"],[5,"금"],[6,"토"],[0,"일"]].map(([v,l])=><option key={v} value={v}>{l}</option>)}</select><input type="number" min="1" max="7" value={block.target} onChange={e=>setTaskRepeatBlocks(rows=>rows.map((row,i)=>i===index?{...row,target:Math.max(1,Number(e.target.value)||1)}:row))}/><em>회</em><button type="button" onClick={()=>setTaskRepeatBlocks(rows=>rows.filter((_,i)=>i!==index))}>×</button></div>)}<button type="button" onClick={()=>setTaskRepeatBlocks(rows=>[...rows,{startDay:1,endDay:0,target:1}])}>＋ 구간 추가</button><small>각 구간의 목표 횟수를 채우면 그 구간이 끝날 때까지 다시 나타나지 않습니다. 다음 주에는 같은 구간으로 새로 시작합니다.</small></div>}{(taskRepeatMode==="WEEKLY"||taskRepeatMode==="BIWEEKLY")&&<div className="routineWeekdayField"><span>반복 요일</span><div className="routineWeekdayPicker">{[[0,"일"],[1,"월"],[2,"화"],[3,"수"],[4,"목"],[5,"금"],[6,"토"]].map(([day,label])=><button type="button" key={day} className={taskRepeatWeekdays.includes(day as number)?"selected":""} onClick={()=>toggleRoutineWeekday(day as number)}>{label}</button>)}</div></div>}<small>루틴 정의는 여기서 수정·중지·재시작·삭제합니다.</small></div>
+   </section>
+   <section className="premiumCard taskBoardCard">
+    <div className="cardTitle taskBoardTopToolbar"><ContextFilter contexts={local.contexts} value={contextFilter} onChange={setContextFilter}/><div className="routineScopeTabs" role="tablist" aria-label="루틴 구분"><button type="button" role="tab" aria-selected={routineSection==="daily"} className={routineSection==="daily"?"active":""} onClick={()=>setRoutineSection("daily")}>루틴</button><button type="button" role="tab" aria-selected={routineSection==="weekly"} className={routineSection==="weekly"?"active":""} onClick={()=>setRoutineSection("weekly")}>주간 루틴</button></div></div>
+    <div className="taskTabs"><div className="routineBulkActions" aria-label="루틴 전체 상태 변경"><button type="button" onClick={()=>setVisibleRoutineDefinitionsActive(true)}>전체 시작</button><button type="button" onClick={()=>setVisibleRoutineDefinitionsActive(false)}>전체 중지</button></div></div>
+    <div className="rows recurringDefinitionRows">{local.recurringTasks.filter(task=>(contextFilter==="ALL"||local.contexts.find(context=>context.key===contextFilter)?.id===task.contextId)&&routineSectionForTask(task)===routineSection).sort((a,b)=>(a.sortOrder??local.recurringTasks.indexOf(a))-(b.sortOrder??local.recurringTasks.indexOf(b))).map(task=><article key={task.id} draggable onDragStart={()=>setDraggingRecurringId(task.id)} onDragOver={e=>e.preventDefault()} onDrop={()=>{if(draggingRecurringId)reorderRecurringTask(draggingRecurringId,task.id);setDraggingRecurringId(null)}}><button type="button" className={`taskCheck ${task.isActive?"checked":""}`} role="checkbox" aria-checked={task.isActive} aria-label={`${task.title} ${task.isActive?"루틴 중지":"루틴 시작"}`} onClick={()=>setRecurringActive(task,!task.isActive)}><span>{task.isActive?"✓":""}</span></button><span className="taskDragHandle" title="끌어서 순서 변경">⋮⋮</span><div><strong>{task.title}</strong><ContextTag contexts={local.contexts} contextId={task.contextId}/><small>{describeRecurrence(task)} · {routineSectionForTask(task)==="weekly"?"주간 루틴":"루틴"}{!task.isActive?" · 중지됨":""}</small>{task.description&&<p className="taskNotePreview">{task.description}</p>}</div><div className="taskRowActions routineRowActions"><button className="taskEditBtn" aria-label="루틴 수정" title="수정" onClick={()=>editRecurringInline(task)}><span aria-hidden="true">✎</span><em>수정</em></button><button className="taskPauseBtn" aria-label={task.isActive?"루틴 중지":"루틴 다시 시작"} title={task.isActive?"중지":"다시 시작"} onClick={()=>setRecurringActive(task,!task.isActive)}><span aria-hidden="true">{task.isActive?"■":"▶"}</span><em>{task.isActive?"중지":"시작"}</em></button><button className="taskDeleteBtn" aria-label="루틴 삭제" title="삭제" onClick={()=>removeRecurringTask(task)}><span aria-hidden="true">×</span><em>삭제</em></button></div></article>)}{!local.recurringTasks.some(task=>(contextFilter==="ALL"||local.contexts.find(context=>context.key===contextFilter)?.id===task.contextId)&&routineSectionForTask(task)===routineSection)&&<p>{routineSection==="weekly"?"등록된 주간 루틴이 없습니다.":"등록된 루틴이 없습니다."}</p>}</div>
    </section>
   </>}
 
- {view==="projects"&&<div className="projectWorkspace">
+  {view==="projects"&&<div className="projectWorkspace">
  <aside className="premiumCard projectList">
-  <div className="cardTitle"><div><h2>프로젝트</h2><small>{contextProjects.length}개 운영 중</small></div><button className="iconAddBtn" title="새 프로젝트" onClick={()=>setProjectDialog("project")}>＋</button></div>
-  <ContextFilter contexts={local.contexts} value={contextFilter} onChange={setContextFilter}/>
-  <div className="projectListItems">{contextProjects.map(p=>{
-   const completed=p.milestones.filter(m=>m.done).length;
-   return <button className={selectedProject===p.id?"active":""} onClick={()=>setSelectedProject(p.id)} key={p.id}>
-    <div className="projectListTop"><strong>{p.name}</strong><span>{progress(p)}%</span></div><ContextTag contexts={local.contexts} contextId={p.contextId}/>
-    <div className="projectListMeta"><small className={`statusBadge ${p.status}`}>{projectStatusLabel[p.status]}</small><small>{completed}/{p.milestones.length} 완료</small></div>
-    <div className="miniProgress"><i style={{width:`${progress(p)}%`}}></i></div>
+  <div className="cardTitle"><div><h2>프로젝트</h2><small>{local.projects.length}개 운영 중</small></div><button className="iconAddBtn" title="새 프로젝트" onClick={()=>setProjectDialog("project")}>＋</button></div>
+  <div className="projectListItems">{local.projects.map(p=>{
+   return <button className={selectedProject===p.id?"active":""} onClick={()=>{setSelectedProject(p.id);setProjectEditing(false)}} key={p.id}>
+    <div className="projectListTop"><strong>{p.name}</strong><span className="projectListStatusProgress"><small className={`statusBadge ${p.status}`}>{projectStatusLabel[p.status]}</small><b>{projectProgressNeedsPeriod(p)?"기간 필요":`${projectProgressValue(p)}%`}</b></span></div>
+    <div className="projectListMeta"><small>{formatProjectPeriod(p)}{getProjectDday(p.dueDate)!==undefined?` · ${getProjectDday(p.dueDate)!>=0?`D-${getProjectDday(p.dueDate)}`:`D+${Math.abs(getProjectDday(p.dueDate)!)}`}`:""}</small></div>
+    <div className="miniProgress"><i style={{width:`${projectProgressValue(p)}%`}}></i></div>
    </button>
   })}</div>
  </aside>
@@ -1148,60 +1664,90 @@ export function Dashboard(){
  {selectedProjectData&&<section className="premiumCard projectDetail redesignedProject">
   <header className="projectHero">
    <div className="projectIdentity">
-    <span className={`statusBadge ${selectedProjectData.status}`}>{projectStatusLabel[selectedProjectData.status]}</span>
-    <input className="projectNameInput" value={selectedProjectData.name} onChange={e=>update("projects",local.projects.map(p=>p.id===selectedProjectData.id?{...p,name:e.target.value}:p))}/>
-    <p>{selectedProjectData.goal||"이 프로젝트가 도달하려는 결과를 입력하세요."}</p>
+    <div className="projectIdentityTitleRow">
+     {projectEditing?<input className="projectNameInput" value={selectedProjectData.name} onChange={e=>update("projects",local.projects.map(p=>p.id===selectedProjectData.id?{...p,name:e.target.value}:p))}/>:<h2>{selectedProjectData.name}</h2>}
+     {projectEditing
+      ? <select className="projectStatusInlineSelect" aria-label="프로젝트 상태" value={selectedProjectData.status} onChange={e=>update("projects",local.projects.map(p=>p.id===selectedProjectData.id?withProjectStatus(p,e.target.value as Project["status"]):p))}><option value="planning">기획</option><option value="active">진행 중</option><option value="review">검토 중</option><option value="done">완료</option></select>
+      : <span className={`statusBadge ${selectedProjectData.status}`}>{projectStatusLabel[selectedProjectData.status]}</span>}
+    </div>
+    <div className={`projectGoalSummary ${projectEditing?"editing":""}`}><span>목표</span>{projectEditing?<textarea className="projectGoalInlineInput" aria-label="프로젝트 목표" value={selectedProjectData.goal} placeholder="프로젝트가 끝났을 때 만들어낼 결과" onChange={e=>update("projects",local.projects.map(p=>p.id===selectedProjectData.id?{...p,goal:e.target.value}:p))}/>:<strong>{selectedProjectData.goal||"프로젝트 목표를 입력해 주세요."}</strong>}</div>
+    <div className={`projectPeriod ${projectEditing?"editing":""}`}><span className="projectPeriodLabel">기간</span><div className="projectPeriodDates">{projectEditing?<><label className="projectInlineDate"><span>시작</span><input type="date" value={selectedProjectData.startDate??""} onChange={e=>updateProjectPeriod(selectedProjectData.id,e.target.value||undefined,selectedProjectData.dueDate)}/></label><label className="projectInlineDate"><span>마감</span><input type="date" min={selectedProjectData.startDate??undefined} value={selectedProjectData.dueDate??""} onChange={e=>updateProjectPeriod(selectedProjectData.id,selectedProjectData.startDate,e.target.value||undefined)}/></label></>:<><strong>시작 {selectedProjectData.startDate?.replaceAll("-",".")||"미정"}</strong><strong>마감 {selectedProjectData.dueDate?.replaceAll("-",".")||"미정"}</strong></>}</div>{getProjectDday(selectedProjectData.dueDate)!==undefined?<b className="projectDdayBadge">{getProjectDday(selectedProjectData.dueDate)!>=0?`D-${getProjectDday(selectedProjectData.dueDate)}`:`D+${Math.abs(getProjectDday(selectedProjectData.dueDate)!)}`}</b>:null}</div>
    </div>
    <div className="projectProgressSummary">
-    <b>{progress(selectedProjectData)}%</b>
-    <span>{selectedProjectData.milestones.filter(m=>m.done).length} / {selectedProjectData.milestones.length}개 완료</span>
+    <b>{projectProgressNeedsPeriod(selectedProjectData)?"—":`${projectProgressValue(selectedProjectData)}%`}</b>
+    <span>{projectProgressNeedsPeriod(selectedProjectData)?"루틴 진행률 계산을 위해 프로젝트 시작일과 마감일을 설정해 주세요.":selectedProjectIntelligence?.progressSource==="execution"?`Todo ${selectedProjectIntelligence.completedTodos.length}/${selectedProjectIntelligence.connectedTodos.length} · 루틴 ${selectedProjectIntelligence.routineCompleted}/${selectedProjectIntelligence.routineScheduled}회`:selectedProjectIntelligence?.progressSource==="routines"?`루틴 ${selectedProjectIntelligence.routineCompleted} / ${selectedProjectIntelligence.routineScheduled}회 완료`:selectedProjectIntelligence?.progressSource==="todos"?`연결 Todo ${selectedProjectIntelligence.completedTodos.length} / ${selectedProjectIntelligence.connectedTodos.length} 완료`:selectedProjectIntelligence?.progressSource==="milestones"?`중간 목표 ${selectedProjectData.milestones.filter(m=>m.done).length} / ${selectedProjectData.milestones.length} 완료`:"측정 데이터 없음"}</span>
    </div>
+   <button className="softBtn" onClick={()=>setProjectEditing(value=>!value)}>{projectEditing?"완료":"수정"}</button>
   </header>
 
-  <div className="projectMainProgress"><i style={{width:`${progress(selectedProjectData)}%`}}></i></div>
+  <div className="projectMainProgress"><i style={{width:`${projectProgressValue(selectedProjectData)}%`}}></i></div>
 
-  <section className="projectCoreFields">
-   <label><span>목표</span><textarea placeholder="완료했을 때 어떤 상태가 되어야 하나요?" value={selectedProjectData.goal} onChange={e=>update("projects",local.projects.map(p=>p.id===selectedProjectData.id?{...p,goal:e.target.value}:p))}/></label>
-   <label className="nextActionField"><span>다음 행동</span><textarea placeholder="지금 바로 실행할 수 있는 한 가지" value={selectedProjectData.next} onChange={e=>update("projects",local.projects.map(p=>p.id===selectedProjectData.id?{...p,next:e.target.value}:p))}/></label>
-   <label className="statusField"><span>상태</span><select value={selectedProjectData.status} onChange={e=>update("projects",local.projects.map(p=>p.id===selectedProjectData.id?{...p,status:e.target.value as Project["status"]}:p))}><option value="planning">기획</option><option value="active">진행 중</option><option value="review">검토 중</option><option value="done">완료</option></select></label>
-   <ContextPicker contexts={local.contexts} value={selectedProjectData.contextId} onChange={contextId=>update("projects",local.projects.map(p=>p.id===selectedProjectData.id?{...p,contextId}:p))}/>
+  <section className="projectIntelligence projectIntelligenceCompact" aria-label="Project Intelligence">
+   <div className="projectIntelligenceHead"><div><span>PROJECT INTELLIGENCE</span><h3>운영 현황</h3></div><b className={`projectHealth ${selectedProjectIntelligence?.health??"healthy"}`}>{selectedProjectIntelligence?.health==="atRisk"?"위험":selectedProjectIntelligence?.health==="attention"?"주의":"정상"}</b></div>
+   <div className="projectSignalRow">
+    <div><span>다음 행동</span>{projectEditing?<input className="projectInlineNextAction" aria-label="다음 행동" value={selectedProjectData.next} placeholder="지금 바로 실행할 한 가지" onChange={e=>update("projects",local.projects.map(p=>p.id===selectedProjectData.id?{...p,next:e.target.value}:p))}/>:<strong>{selectedProjectIntelligence?.nextAction?.title||"다음 행동 미설정"}</strong>}</div>
+    <div><span>최근 활동</span><strong>{selectedProjectIntelligence?.lastActivityAt||"기록 없음"}</strong></div>
+    <div><span>상태</span><strong>{selectedProjectIntelligence?.stalled?"정체 확인 필요":selectedProjectIntelligence?.overdueTodos.length?`마감 지난 할 일 ${selectedProjectIntelligence.overdueTodos.length}개`:"정상 운영"}</strong></div>
+   </div>
+   {selectedProjectIntelligence?.recentActivity.length?<div className="projectRecentActivity"><span>최근 기록</span><div>{selectedProjectIntelligence.recentActivity.slice(0,3).map(item=><article key={`${item.date}-${item.kind}-${item.title}`}><time>{item.date}</time><strong>{item.title}</strong><small>{item.kind==="activity"?"활동":item.kind==="note"?"노트":item.kind==="todo_completed"?"완료 Todo":"목표"}</small></article>)}</div></div>:null}
+   {selectedProjectIntelligence?.risks.length?<p className="projectRisks">{selectedProjectIntelligence.risks.join(" · ")}</p>:null}
   </section>
 
-  <section className="projectSection">
-   <div className="milestoneHead"><div><h3>중간 목표</h3><small>각 항목을 눌러 세부 설정을 펼칠 수 있습니다.</small></div><button className="btnSecondary" onClick={()=>setProjectDialog("milestone")}>＋ 중간 목표</button></div>
+  <details className="projectSection projectCompactPanel">
+   <summary><div><h3>중간 목표</h3><small>{selectedProjectData.milestones.length}개</small></div><span>⌄</span></summary>
+   <div className="projectCompactBody"><div className="projectCompactActions"><p>프로젝트를 완성하기 위한 큰 단계를 관리합니다.</p><button className="btnSecondary" onClick={()=>setProjectDialog("milestone")}>＋ 중간 목표</button></div>
    <div className="milestoneAccordion">
-    {selectedProjectData.milestones.map((m,index)=><details key={m.id} className={m.done?"completed":""}>
+    {selectedProjectData.milestones.map((m,index)=><details key={m.id} className={m.done?"completed":""} draggable onDragStart={()=>setDraggingMilestoneId(m.id)} onDragOver={e=>e.preventDefault()} onDrop={()=>{if(draggingMilestoneId)reorderMilestone(draggingMilestoneId,m.id);setDraggingMilestoneId(null)}}>
      <summary>
+      <span className="milestoneDragHandle" title="끌어서 순서 변경" onClick={e=>e.stopPropagation()}>⋮⋮</span>
       <input type="checkbox" checked={m.done} onClick={e=>e.stopPropagation()} onChange={()=>update("projects",local.projects.map(p=>p.id===selectedProjectData.id?{...p,milestones:p.milestones.map(x=>x.id===m.id?{...x,done:!x.done}:x)}:p))}/>
-      <div><strong>{m.title||`중간 목표 ${index+1}`}</strong><small>{m.done?"완료됨":`진행률에 ${m.weight}% 반영`}</small></div>
+      <div><strong>{m.title||`중간 목표 ${index+1}`}</strong><small>{m.done?"완료됨":`진행률에 ${m.weight}% 반영`} · {(m.startDate??selectedProjectData.startDate)?.replaceAll("-",".")||"시작 미정"} ~ {(m.dueDate??selectedProjectData.dueDate)?.replaceAll("-",".")||"마감 미정"}{!m.startDate&&!m.dueDate&&(selectedProjectData.startDate||selectedProjectData.dueDate)?" · 프로젝트 기간 상속":""}</small></div>
       <span className="accordionChevron">⌄</span>
      </summary>
      <div className="milestoneBody">
-      <label><span>중간 목표 이름</span><input value={m.title} onChange={e=>update("projects",local.projects.map(p=>p.id===selectedProjectData.id?{...p,milestones:p.milestones.map(x=>x.id===m.id?{...x,title:e.target.value}:x)}:p))}/></label>
-      <label><span>진행률 반영 비중</span><div className="weightInput"><input type="number" min="0" max="100" value={m.weight} onChange={e=>update("projects",local.projects.map(p=>p.id===selectedProjectData.id?{...p,milestones:p.milestones.map(x=>x.id===m.id?{...x,weight:Number(e.target.value)}:x)}:p))}/><b>%</b></div></label>
-      <button className="btnDangerOutline milestoneDeleteBtn" onClick={()=>update("projects",local.projects.map(p=>p.id===selectedProjectData.id?{...p,milestones:p.milestones.filter(x=>x.id!==m.id)}:p))}>중간 목표 삭제</button>
+      <label className="milestoneNameField"><span>중간 목표 이름</span><input value={m.title} onChange={e=>update("projects",local.projects.map(p=>p.id===selectedProjectData.id?{...p,milestones:p.milestones.map(x=>x.id===m.id?{...x,title:e.target.value}:x)}:p))}/></label>
+      <label className="milestoneWeightField"><span>진행률 반영 비중</span><div className="weightInput"><input type="number" min="0" max="100" value={m.weight} onChange={e=>update("projects",local.projects.map(p=>p.id===selectedProjectData.id?{...p,milestones:p.milestones.map(x=>x.id===m.id?{...x,weight:Number(e.target.value)}:x)}:p))}/><b>%</b></div></label>
+      <label className="milestoneStartField"><span>시작일 <small>{!m.startDate&&selectedProjectData.startDate?"프로젝트 날짜 사용":""}</small></span><input type="date" value={m.startDate??selectedProjectData.startDate??""} onChange={e=>update("projects",local.projects.map(p=>p.id===selectedProjectData.id?{...p,milestones:p.milestones.map(x=>x.id===m.id?{...x,startDate:e.target.value&&e.target.value!==selectedProjectData.startDate?e.target.value:undefined}:x)}:p))}/></label>
+      <label className="milestoneDueField"><span>마감일 <small>{!m.dueDate&&selectedProjectData.dueDate?"프로젝트 날짜 사용":""}</small></span><input type="date" min={m.startDate??selectedProjectData.startDate??undefined} value={m.dueDate??selectedProjectData.dueDate??""} onChange={e=>update("projects",local.projects.map(p=>p.id===selectedProjectData.id?{...p,milestones:p.milestones.map(x=>x.id===m.id?{...x,dueDate:e.target.value&&e.target.value!==selectedProjectData.dueDate?e.target.value:undefined}:x)}:p))}/></label>
+      <div className="milestoneLinkedRoutines"><span>연결 루틴</span><div>{local.recurringTasks.filter(task=>task.projectId===selectedProjectData.id).map(task=><label key={task.id} className={task.milestoneId===m.id?"linked":""}><input type="checkbox" checked={task.milestoneId===m.id} onChange={e=>update("recurringTasks",local.recurringTasks.map(item=>item.id===task.id?{...item,milestoneId:e.target.checked?m.id:(item.milestoneId===m.id?undefined:item.milestoneId),updatedAt:new Date().toISOString()}:item))}/><span>{task.title}</span><small>{describeRecurrence(task)}</small></label>)}{!local.recurringTasks.some(task=>task.projectId===selectedProjectData.id)&&<small className="milestoneNoRoutine">프로젝트 루틴이 없습니다.</small>}</div></div>
+      <button className="btnDangerOutline milestoneDeleteBtn" onClick={()=>{update("projects",local.projects.map(p=>p.id===selectedProjectData.id?{...p,milestones:p.milestones.filter(x=>x.id!==m.id)}:p));update("recurringTasks",local.recurringTasks.map(task=>task.projectId===selectedProjectData.id&&task.milestoneId===m.id?{...task,milestoneId:undefined,updatedAt:new Date().toISOString()}:task))}}>중간 목표 삭제</button>
      </div>
     </details>)}
     {!selectedProjectData.milestones.length&&<div className="emptyMilestones"><strong>아직 중간 목표가 없습니다.</strong><span>프로젝트를 완성하기 위한 큰 단계를 추가해보세요.</span></div>}
    </div>
-  </section>
 
-  <section className="projectSection linkedProjectSection">
-   <div className="sectionHeading"><div><h3>연결된 항목</h3><small>이 프로젝트와 관련된 실행과 기록을 함께 봅니다.</small></div></div>
-   <div className="linkedAccordions">
-    <details><summary><span>할 일</span><b>{local.tasks.filter(t=>t.projectId===selectedProjectData.id).length}</b><i>⌄</i></summary><div>{local.tasks.filter(t=>t.projectId===selectedProjectData.id).map(t=><article key={t.id}><input type="checkbox" checked={t.done} readOnly/><span>{t.title}</span></article>)}{!local.tasks.some(t=>t.projectId===selectedProjectData.id)&&<p>연결된 할 일이 없습니다.</p>}</div></details>
-    <details><summary><span>활동</span><b>{local.activities.filter(a=>a.projectId===selectedProjectData.id).length}</b><i>⌄</i></summary><div>{local.activities.filter(a=>a.projectId===selectedProjectData.id).map(a=><article key={a.id}><span>{a.date}</span><strong>{a.title}</strong></article>)}{!local.activities.some(a=>a.projectId===selectedProjectData.id)&&<p>연결된 활동이 없습니다.</p>}</div></details>
-    <details><summary><span>노트</span><b>{local.notes.filter(n=>n.projectId===selectedProjectData.id).length}</b><i>⌄</i></summary><div>{local.notes.filter(n=>n.projectId===selectedProjectData.id).map(n=><article key={n.id}><span>{n.date}</span><strong>{n.title}</strong></article>)}{!local.notes.some(n=>n.projectId===selectedProjectData.id)&&<p>연결된 노트가 없습니다.</p>}</div></details>
    </div>
-  </section>
-
-  <details className="projectMemoPanel">
-   <summary><div><h3>프로젝트 메모</h3><small>참고할 내용과 맥락을 기록합니다.</small></div><span>⌄</span></summary>
-   <textarea value={selectedProjectData.note} onChange={e=>update("projects",local.projects.map(p=>p.id===selectedProjectData.id?{...p,note:e.target.value}:p))}/>
   </details>
 
+  <details className="projectSection linkedProjectSection projectCompactPanel">
+   <summary><div><h3>연결된 항목</h3><small>{local.tasks.filter(t=>t.projectId===selectedProjectData.id).length+local.recurringTasks.filter(t=>t.projectId===selectedProjectData.id).length+local.activities.filter(a=>a.projectId===selectedProjectData.id).length+local.notes.filter(n=>n.projectId===selectedProjectData.id).length}개</small></div><span>⌄</span></summary>
+   <div className="projectCompactBody">
+   <div className="linkedAccordions">
+    <details><summary><span>할 일</span><b>{local.tasks.filter(t=>t.projectId===selectedProjectData.id).length}</b><i>⌄</i></summary><div>{local.tasks.filter(t=>t.projectId===selectedProjectData.id).map(t=><article key={t.id}><input type="checkbox" checked={t.done} onChange={()=>update("tasks",local.tasks.map(item=>item.id===t.id?{...item,done:!item.done,doneAt:item.done?undefined:todayKey()}:item))}/><span>{t.title}</span><div className="linkedRoutineActions"><button type="button" onClick={()=>setEditingTask({...t})}>수정</button><button type="button" onClick={()=>void removeTask(t)}>삭제</button></div></article>)}{!local.tasks.some(t=>t.projectId===selectedProjectData.id)&&<p>연결된 할 일이 없습니다.</p>}</div></details>
+    <details className="projectRoutineAccordion"><summary><span>루틴</span><b>{local.recurringTasks.filter(t=>t.projectId===selectedProjectData.id).length}</b><i>⌄</i></summary><div>
+      <form className="projectRoutineComposer projectRoutineComposerWithMilestone" onSubmit={e=>{e.preventDefault();addProjectRoutine()}}>
+       <input value={projectRoutineTitle} onChange={e=>setProjectRoutineTitle(e.target.value)} placeholder="프로젝트 루틴 추가"/>
+       <select value={projectRoutineMilestone} onChange={e=>setProjectRoutineMilestone(e.target.value)} aria-label="중간 목표 연결"><option value="">프로젝트 전체</option>{selectedProjectData.milestones.map(milestone=><option key={milestone.id} value={milestone.id}>{milestone.title}</option>)}</select>
+       <select value={projectRoutineMode} onChange={e=>setProjectRoutineMode(e.target.value as typeof projectRoutineMode)}><option value="DAILY">매일</option><option value="WEEKDAYS">평일</option><option value="WEEKENDS">주말</option><option value="WEEKLY">매주 요일</option><option value="WEEKLY_BLOCKS">주간 구간</option><option value="BIWEEKLY">격주</option></select>
+       <button type="submit">추가</button>
+      </form>
+      <p className="projectRoutinePeriodNote">프로젝트 시작일~마감일을 연결 루틴의 실행 기간으로 사용합니다. 기간을 설정하면 예정 회차 대비 실제 완료 회차가 프로젝트 진행률에 반영됩니다.</p>
+      {local.recurringTasks.filter(t=>t.projectId===selectedProjectData.id).map(t=><article key={`recurring-${t.id}`} className={!t.isActive?"paused":""}><span><strong>{t.title}</strong><small>{t.milestoneId?`중간목표 · ${selectedProjectData.milestones.find(milestone=>milestone.id===t.milestoneId)?.title||"연결 정보 없음"} · `:"프로젝트 전체 · "}{describeRecurrence(t)} · 프로젝트 기간 {selectedProjectData.startDate?.replaceAll("-",".")||"시작 미정"} ~ {selectedProjectData.dueDate?.replaceAll("-",".")||"마감 미정"}{!t.isActive?" · 중지됨":""}</small></span><div className="linkedRoutineActions projectRoutineActions"><select value={t.milestoneId??""} onChange={e=>update("recurringTasks",local.recurringTasks.map(item=>item.id===t.id?{...item,milestoneId:e.target.value||undefined,updatedAt:new Date().toISOString()}:item))} aria-label={`${t.title} 중간목표 연결`}><option value="">프로젝트 전체</option>{selectedProjectData.milestones.map(milestone=><option key={milestone.id} value={milestone.id}>{milestone.title}</option>)}</select><button type="button" onClick={()=>{editRecurringInline(t);navigateTo("routines")}}>수정</button><button type="button" onClick={()=>void setRecurringActive(t,!t.isActive)}>{t.isActive?"중지":"시작"}</button><button type="button" onClick={()=>void removeRecurringTask(t)}>삭제</button></div></article>)}
+      {!local.recurringTasks.some(t=>t.projectId===selectedProjectData.id)&&<p>연결된 루틴이 없습니다.</p>}
+    </div></details>
+    <details><summary><span>활동</span><b>{local.activities.filter(a=>a.projectId===selectedProjectData.id).length}</b><i>⌄</i></summary><div><div className="linkedEntityAddRow"><span>실제로 한 활동을 이 프로젝트 기록에 연결합니다.</span><button type="button" onClick={()=>{setActivityProject(selectedProjectData.id);setActivityDate(currentDateKey);navigateTo("activities")}}>＋ 활동 추가</button></div>{local.activities.filter(a=>a.projectId===selectedProjectData.id).sort((a,b)=>b.date.localeCompare(a.date)).map(a=><article key={a.id}><span>{a.date}</span><strong>{a.title}</strong><div className="linkedRoutineActions"><button type="button" onClick={()=>setEditingActivity({...a})}>수정</button><button type="button" onClick={()=>update("activities",local.activities.filter(item=>item.id!==a.id))}>삭제</button></div></article>)}{!local.activities.some(a=>a.projectId===selectedProjectData.id)&&<p>연결된 활동이 없습니다.</p>}</div></details>
+    <details><summary><span>노트</span><b>{local.notes.filter(n=>n.projectId===selectedProjectData.id).length}</b><i>⌄</i></summary><div><div className="linkedEntityAddRow"><span>생각·배움·참고사항을 프로젝트 맥락에 남깁니다.</span><button type="button" onClick={()=>{setNoteProject(selectedProjectData.id);navigateTo("notes")}}>＋ 노트 추가</button></div>{local.notes.filter(n=>n.projectId===selectedProjectData.id).sort((a,b)=>b.date.localeCompare(a.date)).map(n=><article key={n.id}><span>{n.date}</span><strong>{n.title}</strong><div className="linkedRoutineActions"><button type="button" onClick={()=>setEditingNote({...n})}>수정</button><button type="button" onClick={()=>update("notes",local.notes.filter(item=>item.id!==n.id))}>삭제</button></div></article>)}{!local.notes.some(n=>n.projectId===selectedProjectData.id)&&<p>연결된 노트가 없습니다.</p>}</div></details>
+   </div>
+
+   </div>
+  </details>
+
+  <section className="projectVisibleMeta projectMemoOnly" aria-label="프로젝트 메모">
+   <label className="projectMemoField"><span>프로젝트 메모</span><textarea placeholder="참고할 내용과 맥락을 기록합니다." value={selectedProjectData.note} onChange={e=>update("projects",local.projects.map(p=>p.id===selectedProjectData.id?{...p,note:e.target.value}:p))}/></label>
+  </section>
+
   <div className="projectFooterActions"><button className="btnDangerOutline" onClick={()=>{if(confirm("이 프로젝트를 삭제할까요?")){update("projects",local.projects.filter(p=>p.id!==selectedProjectData.id));setSelectedProject(local.projects.find(p=>p.id!==selectedProjectData.id)?.id??"")}}}>프로젝트 삭제</button></div>
- </section>}
+   </section>}
 </div>}
 
 
@@ -1240,83 +1786,123 @@ export function Dashboard(){
 
 {view==="records"&&<div className="recordsWorkspace">
    <section className="premiumCard recordsHero">
-    <div><span>기록</span><h2>활동·노트·리뷰를 한 흐름으로 봅니다.</h2><p>실행한 것, 떠오른 생각, 하루의 회고가 날짜 순서로 이어집니다.</p></div>
-    <div className="recordQuickActions"><button onClick={()=>navigateTo("activities")}>활동 기록</button><button onClick={()=>navigateTo("notes")}>노트 작성</button><button onClick={()=>navigateTo("review")}>리뷰 작성</button></div>
+    <div><span>기록</span><h2>실행·활동·노트·리뷰를 한 흐름으로 봅니다.</h2><p>완료한 일, 실행한 활동, 떠오른 생각, 하루의 회고가 날짜 순서로 이어집니다.</p></div>
+    <div className="recordQuickActions"><button onClick={()=>navigateTo("activities")}>활동 기록</button><button onClick={()=>navigateTo("notes")}>노트 작성</button><button onClick={()=>{setReviewDate(currentDateKey);navigateTo("review")}}>리뷰 작성</button></div>
    </section>
    <section className="recordSummaryGrid">
-    <article className="premiumCard"><div><strong>{local.activities.length}</strong><span>활동 기록</span></div><button onClick={()=>navigateTo("activities")}>열기</button></article>
-    <article className="premiumCard"><div><strong>{local.notes.length}</strong><span>노트</span></div><button onClick={()=>navigateTo("notes")}>열기</button></article>
-    <article className="premiumCard"><div><strong>{Object.keys(local.reviews).length}</strong><span>리뷰</span></div><button onClick={()=>navigateTo("review")}>열기</button></article>
+    <article className={`premiumCard ${recordFilter==="activity"?"activeRecordSummary":""}`}><div><strong>{local.activities.length}</strong><span>활동 기록</span></div><button aria-pressed={recordFilter==="activity"} onClick={()=>setRecordFilter(recordFilter==="activity"?"all":"activity")}>보기</button></article>
+    <article className={`premiumCard ${recordFilter==="note"?"activeRecordSummary":""}`}><div><strong>{local.notes.length}</strong><span>노트</span></div><button aria-pressed={recordFilter==="note"} onClick={()=>setRecordFilter(recordFilter==="note"?"all":"note")}>보기</button></article>
+    <article className={`premiumCard ${recordFilter==="review"?"activeRecordSummary":""}`}><div><strong>{eveningReviews.length}</strong><span>리뷰</span></div><button aria-pressed={recordFilter==="review"} onClick={()=>setRecordFilter(recordFilter==="review"?"all":"review")}>보기</button></article>
    </section>
-   <section className="premiumCard recordsTimelineCard">
-    <div className="cardTitle"><div><h2>최근 기록</h2><small>활동·노트·리뷰·완료 업무를 날짜순으로 표시합니다.</small></div><button onClick={()=>navigateTo("timeline")}>전체 보기</button></div>
-    <div className="timeline">
-     {timeline.slice(0,20).map((item,index)=><article key={`${item.date}-${index}`}><time>{item.date}</time><div><span>{item.kind}</span><strong>{item.title}</strong>{item.note&&<p>{item.note}</p>}</div></article>)}
-     {!timeline.length&&<p className="empty">아직 기록이 없습니다.</p>}
+   <section className="premiumCard recordsTimelineCard" id="recent-records">
+    <div className="cardTitle"><div><h2>최근 기록 · {recordFilterLabel}</h2><small>기록 종류를 누르면 이 자리에서 바로 골라 봅니다.</small></div>{recordFilter!=="all"?<button onClick={()=>setRecordFilter("all")}>전체 기록</button>:<button onClick={()=>navigateTo("timeline")}>전체 타임라인</button>}</div>
+    <div className="timeline groupedRecordTimeline">
+     {filteredTimelineGroups.map(year=><details className="recordYearGroup" key={year.year}><summary><strong>{year.year}년</strong><span>{year.months.reduce((sum,month)=>sum+month.entries.length,0)}개</span></summary><div>{year.months.map(month=><details className="recordMonthGroup" key={month.month}><summary><strong>{Number(month.month.slice(5,7))}월</strong><span>{month.entries.length}개</span></summary><div>{month.entries.map((item,index)=><article key={`${item.date}-${item.kind}-${index}`}><time>{item.date}</time><div><span>{item.kind}{item.project&&<em className="recordProjectTag">{item.project}</em>}</span><strong>{item.title}</strong>{item.note&&<p>{item.note}</p>}</div></article>)}</div></details>)}</div></details>)}
+     {!filteredTimeline.length&&(recordFilter==="activity"?<div className="recordEmptyAction"><strong>저장된 활동 기록이 없습니다.</strong><span>활동 기록에서 저장하면 이곳과 프로젝트 기록에 바로 연결됩니다.</span><button type="button" onClick={()=>navigateTo("activities")}>활동 기록 추가</button></div>:<p className="empty">이 범주의 기록이 없습니다.</p>)}
     </div>
    </section>
   </div>}
 
   {view==="activities"&&<><section className="subpageHeader premiumCard"><button className="backToRecords" onClick={goBackFromDetail}>← 뒤로</button><div><span>활동 기록</span><h2>실행한 것을 남깁니다.</h2></div></section><section className="premiumCard activityComposer">
-<label><span>활동 종류</span><select value={activityType} onChange={e=>setActivityType(e.target.value as ActivityType)}>{Object.entries(activityLabels).map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label>
-<label><span>날짜</span><input type="date" value={activityDate} onChange={e=>setActivityDate(e.target.value)}/></label>
+<label className="activityTypeField"><span>활동 종류</span><select value={activityType} onChange={e=>setActivityType(e.target.value as ActivityType)}>{Object.entries(activityLabels).map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label>
+<label className="activityDateField"><span>날짜</span><input type="date" value={activityDate} onChange={e=>setActivityDate(e.target.value)}/></label>
 <label className="activityTitleField">
  <span>{activityTitleLabel[activityType]}</span>
  <input value={activityTitle} onChange={e=>setActivityTitle(e.target.value)} placeholder={activityPlaceholder[activityType]}/>
 </label>
-<label><span>활동 시간</span><div className="unitInput"><input type="number" min="0" value={activityDuration} onChange={e=>setActivityDuration(Number(e.target.value))}/><b>분</b></div></label>
-<label><span>{activityType==="running"?"거리":activityType==="reading"?"읽은 분량":activityType==="workout"?"운동량":"수치(선택)"}</span><div className="unitInput"><input type="number" min="0" step="0.1" value={activityAmount} onChange={e=>setActivityAmount(Number(e.target.value))}/><b>{activityType==="running"?"km":activityType==="reading"?"쪽":activityType==="workout"?"세트":activityType==="study"?"회":""}</b></div></label>
-<label className="wideField"><span>기록과 느낌</span><textarea value={activityNote} onChange={e=>setActivityNote(e.target.value)} placeholder="몸 상태, 내용, 느낀 점"/></label>
-<label className="wideField"><span>배운 것</span><textarea value={activityLearned} onChange={e=>setActivityLearned(e.target.value)} placeholder="새롭게 알게 된 것"/></label>
-<label className="wideField"><span>적용할 것</span><textarea value={activityApplied} onChange={e=>setActivityApplied(e.target.value)} placeholder="다음에 실제로 적용할 것"/></label>
-<label><span>연결 프로젝트</span><select value={activityProject} onChange={e=>setActivityProject(e.target.value)}><option value="">없음</option>{local.projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label><button className="goldBtn activitySaveBtn" onClick={addActivity}>기록 저장</button>
-</section><section className="activityCards">{[...local.activities].sort((a,b)=>b.date.localeCompare(a.date)).map(a=><article className="premiumCard" key={a.id}><div className="activityHead"><span>{activityLabels[a.type]}</span><time>{a.date}</time></div><h3>{a.title}</h3><p><b>{a.duration}분</b>{a.amount?` · ${a.amount}${a.unit==="page"?"쪽":a.unit}`:""}</p>{a.note&&<small>{a.note}</small>}{a.learned&&<small>배운 것 · {a.learned}</small>}{a.applied&&<small>적용 · {a.applied}</small>}<div className="cardActions"><button onClick={()=>setEditingActivity({...a})}>수정</button><button onClick={()=>update("activities",local.activities.filter(x=>x.id!==a.id))}>삭제</button></div></article>)}</section></>}
+<label className="activityDurationField"><span>활동 시간</span><div className="unitInput"><input type="number" min="0" value={activityDuration} onChange={e=>setActivityDuration(Number(e.target.value))}/><b>분</b></div></label>
+<label className="activityAmountField"><span>{activityType==="running"?"거리":activityType==="reading"?"읽은 분량":activityType==="workout"?"운동량":"수치(선택)"}</span><div className="unitInput"><input type="number" min="0" step="0.1" value={activityAmount} onChange={e=>setActivityAmount(Number(e.target.value))}/><b>{activityType==="running"?"km":activityType==="reading"?"쪽":activityType==="workout"?"세트":activityType==="study"?"회":""}</b></div></label>
+<label className="activityProjectField"><span>연결 프로젝트</span><select value={activityProject} onChange={e=>setActivityProject(e.target.value)}><option value="">없음</option>{local.projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+<label className="wideField activityReflectionField"><span>기록과 느낌</span><textarea value={activityNote} onChange={e=>setActivityNote(e.target.value)} placeholder="몸 상태, 내용, 느낀 점"/></label>
+<label className="wideField activityLearnField"><span>배운 것</span><textarea value={activityLearned} onChange={e=>setActivityLearned(e.target.value)} placeholder="새롭게 알게 된 것"/></label>
+<label className="wideField activityApplyField"><span>적용할 것</span><textarea value={activityApplied} onChange={e=>setActivityApplied(e.target.value)} placeholder="다음에 실제로 적용할 것"/></label>
+<button className="goldBtn activitySaveBtn" onClick={addActivity}>기록 저장</button>
+</section><section className="activityCards">{[...local.activities].sort((a,b)=>b.date.localeCompare(a.date)).map(a=><article className="premiumCard" key={a.id}><div className="activityHead"><span>{activityLabels[a.type]}</span><time>{a.date}</time></div>{a.projectId&&<span className="recordProjectTag standaloneProjectTag">{projectNameById(a.projectId)}</span>}<h3>{a.title}</h3><p><b>{a.duration}분</b>{a.amount?` · ${a.amount}${a.unit==="page"?"쪽":a.unit}`:""}</p>{a.note&&<small>{a.note}</small>}{a.learned&&<small>배운 것 · {a.learned}</small>}{a.applied&&<small>적용 · {a.applied}</small>}<div className="cardActions"><button onClick={()=>setEditingActivity({...a})}>수정</button><button onClick={()=>update("activities",local.activities.filter(x=>x.id!==a.id))}>삭제</button></div></article>)}{!local.activities.length&&<article className="premiumCard activityEmptyState"><strong>아직 저장된 활동이 없습니다.</strong><span>위에서 활동을 저장하면 날짜순으로 여기에 쌓입니다.</span></article>}</section></>}
 
-  {view==="notes"&&<><section className="subpageHeader premiumCard"><button className="backToRecords" onClick={goBackFromDetail}>← 뒤로</button><div><span>노트</span><h2>생각과 정보를 기록합니다.</h2></div></section><section className="premiumCard noteComposer"><select value={noteType} onChange={e=>setNoteType(e.target.value as NoteType)}>{Object.entries(noteLabels).map(([v,l])=><option key={v} value={v}>{l}</option>)}</select><input value={noteTitle} onChange={e=>setNoteTitle(e.target.value)} placeholder="제목"/><textarea value={noteBody} onChange={e=>setNoteBody(e.target.value)} placeholder="기록할 내용을 적으세요"/><select value={noteProject} onChange={e=>setNoteProject(e.target.value)}><option value="">프로젝트 없음</option>{local.projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select><button className="goldBtn" onClick={addNote}>저장</button></section><section className="noteGrid">{[...local.notes].reverse().map(n=><article className="premiumCard" key={n.id}><span>{noteLabels[n.type]} · {n.date}</span><h3>{n.title}</h3><p>{n.body}</p><div className="cardActions"><button onClick={()=>setEditingNote({...n})}>수정</button><button onClick={()=>update("notes",local.notes.filter(x=>x.id!==n.id))}>삭제</button></div></article>)}</section></>}
+  {view==="notes"&&<><section className="subpageHeader premiumCard"><button className="backToRecords" onClick={goBackFromDetail}>← 뒤로</button><div><span>노트</span><h2>생각과 정보를 기록합니다.</h2></div></section><section className="premiumCard noteComposer"><select value={noteType} onChange={e=>setNoteType(e.target.value as NoteType)}>{Object.entries(noteLabels).map(([v,l])=><option key={v} value={v}>{l}</option>)}</select><input value={noteTitle} onChange={e=>setNoteTitle(e.target.value)} placeholder="제목"/><textarea value={noteBody} onChange={e=>setNoteBody(e.target.value)} placeholder="기록할 내용을 적으세요"/><select value={noteProject} onChange={e=>setNoteProject(e.target.value)}><option value="">프로젝트 없음</option>{local.projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select><button className="goldBtn" onClick={addNote}>저장</button></section><section className="noteGrid">{[...local.notes].sort((a,b)=>b.date.localeCompare(a.date)).map(n=><article className="premiumCard" key={n.id}><span>{noteLabels[n.type]} · {n.date}</span>{n.projectId&&<span className="recordProjectTag standaloneProjectTag">{projectNameById(n.projectId)}</span>}<h3>{n.title}</h3><p>{n.body}</p><div className="cardActions"><button onClick={()=>setEditingNote({...n})}>수정</button><button onClick={()=>update("notes",local.notes.filter(x=>x.id!==n.id))}>삭제</button></div></article>)}</section></>}
 
-  {view==="review"&&<><section className="subpageHeader premiumCard"><button className="backToRecords" onClick={goBackFromDetail}>← 뒤로</button><div><span>하루 리뷰</span><h2>하루를 돌아보고 다음을 정합니다.</h2></div></section><div className="reviewWorkspace"><aside className="premiumCard reviewHistory"><input type="date" value={reviewDate} onChange={e=>setReviewDate(e.target.value)}/>{reviewDates.map(d=><button className={d===reviewDate?"active":""} onClick={()=>setReviewDate(d)} key={d}>{new Date(`${d}T00:00`).toLocaleDateString("ko-KR",{month:"short",day:"numeric",weekday:"short"})}</button>)}</aside><section className="premiumCard reviewForm"><div className="reviewSummary"><label>그날 목표<input value={currentReview.goal} onChange={e=>updateReview({goal:e.target.value})}/></label><label>그날 즐길 것<input value={currentReview.enjoyment} onChange={e=>updateReview({enjoyment:e.target.value})}/></label></div><div className="reviewSummary"><label>목표 결과<select value={currentReview.status} onChange={e=>updateReview({status:e.target.value as Review["status"]})}><option value="">선택</option><option value="done">완료</option><option value="not_done">미완료</option><option value="changed">우선순위 변경</option></select></label><label>이유<input value={currentReview.reason} onChange={e=>updateReview({reason:e.target.value})}/></label></div><div className="reviewGrid"><label>잘한 점<textarea value={currentReview.good} onChange={e=>updateReview({good:e.target.value})}/></label><label>배운 점<textarea value={currentReview.learned} onChange={e=>updateReview({learned:e.target.value})}/></label><label>즐거웠던 순간<textarea value={currentReview.joy} onChange={e=>updateReview({joy:e.target.value})}/></label><ReviewGratitude morningValues={currentReview.morningGratitude} eveningValues={currentReview.eveningGratitude} onMorningChange={(index,value)=>{const values=[...currentReview.morningGratitude];values[index]=value;updateReview({morningGratitude:values,gratitude:values.filter(Boolean).join(" / ")})}} onEveningChange={(index,value)=>{const values=[...currentReview.eveningGratitude];values[index]=value;updateReview({eveningGratitude:values})}}/></div></section></div></>}
-  {view==="timeline"&&<><section className="subpageHeader premiumCard"><button className="backToRecords" onClick={goBackFromDetail}>← 뒤로</button><div><span>전체 타임라인</span><h2>모든 기록을 날짜순으로 봅니다.</h2></div></section><section className="premiumCard timelineList">{timeline.map((x,i)=><article key={`${x.date}-${i}`}><time>{x.date}</time><i/><div><span>{x.kind}</span><h3>{x.title}</h3>{x.note&&<p>{x.note}</p>}</div></article>)}</section></>}
+  {view==="review"&&<><section className="subpageHeader premiumCard"><button className="backToRecords" onClick={goBackFromDetail}>← 뒤로</button><div><span>하루 리뷰</span><h2>하루를 돌아보고 다음을 정합니다.</h2></div></section><div className="reviewWorkspace"><aside className="premiumCard reviewHistory"><input type="date" value={reviewDate} onChange={e=>setReviewDate(e.target.value)}/>{reviewDates.map(d=><button className={d===reviewDate?"active":""} onClick={()=>setReviewDate(d)} key={d}>{new Date(`${d}T00:00`).toLocaleDateString("ko-KR",{month:"short",day:"numeric",weekday:"short"})}</button>)}</aside><section className="premiumCard reviewForm"><div className="briefBubble"><strong>오늘의 계획과 실제</strong><p>할 일 {getDailyRecord({date:reviewDate,goal:currentReview.goal,reason:"",enjoyment:currentReview.enjoyment,gratitude:currentReview.morningGratitude,tasks:contextTasks,events:operationalContextEvents.filter(event=>eventOccursOnDate(event,reviewDate)).map(event=>({id:event.id,title:event.title,start:event.start,end:event.end,context:event.calendarName})),projects:local.projects,reviews:local.reviews}).todoSummary.completed} / {getDailyRecord({date:reviewDate,goal:currentReview.goal,reason:"",enjoyment:currentReview.enjoyment,gratitude:currentReview.morningGratitude,tasks:contextTasks,events:operationalContextEvents.filter(event=>eventOccursOnDate(event,reviewDate)).map(event=>({id:event.id,title:event.title,start:event.start,end:event.end,context:event.calendarName})),projects:local.projects,reviews:local.reviews}).todoSummary.total} 완료 · 일정 {operationalContextEvents.filter(event=>eventOccursOnDate(event,reviewDate)).length}개</p></div><div className="reviewSummary reviewSummaryPrimary"><label>그날 목표<input value={currentReview.goal} onChange={e=>updateReview({goal:e.target.value})}/></label><label>그날 즐길 것<input value={currentReview.enjoyment} onChange={e=>updateReview({enjoyment:e.target.value})}/></label><label className="reviewStatusField">목표 결과<select value={currentReview.status} onChange={e=>updateReview({status:e.target.value as Review["status"]})}><option value="">선택</option><option value="done">완료</option><option value="not_done">미완료</option><option value="changed">우선순위 변경</option></select></label></div><div className="reviewGrid"><label>잘한 점<textarea value={currentReview.good} onChange={e=>updateReview({good:e.target.value})}/></label><label>배운 점<textarea value={currentReview.learned} onChange={e=>updateReview({learned:e.target.value})}/></label><label>즐거웠던 순간<textarea value={currentReview.joy} onChange={e=>updateReview({joy:e.target.value})}/></label><ReviewGratitude morningValues={currentReview.morningGratitude} eveningValues={currentReview.eveningGratitude} onMorningChange={(index,value)=>{const values=[...currentReview.morningGratitude];values[index]=value;updateReview({morningGratitude:values,gratitude:values.filter(Boolean).join(" / ")})}} onEveningChange={(index,value)=>{const values=[...currentReview.eveningGratitude];values[index]=value;updateReview({eveningGratitude:values})}}/></div><button className="goldBtn reviewSaveBtn" type="button" onClick={saveEveningReview}>저녁 리뷰 저장</button></section></div></>}
+  {view==="timeline"&&<><section className="subpageHeader premiumCard"><button className="backToRecords" onClick={goBackFromDetail}>← 뒤로</button><div><span>전체 타임라인</span><h2>연도와 월을 열고 닫아 기록을 봅니다.</h2></div></section><section className="premiumCard timelineList groupedTimelineList">{timelineGroups.map(year=><details className="timelineYearGroup" key={year.year}><summary><strong>{year.year}년</strong><span>{year.months.reduce((sum,month)=>sum+month.entries.length,0)}개 기록</span></summary><div>{year.months.map(month=><details className="timelineMonthGroup" key={month.month}><summary><strong>{Number(month.month.slice(5,7))}월</strong><span>{month.entries.length}개</span></summary><div>{month.entries.map((x,i)=><article key={`${x.date}-${x.kind}-${i}`}><time>{x.date}</time><i/><div><span>{x.kind}{x.project&&<em className="recordProjectTag">{x.project}</em>}</span><h3>{x.title}</h3>{x.note&&<p>{x.note}</p>}</div></article>)}</div></details>)}</div></details>)}</section></>}
 
-  {view==="analytics"&&<><section className="statGrid"><article className="premiumCard"><strong>{monthActivities.length}</strong><span>이번 달 활동 기록</span></article><article className="premiumCard"><strong>{local.tasks.filter(t=>t.done).length}</strong><span>완료한 할 일</span></article><article className="premiumCard"><strong>{Object.values(local.reviews as Record<string,Review>).filter((r:Review)=>r.status==="done").length}</strong><span>완료한 하루 목표</span></article><article className="premiumCard"><strong>{local.notes.length}</strong><span>나의 노트</span></article></section>
-<section className="premiumCard dashboardSection"><div className="cardTitle"><div><h2>이번 달 흐름</h2><small>세부 기록은 활동 기록에서 추가·수정합니다.</small></div><button onClick={()=>navigateTo("activities")}>활동 기록 열기</button></div>
-<div className="activityStats grouped">
-{[
- {key:"exercise",label:"운동",types:["running","workout","martial"] as ActivityType[]},
- {key:"reading",label:"독서",types:["reading"] as ActivityType[]},
- {key:"study",label:"공부",types:["study"] as ActivityType[]},
- {key:"life",label:"생활·기타",types:["church","photo","other"] as ActivityType[]}
-].map(group=>{const list=monthActivities.filter(a=>group.types.includes(a.type));return <article key={group.key} onClick={()=>navigateTo("activities")}><strong>{group.label}</strong><b>{list.length}회</b><small>{Math.round(list.reduce((s,a)=>s+a.duration,0)/6)/10}시간</small></article>})}
-</div></section>
-<section className="premiumCard dashboardSection"><div className="cardTitle"><div><h2>프로젝트 진행률</h2><small>진행률은 프로젝트의 중간 목표 완료 상태로 계산됩니다.</small></div><button onClick={()=>setView("projects")}>프로젝트 관리</button></div>{local.projects.map(p=><div className="miniProject clickableProject" key={p.id} onClick={()=>{setSelectedProject(p.id);setView("projects")}}><div><strong>{p.name}</strong><span>{progress(p)}%</span></div><i><b style={{width:`${progress(p)}%`}}/></i></div>)}</section></>}
-
-  {view==="chapters"&&<><section className="premiumCard chapterComposer"><label><span>새 시기 이름</span><input value={chapterTitle} onChange={e=>setChapterTitle(e.target.value)} placeholder="예: JEONG를 완성하는 시기"/></label><label><span>이 시기의 의미</span><input value={chapterDescription} onChange={e=>setChapterDescription(e.target.value)} placeholder="무엇을 만들고 살아갈 시기인가"/></label><button className="goldBtn" onClick={addChapter}>새 시기 시작</button></section><section className="chapterGrid">{[...local.chapters].reverse().map(c=><article className={`premiumCard ${c.active?"active":""}`} key={c.id}><div className="chapterContent"><span>{c.active?"현재 시기":"지난 시기"}</span><h3>{c.title}</h3><p>{c.description}</p><small>{c.startDate}{c.endDate?` — ${c.endDate}`:" — 진행 중"}</small></div>{c.active&&<button className="chapterEndBtn" onClick={()=>update("chapters",local.chapters.map(x=>x.id===c.id?{...x,active:false,endDate:todayKey()}:x))}>현재 시기 종료</button>}</article>)}</section></>}
-
-
-  {view==="ai"&&<><section className="premiumCard aiBridgeHero"><div><span>추가 API 비용 없음</span><h2>외부 AI 연결</h2><p>JEONG가 필요한 데이터를 정리하고, 선택한 외부 AI에 붙여넣을 프롬프트를 만듭니다. 자동 전송하지 않으며 열기 전에 내용을 확인하고 수정할 수 있습니다.</p></div><button className="goldBtn aiLoadButton" onClick={()=>prepareAi("daily")}>데이터 불러오기</button></section><section className="premiumCard aiBridgePanel"><div className="aiTypeGrid"><button className={aiType==="morning"?"active":""} onClick={()=>prepareAi("morning")}><strong>아침 브리핑</strong><span>오늘 일정·할 일·준비</span></button><button className={aiType==="daily"?"active":""} onClick={()=>prepareAi("daily")}><strong>오늘 점검</strong><span>완료·남은 일·다음 행동</span></button><button className={aiType==="weekly"?"active":""} onClick={()=>prepareAi("weekly")}><strong>주간 점검</strong><span>프로젝트와 이번 주 흐름</span></button><button className={aiType==="project"?"active":""} onClick={()=>prepareAi("project")}><strong>프로젝트 상담</strong><span>막힌 지점과 다음 행동</span></button><button className={aiType==="free"?"active":""} onClick={()=>prepareAi("free")}><strong>자유 대화</strong><span>JEONG 자료를 대화 배경으로</span></button></div><label className="aiPrivacyCheck"><input type="checkbox" checked={aiIncludePeople} onChange={e=>{setAiIncludePeople(e.target.checked);setTimeout(()=>setAiPrompt(buildAiPrompt(aiType)),0)}}/><span>연락 예정인 사람의 이름·태그도 포함</span></label><label className="aiPreview"><span>전송 전 미리보기·수정</span><textarea value={aiPrompt} onChange={e=>{setAiPrompt(e.target.value);setAiCopied(false)}} placeholder="분석 유형을 선택하면 JEONG 데이터가 여기에 정리됩니다."/></label><div className="aiActions">
- <button className="aiSecondaryButton" onClick={copyAiPrompt}>{aiCopied?"✓ 프롬프트 복사 완료":"프롬프트 복사"}</button>
- <button className="goldBtn aiPrimaryButton" onClick={openChatGPT}>프롬프트 복사 후 외부 AI 열기</button>
-</div><p className="aiHint">외부 AI가 열리면 입력창에 붙여넣기(Ctrl+V) 후 전송하세요. JEONG의 데이터는 이 버튼을 누르기 전까지 외부로 전송되지 않습니다.</p></section></>}
-
-  {view==="settings"&&<><section className="premiumCard advancedAccessPanel"><div className="cardTitle"><div><h2>고급 기능</h2><small>기본 메뉴에서는 숨기고, 필요한 사용자만 엽니다.</small></div></div><div className="advancedAccessButtons"><button onClick={()=>navigateTo("timeline")}>전체 타임라인</button><button onClick={()=>setView("chapters")}>삶의 시기</button></div></section><section className="premiumCard settingsPanel"><h2>설정</h2><div><span>테마</span><button onClick={toggleTheme}>{theme==="light"?"다크 모드":"라이트 모드"}</button></div><div><span>Google 데이터</span><button onClick={loadCalendar}>{loading?"불러오는 중":"새로고침"}</button></div><div><span>백업 복원</span><label className="importBtn">파일 선택<input type="file" accept=".json,application/json" onChange={e=>{const f=e.target.files?.[0];if(f)importBackup(f)}}/></label></div><div><span>로컬 데이터 백업</span><button onClick={()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(local,null,2)],{type:"application/json"}));a.download=`JEONG-${todayKey()}.json`;a.click()}}>내보내기</button></div></section>
-<section className="premiumCard aiEngineSettings">
- <div className="cardTitle"><div><h2>AI 엔진</h2><small>JEONG의 화면과 기억은 유지하고, 필요한 AI 두뇌만 선택합니다.</small></div></div>
- <div className="aiEnginePicker">
-  <label>사용할 엔진<select value={aiEngine} onChange={e=>{setAiEngine(e.target.value as AiEngine);setAiStatus("")}}><option value="none">연결 안 함</option><option value="ollama">Ollama · 무료 로컬 AI</option><option value="openai">OpenAI API</option><option value="claude">Claude API</option><option value="gemini">Gemini API</option></select></label>
-  {aiEngine==="ollama"&&<label>로컬 모델<input value={aiModel} onChange={e=>setAiModel(e.target.value)} placeholder="예: llama3.2:3b"/></label>}
+  {view==="analytics"&&<>
+<section className="premiumCard dashboardSection lifeFlowPanel">
+ <div className="cardTitle"><div><h2>이번 주 흐름</h2><small>{weeklyIntelligence.start} ~ {weeklyIntelligence.end} · 실제 실행 데이터</small></div><button onClick={()=>{prepareAi("weekly");navigateTo("ai")}}>ChatGPT에 해석 요청</button></div>
+ <div className="lifeFlowMetrics">
+  <article><span>Todo</span><strong>{weeklyIntelligence.todo.completed}/{weeklyIntelligence.todo.total}</strong><small>{weeklyIntelligence.todo.total?Math.round(weeklyIntelligence.todo.completed/weeklyIntelligence.todo.total*100):0}% 완료</small></article>
+  <article><span>Routine</span><strong>{weeklyIntelligence.routine.completed}/{weeklyIntelligence.routine.scheduled}</strong><small>{weeklyIntelligence.routine.completionRate}% 수행</small></article>
+  <article><span>Calendar</span><strong>{weeklyIntelligence.calendar.count}건</strong><small>{Math.round(weeklyIntelligence.calendar.minutes/60)}시간</small></article>
+  <article><span>기록</span><strong>{weeklyIntelligence.records.evening}일</strong><small>Morning {weeklyIntelligence.records.morning}일</small></article>
  </div>
- <article className="aiSetupGuide">
-  <div className="aiGuideHeader"><div><span>연결 안내</span><h3>{currentAiGuide.title}</h3></div><b>{currentAiGuide.cost}</b></div>
-  <ol>{currentAiGuide.steps.map((step,index)=><li key={index}><i>{index+1}</i><span>{step}</span></li>)}</ol>
-  {currentAiGuide.env&&<div className="envExample"><span>.env.local에 입력</span><code>{currentAiGuide.env}</code><button onClick={()=>navigator.clipboard.writeText(currentAiGuide.env!)}>복사</button></div>}
-  <p>{currentAiGuide.note}</p>
-  {currentAiGuide.link&&<button className="officialLinkBtn" onClick={()=>window.open(currentAiGuide.link,"_blank","noopener,noreferrer")}>{currentAiGuide.linkLabel} ↗</button>}
- </article>
- <div className="aiSetupActions"><button className="goldBtn" onClick={testAiEngine}>설정 저장·연결 확인</button>{aiStatus&&<strong className="aiStatus">{aiStatus}</strong>}</div>
+ <div className="lifeFlowSignals">
+  <span>Carry <b>{weeklyIntelligence.todo.carry}</b></span>
+  <span>Overdue <b>{weeklyIntelligence.todo.overdue}</b></span>
+  <span>프로젝트 활동 <b>{weeklyIntelligence.projects.length}</b></span>
+  <span>반복 이월 <b>{weeklyIntelligence.deferred.length}</b></span>
+ </div>
+</section>
+<section className="premiumCard dashboardSection lifeFlowPanel">
+ <div className="cardTitle"><div><h2>이번 달 흐름</h2><small>{monthlyIntelligence.range.start} ~ {monthlyIntelligence.range.end} · 한 달의 시간과 실행 흐름</small></div></div>
+ <div className="lifeFlowMetrics">
+  <article><span>Todo</span><strong>{monthlyIntelligence.todo.completed.length}/{monthlyIntelligence.todo.planned.length}</strong><small>{monthlyIntelligence.todo.completionRate}% 완료</small></article>
+  <article><span>Routine</span><strong>{monthlyIntelligence.routine.completed}/{monthlyIntelligence.routine.scheduled}</strong><small>{monthlyIntelligence.routine.completionRate}% 수행</small></article>
+  <article><span>Calendar</span><strong>{monthlyIntelligence.calendar.count}건</strong><small>{Math.round(monthlyIntelligence.calendar.minutes/60)}시간</small></article>
+  <article><span>기록</span><strong>{monthlyIntelligence.records.eveningReviews}일</strong><small>Morning {monthlyIntelligence.records.morningDirections}일</small></article>
+ </div>
+ <div className="lifeFlowSignals">
+  <span>Carry <b>{monthlyIntelligence.todo.carryCount}</b></span>
+  <span>Overdue <b>{monthlyIntelligence.todo.overdue.length}</b></span>
+  <span>움직인 프로젝트 <b>{monthlyIntelligence.projects.length}</b></span>
+  <span>정체 프로젝트 <b>{monthlyIntelligence.stalledProjects.length}</b></span>
+ </div>
+ {monthlyIntelligence.weeklyFlow.length>0&&<div className="monthlyFlowStrip">{monthlyIntelligence.weeklyFlow.map((week,index)=><article key={week.start}><span>{index+1}주</span><strong>{week.completionRate}%</strong><small>Todo {week.todoCompleted}/{week.todoTotal} · 일정 {week.calendarCount}</small></article>)}</div>}
+</section>
+<section className="premiumCard dashboardSection personalIntelligencePanel" aria-label="Life Facts">
+ <div className="cardTitle"><div><h2>Life Facts · 최근 30일</h2><small>{personalIntelligence.period.start} ~ {personalIntelligence.period.end} · 직전 30일과의 차이만 표시합니다.</small></div><button onClick={()=>{prepareAi("weekly");navigateTo("ai")}}>ChatGPT에 물어보기</button></div>
+ <div className="intelligenceMetricGrid">
+  <article><span>Todo 완료율</span><strong>{personalIntelligence.todo.completionRate}%</strong><small>직전 대비 {personalIntelligence.comparison.todoRateDelta>=0?"+":""}{personalIntelligence.comparison.todoRateDelta}%p</small></article>
+  <article><span>Routine 수행률</span><strong>{personalIntelligence.routine.completionRate}%</strong><small>{personalIntelligence.routine.completed}/{personalIntelligence.routine.scheduled}회</small></article>
+  <article><span>Calendar 시간</span><strong>{Math.round(personalIntelligence.calendar.minutes/60)}시간</strong><small>직전 대비 {personalIntelligence.comparison.calendarMinutesDelta>=0?"+":""}{Math.round(personalIntelligence.comparison.calendarMinutesDelta/60)}시간</small></article>
+  <article><span>Review</span><strong>{personalIntelligence.records.eveningReviews}일</strong><small>Morning {personalIntelligence.records.morningDirections}일</small></article>
+ </div>
+ <div className="intelligenceObservations"><h3>30일 변화</h3>
+  <article><div><strong>이월</strong><p>{personalIntelligence.todo.carryCount}회 · 반복 이월 Todo {personalIntelligence.todo.repeatedCarry.length}개</p></div><span>{personalIntelligence.comparison.carryDelta>=0?"+":""}{personalIntelligence.comparison.carryDelta}회</span></article>
+  <article><div><strong>기한 경과</strong><p>미완료 overdue Todo {personalIntelligence.todo.overdue}개</p></div><span>{personalIntelligence.comparison.overdueDelta>=0?"+":""}{personalIntelligence.comparison.overdueDelta}개</span></article>
+  <article><div><strong>Morning 기록</strong><p>최근 30일 {personalIntelligence.records.morningDirections}일</p></div><span>{personalIntelligence.comparison.morningDelta>=0?"+":""}{personalIntelligence.comparison.morningDelta}일</span></article>
+  <article><div><strong>Evening Review</strong><p>최근 30일 {personalIntelligence.records.eveningReviews}일</p></div><span>{personalIntelligence.comparison.reviewDelta>=0?"+":""}{personalIntelligence.comparison.reviewDelta}일</span></article>
+ </div>
 </section></>}
+
+  {view==="chapters"&&<><div className="detailBackRow"><button className="backToRecords" onClick={goBackFromDetail}>← 뒤로</button></div><section className="premiumCard chapterComposer"><label><span>새 시기 이름</span><input value={chapterTitle} onChange={e=>setChapterTitle(e.target.value)} placeholder="예: JEONG를 완성하는 시기"/></label><label><span>이 시기의 의미</span><input value={chapterDescription} onChange={e=>setChapterDescription(e.target.value)} placeholder="무엇을 만들고 살아갈 시기인가"/></label><button className="goldBtn" onClick={addChapter}>새 시기 시작</button></section><section className="chapterGrid">{[...local.chapters].reverse().map(c=><article className={`premiumCard ${c.active?"active":""}`} key={c.id}><div className="chapterContent"><span>{c.active?"현재 시기":"지난 시기"}</span><h3>{c.title}</h3><p>{c.description}</p><small>{c.startDate}{c.endDate?` — ${c.endDate}`:" — 진행 중"}</small></div>{c.active&&<button className="chapterEndBtn" onClick={()=>update("chapters",local.chapters.map(x=>x.id===c.id?{...x,active:false,endDate:todayKey()}:x))}>현재 시기 종료</button>}</article>)}</section></>}
+
+
+  {view==="ai"&&<section className="premiumCard aiBridgePanel aiBridgeSimple">
+   <div className="cardTitle"><div><h2>ChatGPT 연결</h2><small>JEONG의 현재 Life State를 선택한 목적에 맞춰 복사하고 ChatGPT를 엽니다.</small></div></div>
+   <div className="aiTypeGrid">
+    <button className={aiType==="morning"?"active":""} onClick={()=>prepareAi("morning")}><strong>아침 브리핑</strong><span>오늘 일정·할 일·Routine·Project</span></button>
+    <button className={aiType==="daily"?"active":""} onClick={()=>prepareAi("daily")}><strong>오늘 점검</strong><span>완료·남은 일·다음 행동</span></button>
+    <button className={aiType==="weekly"?"active":""} onClick={()=>prepareAi("weekly")}><strong>주간 점검</strong><span>이번 주 실행과 흐름</span></button>
+    <button className={aiType==="project"?"active":""} onClick={()=>prepareAi("project")}><strong>프로젝트 상담</strong><span>중간목표·루틴·다음 행동</span></button>
+    <button className={aiType==="free"?"active":""} onClick={()=>prepareAi("free")}><strong>자유 대화</strong><span>JEONG 자료를 대화 배경으로</span></button>
+   </div>
+   <label className="aiPrivacyCheck"><input type="checkbox" checked={aiIncludePeople} onChange={e=>setAiIncludePeople(e.target.checked)}/><span>연락 예정인 사람의 이름·태그도 포함</span></label>
+   <button className="goldBtn aiPrimaryButton aiDirectStartButton" onClick={openChatGPT}>현재 Life State로 ChatGPT 시작</button>
+   <p className="aiHint">현재 데이터를 그 순간 새로 생성해 클립보드에 복사한 뒤 ChatGPT를 엽니다. 입력창에 붙여넣기(Ctrl+V)만 하면 됩니다.</p>
+  </section>}
+
+  {view==="profile"&&<><div className="detailBackRow"><button className="backToRecords" onClick={goBackFromDetail}>← 뒤로</button></div><section className="premiumCard profilePage" aria-label="개인정보"><header className="profilePageHeader"><div className="profilePageAvatar" aria-hidden="true">{user?.image?<img src={user.image} alt=""/>:<span>整</span>}</div><div><span>PERSONAL INFORMATION</span><h2>개인정보</h2><p>JEONG에서 사용하는 내 계정과 표시 정보를 확인합니다.</p></div></header><div className="profileInfoGrid"><article><span>JEONG 호칭</span><strong>황제</strong><small>앱 안에서 사용하는 표시 호칭입니다.</small></article><article><span>Google 계정 이름</span><strong>{user?.name||"이름 정보 없음"}</strong><small>Google 로그인 세션에서 읽은 정보입니다.</small></article><article><span>Google 이메일</span><strong>{user?.email||"이메일 정보 없음"}</strong><small>로그인 계정 확인용으로만 표시합니다.</small></article><article><span>데이터 보관</span><strong>JEONG 로컬 데이터 + Google Calendar</strong><small>설정에서 로컬 데이터 백업과 Google 데이터 새로고침을 관리할 수 있습니다.</small></article></div><div className="profilePageActions"><button className="softBtn" onClick={()=>navigateTo("settings")}>설정 열기</button></div></section></>}
+
+  {view==="settings"&&<><section className="premiumCard advancedAccessPanel"><div className="cardTitle"><div><h2>고급 기능</h2><small>기본 메뉴에서는 숨기고, 필요한 사용자만 엽니다.</small></div></div><div className="advancedAccessButtons"><button onClick={()=>navigateTo("timeline")}>전체 타임라인</button><button onClick={()=>navigateTo("chapters")}>삶의 시기</button></div></section><section className="premiumCard settingsPanel"><h2>설정</h2><div><span>테마</span><button onClick={toggleTheme}>{theme==="light"?"다크 모드":"라이트 모드"}</button></div><div><span>Google 데이터</span><button onClick={refreshCalendarData}>{loading?"불러오는 중":"새로고침"}</button></div><div><span>백업 복원</span><label className="importBtn">파일 선택<input type="file" accept=".json,application/json" onChange={e=>{const f=e.target.files?.[0];if(f)importBackup(f)}}/></label></div><div><span>로컬 데이터 백업</span><button onClick={()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(local,null,2)],{type:"application/json"}));a.download=`JEONG-${todayKey()}.json`;a.click()}}>내보내기</button></div></section>
+</>}
   </main>
 
-  {recurringEditor&&<RecurringTaskEditor key={recurringEditor==="new"?"new":recurringEditor.id} contexts={local.contexts} projects={local.projects} calendars={calendarOptions} initial={recurringEditor==="new"?undefined:recurringEditor} defaultContextId="personal" defaultCalendarId={getDefaultCalendarId(local.contextCalendarPreferences,local.calendarContextMappings,"personal",visibleCalendarIds[0]||"primary")} calendarForContext={contextId=>getDefaultCalendarId(local.contextCalendarPreferences,local.calendarContextMappings,contextId,visibleCalendarIds[0]||"primary")} onSave={saveRecurringTask} onCancel={()=>setRecurringEditor(null)}/>} 
-  {editingTask&&<div className="overlay"><div className="editModal"><div className="modalHead"><h2>할 일 수정</h2><button onClick={()=>setEditingTask(null)}>닫기</button></div><label>할 일<input value={editingTask.title} onChange={e=>setEditingTask({...editingTask,title:e.target.value})}/></label><div className="twoFields"><label>기간<select value={editingTask.bucket} onChange={e=>setEditingTask({...editingTask,bucket:e.target.value as TaskBucket})}>{Object.entries(bucketLabels).map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label><label>프로젝트<select value={editingTask.projectId??""} onChange={e=>setEditingTask({...editingTask,projectId:e.target.value||undefined})}><option value="">없음</option>{local.projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label></div><ContextPicker contexts={local.contexts} value={editingTask.contextId} onChange={contextId=>setEditingTask({...editingTask,contextId})}/><div className="twoFields"><label>날짜·시간<input type="datetime-local" value={editingTask.scheduledAt} onChange={e=>setEditingTask({...editingTask,scheduledAt:e.target.value})}/></label><label>예상 시간(분)<input type="number" value={editingTask.durationMinutes} onChange={e=>setEditingTask({...editingTask,durationMinutes:Number(e.target.value)})}/></label></div><label className="checkRow"><input type="checkbox" checked={editingTask.syncCalendar} onChange={e=>setEditingTask({...editingTask,syncCalendar:e.target.checked})}/>Google Calendar와 연결</label><button className="goldBtn" onClick={saveTaskEdit}>저장</button></div></div>}
+  {calendarDayPreview&&<div className="overlay calendarDayPreviewOverlay" onMouseDown={e=>{if(e.target===e.currentTarget)setCalendarDayPreview(null)}}><section className="calendarDayPreviewModal" role="dialog" aria-modal="true" aria-label={`${calendarDayPreviewKey} 전체 스케줄`}>
+   <div className="modalHead"><div><span>선택한 날짜</span><h2>{calendarDayPreview.toLocaleDateString("ko-KR",{month:"long",day:"numeric",weekday:"long"})}</h2><p>이 날의 스케줄 {calendarDayPreviewEvents.length}개</p></div><button type="button" className="softBtn" onClick={()=>setCalendarDayPreview(null)}>닫기</button></div>
+   <div className="calendarDayPreviewList">{calendarDayPreviewEvents.map(event=><button type="button" key={`${event.calendarId||""}-${event.id}-${event.start}`} onClick={()=>{const returnDate=calendarDayPreview;setCalendarDayPreview(null);openEvent(event,returnDate)}}><time>{event.allDay?"종일":eventTime(event.start)}</time><span><strong>{event.title||"제목 없는 일정"}</strong><small>{[event.location,event.calendarName].filter(Boolean).join(" · ")||"세부 정보 없음"}</small></span><b>{eventStatus(event)}</b></button>)}{!calendarDayPreviewEvents.length&&<p>등록된 스케줄이 없습니다.</p>}</div>
+   <div className="calendarDayPreviewActions"><button type="button" className="goldBtn" onClick={()=>{const date=calendarDayPreview;setCalendarDayPreview(null);openNewEvent(date,date)}}>+ 이 날 일정 추가</button></div>
+  </section></div>}
+
+
+  {editingTask&&<div className="overlay"><div className="editModal"><div className="modalHead"><h2>할 일 수정</h2><button onClick={()=>setEditingTask(null)}>닫기</button></div><label>할 일<input value={editingTask.title} onChange={e=>setEditingTask({...editingTask,title:e.target.value})}/></label><label>메모<textarea value={editingTask.note??""} onChange={e=>setEditingTask({...editingTask,note:e.target.value})}/></label><div className="twoFields"><label>기간<select value={editingTask.bucket} onChange={e=>setEditingTask({...editingTask,bucket:e.target.value as TaskBucket})}>{Object.entries(bucketLabels).map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label><label>프로젝트<select value={editingTask.projectId??""} onChange={e=>setEditingTask({...editingTask,projectId:e.target.value||undefined})}><option value="">없음</option>{local.projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label></div><ContextPicker contexts={local.contexts} label="맥락" value={editingTask.contextId} onChange={contextId=>setEditingTask({...editingTask,contextId})}/><div className="twoFields"><label>기한·처리 시각 (선택)<input type="datetime-local" value={editingTask.scheduledAt} onChange={e=>setEditingTask({...editingTask,scheduledAt:e.target.value})}/></label><label>예상 시간(분)<input type="number" value={editingTask.durationMinutes} onChange={e=>setEditingTask({...editingTask,durationMinutes:Number(e.target.value)})}/></label></div>{editingTask.calendarEventId&&<small className="legacyCalendarLinkNote">기존에 연결된 Calendar 일정은 데이터 보호를 위해 유지됩니다.</small>}<button className="goldBtn" onClick={saveTaskEdit}>저장</button></div></div>}
   {editingActivity&&<div className="overlay"><div className="editModal"><div className="modalHead"><h2>활동 기록 수정</h2><button onClick={()=>setEditingActivity(null)}>닫기</button></div><div className="twoFields"><label>종류<select value={editingActivity.type} onChange={e=>setEditingActivity({...editingActivity,type:e.target.value as ActivityType})}>{Object.entries(activityLabels).map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label><label>날짜<input type="date" value={editingActivity.date} onChange={e=>setEditingActivity({...editingActivity,date:e.target.value})}/></label></div><label>제목<input value={editingActivity.title} onChange={e=>setEditingActivity({...editingActivity,title:e.target.value})}/></label><div className="twoFields"><label>시간(분)<input type="number" value={editingActivity.duration} onChange={e=>setEditingActivity({...editingActivity,duration:Number(e.target.value)})}/></label><label>수치<input type="number" step="0.1" value={editingActivity.amount} onChange={e=>setEditingActivity({...editingActivity,amount:Number(e.target.value)})}/></label></div><label>프로젝트<select value={editingActivity.projectId??""} onChange={e=>setEditingActivity({...editingActivity,projectId:e.target.value||undefined})}><option value="">없음</option>{local.projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label><label>기록<textarea value={editingActivity.note} onChange={e=>setEditingActivity({...editingActivity,note:e.target.value})}/></label><label>배운 것<textarea value={editingActivity.learned} onChange={e=>setEditingActivity({...editingActivity,learned:e.target.value})}/></label><label>적용할 것<textarea value={editingActivity.applied} onChange={e=>setEditingActivity({...editingActivity,applied:e.target.value})}/></label><button className="goldBtn" onClick={saveActivityEdit}>저장</button></div></div>}
   {editingNote&&<div className="overlay"><div className="editModal"><div className="modalHead"><h2>노트 수정</h2><button onClick={()=>setEditingNote(null)}>닫기</button></div><div className="twoFields"><label>분류<select value={editingNote.type} onChange={e=>setEditingNote({...editingNote,type:e.target.value as NoteType})}>{Object.entries(noteLabels).map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label><label>날짜<input type="date" value={editingNote.date} onChange={e=>setEditingNote({...editingNote,date:e.target.value})}/></label></div><label>제목<input value={editingNote.title} onChange={e=>setEditingNote({...editingNote,title:e.target.value})}/></label><label>프로젝트<select value={editingNote.projectId??""} onChange={e=>setEditingNote({...editingNote,projectId:e.target.value||undefined})}><option value="">없음</option>{local.projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label><label>내용<textarea value={editingNote.body} onChange={e=>setEditingNote({...editingNote,body:e.target.value})}/></label><button className="goldBtn" onClick={saveNoteEdit}>저장</button></div></div>}
   {editingPerson&&<div className="overlay"><div className="editModal personModal"><div className="modalHead"><h2>관계 상세</h2><button onClick={()=>setEditingPerson(null)}>닫기</button></div><div className="twoFields"><label>이름<input value={editingPerson.name} onChange={e=>setEditingPerson({...editingPerson,name:e.target.value})}/></label><label>태그<input value={editingPerson.tags.join(", ")} onChange={e=>setEditingPerson({...editingPerson,tags:e.target.value.split(",").map(x=>x.trim()).filter(Boolean)})}/></label></div><div className="twoFields"><label>전화<input value={editingPerson.phone??""} onChange={e=>setEditingPerson({...editingPerson,phone:e.target.value})}/></label><label>이메일<input value={editingPerson.email??""} onChange={e=>setEditingPerson({...editingPerson,email:e.target.value})}/></label></div><div className="twoFields"><label>최근 연락<input type="date" value={editingPerson.lastContact} onChange={e=>setEditingPerson({...editingPerson,lastContact:e.target.value})}/></label><label>다음 연락<input type="date" value={editingPerson.nextContact} onChange={e=>setEditingPerson({...editingPerson,nextContact:e.target.value})}/></label></div><label>관계 메모<textarea value={editingPerson.note} onChange={e=>setEditingPerson({...editingPerson,note:e.target.value})}/></label><section className="contactLogBox"><h3>연락 기록</h3><div className="contactLogComposer"><select value={contactChannel} onChange={e=>setContactChannel(e.target.value)}><option>문자</option><option>전화</option><option>카카오톡</option><option>이메일</option><option>대면</option></select><input value={contactSummary} onChange={e=>setContactSummary(e.target.value)} placeholder="무슨 이야기를 했는지"/><button onClick={addContactLog}>기록</button></div>{[...(editingPerson.logs??[])].reverse().map(log=><article key={log.id}><time>{log.date}</time><b>{log.channel}</b><span>{log.summary}</span></article>)}</section><button className="goldBtn" onClick={savePersonEdit}>저장</button></div></div>}
@@ -1342,7 +1928,7 @@ export function Dashboard(){
     <div className="dialogHeader"><div><span>새 프로젝트</span><h2>무엇을 현실로 만들까요?</h2><p>이름과 완료됐을 때의 모습을 먼저 정합니다.</p></div><button className="dialogClose" onClick={()=>setProjectDialog(null)}>×</button></div>
     <label><span>프로젝트 이름</span><input autoFocus value={newProjectName} onChange={e=>setNewProjectName(e.target.value)} placeholder="예: JEONG 실사용판 완성"/></label>
     <label><span>프로젝트 목표</span><textarea value={newProjectGoal} onChange={e=>setNewProjectGoal(e.target.value)} placeholder="완료했을 때 어떤 상태가 되어야 하나요?"/></label>
-    <ContextPicker contexts={local.contexts} value={newProjectContext} onChange={value=>setNewProjectContext(value??"personal")} allowUnassigned={false}/>
+    <div className="twoFields"><label><span>시작일</span><input type="date" value={newProjectStartDate} onChange={e=>setNewProjectStartDate(e.target.value)}/></label><label><span>마감일</span><input type="date" value={newProjectDueDate} onChange={e=>setNewProjectDueDate(e.target.value)}/></label></div>
     <div className="dialogActions"><button className="btnSecondary" onClick={()=>setProjectDialog(null)}>취소</button><button className="goldBtn" onClick={createProject}>프로젝트 만들기</button></div>
    </section>
   </div>}
@@ -1350,64 +1936,51 @@ export function Dashboard(){
    <section className="jeongDialog">
     <div className="dialogHeader"><div><span>{selectedProjectData.name}</span><h2>중간 목표 추가</h2><p>완료 여부가 프로젝트 진행률에 반영됩니다.</p></div><button className="dialogClose" onClick={()=>setProjectDialog(null)}>×</button></div>
     <label><span>중간 목표 이름</span><input autoFocus value={newMilestoneTitle} onChange={e=>setNewMilestoneTitle(e.target.value)} placeholder="예: Google Calendar 안정화"/></label>
-    <label><span>프로젝트 진행률 반영 비중</span><div className="dialogUnitInput"><input type="number" min="0" max="100" value={newMilestoneWeight} onChange={e=>setNewMilestoneWeight(Number(e.target.value))}/><b>%</b></div><small>현재 중간 목표 비중 합계 {selectedProjectData.milestones.reduce((sum,m)=>sum+m.weight,0)}%</small></label>
-    <div className="dialogActions"><button className="btnSecondary" onClick={()=>setProjectDialog(null)}>취소</button><button className="goldBtn" onClick={createMilestone}>중간 목표 추가</button></div>
+    <div className="milestoneDialogMeta">
+     <label><span>시작일</span><input type="date" value={newMilestoneStartDate} onChange={e=>setNewMilestoneStartDate(e.target.value)}/></label>
+     <label><span>마감일</span><input type="date" min={newMilestoneStartDate||undefined} value={newMilestoneDueDate} onChange={e=>setNewMilestoneDueDate(e.target.value)}/></label>
+     <label><span>진행률 반영 비중</span><div className="dialogUnitInput"><input type="number" min="0" max="100" value={newMilestoneWeight} onChange={e=>setNewMilestoneWeight(Number(e.target.value))}/><b>%</b></div></label>
+    </div>
+    <p className="milestoneInheritedDateHint">시작일·마감일을 비워두면 프로젝트 기간을 그대로 사용합니다. 프로젝트 기간이 바뀌면 함께 따라갑니다.</p>
+    <div className="milestoneRoutinePicker">
+     <div><span>연결 루틴</span><small>이 중간목표를 위해 반복할 프로젝트 루틴을 선택합니다.</small></div>
+     <div>{local.recurringTasks.filter(task=>task.projectId===selectedProjectData.id).map(task=><label key={task.id}><input type="checkbox" checked={newMilestoneRoutineIds.includes(task.id)} onChange={e=>setNewMilestoneRoutineIds(current=>e.target.checked?[...current,task.id]:current.filter(id=>id!==task.id))}/><span>{task.title}</span><small>{describeRecurrence(task)}</small></label>)}{!local.recurringTasks.some(task=>task.projectId===selectedProjectData.id)&&<p>먼저 프로젝트 루틴을 추가하면 여기서 연결할 수 있습니다.</p>}</div>
+    </div>
+    <div className="dialogActions"><button className="btnSecondary" onClick={()=>{setNewMilestoneRoutineIds([]);setProjectDialog(null)}}>취소</button><button className="goldBtn" onClick={createMilestone}>중간 목표 추가</button></div>
    </section>
   </div>}
 
-  {eventForm&&<div className="overlay"><form className="eventModal advancedEventModal" onSubmit={saveEvent}>
- <div className="modalHead eventModalHead"><div><span>Google Calendar</span><h2>{eventForm.id?"일정 수정":"일정 추가"}</h2></div><button type="button" className="btnSecondary modalCloseBtn" onClick={()=>setEventForm(null)}>닫기</button></div>
- <label>제목<input required autoFocus value={eventForm.title} onChange={e=>setEventForm({...eventForm,title:e.target.value})}/></label>
- <label className="checkRow"><input type="checkbox" checked={eventForm.allDay} onChange={e=>setEventForm({...eventForm,allDay:e.target.checked,start:e.target.checked?dateInput(eventForm.start):toLocalInput(`${eventForm.start}T09:00:00`),end:e.target.checked?dateInput(eventForm.end):toLocalInput(`${eventForm.end}T10:00:00`)})}/>종일 일정</label>
- <div className="twoFields"><label>시작<input type={eventForm.allDay?"date":"datetime-local"} value={eventForm.start} onChange={e=>setEventForm({...eventForm,start:e.target.value})}/></label><label>종료<input type={eventForm.allDay?"date":"datetime-local"} value={eventForm.end} onChange={e=>setEventForm({...eventForm,end:e.target.value})}/></label></div>
- <section className="eventOptionSection recurrenceSection">
- <h3>반복 일정</h3>
- <div className="recurrenceTopGrid">
-  <label>반복 방식<select value={eventForm.recurrence} onChange={e=>setEventForm({...eventForm,recurrence:e.target.value as Recurrence})}><option value="none">반복 안 함</option><option value="daily">매일</option><option value="weekdays">평일마다</option><option value="weekly">매주</option><option value="biweekly">격주</option><option value="monthly">매월</option><option value="yearly">매년</option><option value="custom">사용자 지정</option></select></label>
-  <label>반복 간격<div className="intervalInput"><span>매</span><input type="number" min="1" max="52" value={eventForm.recurrenceInterval} onChange={e=>setEventForm({...eventForm,recurrenceInterval:Math.max(1,Number(e.target.value))})}/><b>{eventForm.recurrence==="yearly"?"년":eventForm.recurrence==="monthly"?"개월":eventForm.recurrence==="daily"?"일":"주"}마다</b></div></label>
+  {eventForm&&<div className="overlay"><form className="eventModal advancedEventModal compactEventModal" onSubmit={saveEvent}>
+ <div className="modalHead eventModalHead"><div><span>Google Calendar</span><h2>{eventForm.id?"일정 수정":"일정 추가"}</h2></div><button type="button" className="btnSecondary modalCloseBtn" onClick={closeEventEditor}>닫기</button></div>
+ <div className="eventCoreStack">
+  <label>제목<input required autoFocus value={eventForm.title} onChange={e=>setEventForm({...eventForm,title:e.target.value})}/></label>
+  <label className="checkRow eventAllDayToggle"><input type="checkbox" checked={eventForm.allDay} onChange={e=>{const startDate=dateInput(eventForm.start);const endDate=dateInput(eventForm.end);setEventForm({...eventForm,allDay:e.target.checked,start:e.target.checked?startDate:`${startDate}T09:00`,end:e.target.checked?endDate:`${endDate}T10:00`})}}/>종일 일정</label>
+  <div className="twoFields eventTimeFields"><EventDateTimeField label="시작" value={eventForm.start} allDay={eventForm.allDay} onChange={value=>setEventForm({...eventForm,start:value})}/><EventDateTimeField label="종료" value={eventForm.end} allDay={eventForm.allDay} onChange={value=>setEventForm({...eventForm,end:value})}/></div>
+  <div className="eventCoreOptions eventCoreOptionsTriple"><ContextPicker contexts={local.contexts} label="맥락" value={eventForm.contextId} onChange={contextId=>setEventForm({...eventForm,contextId,calendarId:eventForm.id?eventForm.calendarId:(contextId?getDefaultCalendarId(local.contextCalendarPreferences,local.calendarContextMappings,contextId,eventForm.calendarId):eventForm.calendarId)})}/><label>반복<select value={eventForm.recurrence} onChange={e=>setEventForm({...eventForm,recurrence:e.target.value as Recurrence})}><option value="none">반복 안 함</option><option value="daily">매일</option><option value="weekdays">평일마다</option><option value="weekly">매주</option><option value="biweekly">격주</option><option value="monthly">매월</option><option value="yearly">매년</option><option value="custom">직접 설정</option></select></label><div className="eventReminderInline"><span>알림</span><div><label className="eventReminderToggle"><input type="checkbox" checked={eventForm.reminders.length>0||eventForm.useDefaultReminders} onChange={e=>setEventForm({...eventForm,useDefaultReminders:false,reminders:e.target.checked?[eventForm.reminders[0]??30]:[]})}/><span>사용</span></label><select aria-label="알림 시간" disabled={eventForm.reminders.length===0&&!eventForm.useDefaultReminders} value={eventForm.reminders[0]??30} onChange={e=>setEventForm({...eventForm,useDefaultReminders:false,reminders:[Number(e.target.value)]})}><option value="0">정시</option><option value="5">5분 전</option><option value="10">10분 전</option><option value="30">30분 전</option><option value="60">1시간 전</option><option value="120">2시간 전</option><option value="1440">1일 전</option><option value="2880">2일 전</option><option value="10080">1주 전</option></select></div></div></div>
+  {eventForm.recurrence!=="none"&&<small className="eventRecurrenceHint">이 일정 안에서 반복 간격·요일·종료 조건·주말/공휴일 처리를 설정합니다.</small>}
  </div>
- {(eventForm.recurrence==="weekly"||eventForm.recurrence==="biweekly"||eventForm.recurrence==="custom")&&<div className="weekdayQuickPicks"><button type="button" onClick={()=>setEventForm({...eventForm,weeklyDays:["MO","TU","WE","TH","FR"]})}>평일</button><button type="button" onClick={()=>setEventForm({...eventForm,weeklyDays:["SA","SU"]})}>주말</button><button type="button" onClick={()=>setEventForm({...eventForm,weeklyDays:["MO","WE","FR"]})}>월·수·금</button><button type="button" onClick={()=>setEventForm({...eventForm,weeklyDays:["TU","TH"]})}>화·목</button><button type="button" onClick={()=>setEventForm({...eventForm,weeklyDays:["MO","TU","WE","TH","FR","SA","SU"]})}>매일</button><button type="button" onClick={()=>setEventForm({...eventForm,weeklyDays:[]})}>전체 해제</button></div>}{(eventForm.recurrence==="weekly"||eventForm.recurrence==="biweekly"||eventForm.recurrence==="custom")&&<div className="weekdayBlock"><span>반복할 요일</span><div className="weekdayPicker">{[["MO","월"],["TU","화"],["WE","수"],["TH","목"],["FR","금"],["SA","토"],["SU","일"]].map(([v,l])=><label key={v} className={eventForm.weeklyDays.includes(v)?"selected":""}><input type="checkbox" checked={eventForm.weeklyDays.includes(v)} onChange={e=>setEventForm({...eventForm,weeklyDays:e.target.checked?[...eventForm.weeklyDays,v]:eventForm.weeklyDays.filter(x=>x!==v)})}/>{l}</label>)}</div></div>}
- {eventForm.recurrence==="monthly"&&<label className="monthlyModeLabel">매월 반복 방식<select value={eventForm.monthlyMode} onChange={e=>setEventForm({...eventForm,monthlyMode:e.target.value as EventForm["monthlyMode"]})}><option value="date">같은 날짜</option><option value="lastDay">매월 마지막 날</option><option value="nthWeekday">같은 주차·요일</option><option value="lastWeekday">매월 마지막 같은 요일</option></select></label>}{eventForm.recurrence!=="none"&&<div className="recurrenceEndGrid">
-  <label>반복 종료 방식<select value={eventForm.recurrenceCount>0?"count":eventForm.recurrenceUntil?"until":"never"} onChange={e=>{const v=e.target.value;setEventForm({...eventForm,recurrenceCount:v==="count"?Math.max(1,eventForm.recurrenceCount||1):0,recurrenceUntil:v==="until"?(eventForm.recurrenceUntil||eventForm.start.slice(0,10)):""})}}><option value="never">종료일 없음</option><option value="until">날짜까지</option><option value="count">횟수만큼</option></select></label>
-  {eventForm.recurrenceUntil&&<label>종료일<input type="date" value={eventForm.recurrenceUntil} onChange={e=>setEventForm({...eventForm,recurrenceUntil:e.target.value,recurrenceCount:0})}/></label>}
-  {eventForm.recurrenceCount>0&&<label>총 반복 횟수<input type="number" min="1" value={eventForm.recurrenceCount} onChange={e=>setEventForm({...eventForm,recurrenceCount:Math.max(1,Number(e.target.value)),recurrenceUntil:""})}/></label>}
- </div>}
- {eventForm.recurrence!=="none"&&<div className="exceptionOptions">
-  <label><input type="checkbox" checked={eventForm.excludeWeekends} onChange={e=>setEventForm({...eventForm,excludeWeekends:e.target.checked})}/>토요일·일요일 제외</label>
-  <label><input type="checkbox" checked={eventForm.excludeHolidays} onChange={e=>setEventForm({...eventForm,excludeHolidays:e.target.checked})}/>대한민국 공휴일 처리</label>{eventForm.excludeHolidays&&<select value={eventForm.holidayPolicy} onChange={e=>setEventForm({...eventForm,holidayPolicy:e.target.value as EventForm["holidayPolicy"]})}><option value="skip">건너뛰기</option><option value="next">다음 평일로 이동</option><option value="previous">이전 평일로 이동</option></select>}
- </div>}
- {eventForm.recurrence!=="none"&&(eventForm.excludeHolidays||eventForm.excludeWeekends)&&<p className="optionHint">제외 날짜는 Google Calendar 반복 예외일로 저장됩니다. 종료일이 없으면 우선 1년 범위에서 적용합니다.</p>}
- {eventForm.seriesId&&<label>수정 범위<select value={eventForm.editScope} onChange={e=>setEventForm({...eventForm,editScope:e.target.value as "single"|"series"})}><option value="single">이 일정만</option><option value="future">이 일정과 이후 일정</option><option value="series">반복 일정 전체</option></select></label>}
-</section>
- <section className="eventOptionSection"><div className="sectionTitleRow"><h3>알림</h3><button type="button" className="btnSecondary compactBtn" onClick={()=>setEventForm({...eventForm,reminders:[...eventForm.reminders,30]})}>+ 알림 추가</button></div><div className="reminderList">{eventForm.reminders.map((r,i)=><div key={i}><select value={r} onChange={e=>setEventForm({...eventForm,reminders:eventForm.reminders.map((x,j)=>j===i?Number(e.target.value):x)})}><option value="0">정시</option><option value="5">5분 전</option><option value="10">10분 전</option><option value="30">30분 전</option><option value="60">1시간 전</option><option value="120">2시간 전</option><option value="1440">1일 전</option><option value="2880">2일 전</option><option value="10080">1주 전</option></select><span>{reminderLabel(r)}</span><button type="button" className="btnTextDanger" aria-label="알림 삭제" onClick={()=>setEventForm({...eventForm,reminders:eventForm.reminders.filter((_,j)=>j!==i)})}>삭제</button></div>)}</div><p className="optionHint">Google Calendar 앱·웹 설정에 따라 휴대폰과 PC로 알림이 옵니다.</p></section>
- <section className="eventOptionSection"><h3>사람과 회의</h3><label>참석자 이메일<input value={eventForm.attendees} onChange={e=>setEventForm({...eventForm,attendees:e.target.value})} placeholder="쉼표로 구분"/></label><label className="checkRow"><input type="checkbox" checked={eventForm.addMeet} onChange={e=>setEventForm({...eventForm,addMeet:e.target.checked})}/>Google Meet 링크 만들기</label></section>
- <ContextPicker contexts={local.contexts} value={eventForm.contextId} onChange={contextId=>setEventForm({...eventForm,contextId,calendarId:contextId?getDefaultCalendarId(local.contextCalendarPreferences,local.calendarContextMappings,contextId,eventForm.calendarId):eventForm.calendarId})}/>
- <label>저장할 캘린더<select value={eventForm.calendarId} onChange={e=>setEventForm({...eventForm,calendarId:e.target.value,contextId:getCalendarContextId(local.calendarContextMappings,e.target.value)})}>{calendarOptions.map(cal=><option key={cal.id} value={cal.id}>{cal.name}</option>)}</select></label>
- <div className="twoFields eventLocationRow"><label>장소<input value={eventForm.location} onChange={e=>setEventForm({...eventForm,location:e.target.value})}/></label>
- <fieldset className="eventColorField">
-  <legend>색상</legend>
-  <details className="eventColorDropdown">
-   <summary>
-    <span className="eventColorSwatch" style={{backgroundColor:eventColorHex[eventForm.colorId]}}></span>
-    <strong>{colorLabels[eventForm.colorId]}</strong>
-    <span className="dropdownChevron">⌄</span>
-   </summary>
-   <div className="eventColorOptions">
-    {Object.entries(colorLabels).map(([v,l])=><button key={v} type="button" className={eventForm.colorId===v?"selected":""} onClick={e=>{setEventForm({...eventForm,colorId:v});(e.currentTarget.closest("details") as HTMLDetailsElement|null)?.removeAttribute("open")}}>
-     <span className="eventColorSwatch" style={{backgroundColor:eventColorHex[v]}}></span>
-     <span>{l}</span>
-     {eventForm.colorId===v&&<b>✓</b>}
-    </button>)}
+
+ {eventForm.recurrence!=="none"&&<details className="eventOptionSection eventCollapsible recurrenceSection" open>
+  <summary>반복 상세 설정</summary>
+  <div className="eventCollapsibleBody">
+   <div className="recurrenceRuleRow">
+    <div className="recurrenceInlineGroup recurrenceIntervalGroup"><span className="recurrenceInlineLabel">반복 간격</span><div className="intervalInput"><span>매</span><input type="number" min="1" max="52" value={eventForm.recurrenceInterval} onChange={e=>setEventForm({...eventForm,recurrenceInterval:Math.max(1,Number(e.target.value))})}/><b>{eventForm.recurrence==="yearly"?"년":eventForm.recurrence==="monthly"?"개월":eventForm.recurrence==="daily"?"일":"주"}마다</b></div></div>
+    <div className="recurrenceInlineGroup recurrenceEndGroup"><span className="recurrenceInlineLabel">반복 종료</span><select value={eventForm.recurrenceCount>0?"count":eventForm.recurrenceUntil?"until":"never"} onChange={e=>{const v=e.target.value;setEventForm({...eventForm,recurrenceCount:v==="count"?Math.max(1,eventForm.recurrenceCount||1):0,recurrenceUntil:v==="until"?(eventForm.recurrenceUntil||eventForm.start.slice(0,10)):""})}}><option value="never">종료일 없음</option><option value="until">날짜까지</option><option value="count">횟수만큼</option></select></div>
+    {eventForm.recurrenceUntil&&<div className="recurrenceInlineGroup recurrenceConditionalGroup"><span className="recurrenceInlineLabel">종료일</span><input type="date" value={eventForm.recurrenceUntil} onChange={e=>setEventForm({...eventForm,recurrenceUntil:e.target.value,recurrenceCount:0})}/></div>}
+    {eventForm.recurrenceCount>0&&<div className="recurrenceInlineGroup recurrenceConditionalGroup"><span className="recurrenceInlineLabel">총 반복 횟수</span><input type="number" min="1" value={eventForm.recurrenceCount} onChange={e=>setEventForm({...eventForm,recurrenceCount:Math.max(1,Number(e.target.value)),recurrenceUntil:""})}/></div>}
    </div>
-  </details>
- </fieldset></div>
- <label>메모<textarea value={eventForm.description} onChange={e=>setEventForm({...eventForm,description:e.target.value})}/></label>
- <div className="twoFields"><label>공개 범위<select value={eventForm.visibility} onChange={e=>setEventForm({...eventForm,visibility:e.target.value as EventForm["visibility"]})}><option value="default">캘린더 기본값</option><option value="public">공개</option><option value="private">비공개</option></select></label><label>내 시간 표시<select value={eventForm.transparency} onChange={e=>setEventForm({...eventForm,transparency:e.target.value as EventForm["transparency"]})}><option value="opaque">바쁨</option><option value="transparent">한가함</option></select></label></div>
- <div className="modalActions eventModalActions">
-  {eventForm.id&&<div className="deleteActionGroup">
-   {eventForm.seriesId?<><button type="button" className="dangerBtn" onClick={()=>deleteEvent("single")}>이 일정만 삭제</button><button type="button" className="btnDangerOutline" onClick={()=>deleteEvent("future")}>이 일정과 이후 삭제</button><button type="button" className="btnDangerOutline" onClick={()=>deleteEvent("series")}>반복 전체 삭제</button></>:<button type="button" className="dangerBtn" onClick={()=>deleteEvent("single")}>일정 삭제</button>}
-   {events.find(x=>x.id===eventForm.id)?.htmlLink&&<button type="button" className="btnSecondary" onClick={()=>window.open(events.find(x=>x.id===eventForm.id)?.htmlLink,"_blank")}>Google에서 열기</button>}
-  </div>}
+   {(eventForm.recurrence==="weekly"||eventForm.recurrence==="biweekly"||eventForm.recurrence==="custom")&&<><div className="weekdayQuickPicks"><button type="button" onClick={()=>setEventForm({...eventForm,weeklyDays:["MO","TU","WE","TH","FR"]})}>평일</button><button type="button" onClick={()=>setEventForm({...eventForm,weeklyDays:["SA","SU"]})}>주말</button><button type="button" onClick={()=>setEventForm({...eventForm,weeklyDays:["MO","WE","FR"]})}>월·수·금</button><button type="button" onClick={()=>setEventForm({...eventForm,weeklyDays:["TU","TH"]})}>화·목</button><button type="button" onClick={()=>setEventForm({...eventForm,weeklyDays:["MO","TU","WE","TH","FR","SA","SU"]})}>매일</button><button type="button" onClick={()=>setEventForm({...eventForm,weeklyDays:[]})}>전체 해제</button></div><div className="weekdayBlock"><span>반복할 요일</span><div className="weekdayPicker">{[["MO","월"],["TU","화"],["WE","수"],["TH","목"],["FR","금"],["SA","토"],["SU","일"]].map(([v,l])=><label key={v} className={eventForm.weeklyDays.includes(v)?"selected":""}><input type="checkbox" checked={eventForm.weeklyDays.includes(v)} onChange={e=>setEventForm({...eventForm,weeklyDays:e.target.checked?[...eventForm.weeklyDays,v]:eventForm.weeklyDays.filter(x=>x!==v)})}/>{l}</label>)}</div></div></>}
+   {eventForm.recurrence==="monthly"&&<label className="monthlyModeLabel">매월 반복 방식<select value={eventForm.monthlyMode} onChange={e=>setEventForm({...eventForm,monthlyMode:e.target.value as EventForm["monthlyMode"]})}><option value="date">같은 날짜</option><option value="lastDay">매월 마지막 날</option><option value="nthWeekday">같은 주차·요일</option><option value="lastWeekday">매월 마지막 같은 요일</option></select></label>}
+   <div className="exceptionOptions"><label><input type="checkbox" checked={eventForm.excludeWeekends} onChange={e=>setEventForm({...eventForm,excludeWeekends:e.target.checked})}/>토요일·일요일 제외</label><label><input type="checkbox" checked={eventForm.excludeHolidays} onChange={e=>setEventForm({...eventForm,excludeHolidays:e.target.checked})}/>대한민국 공휴일 처리</label>{eventForm.excludeHolidays&&<select value={eventForm.holidayPolicy} onChange={e=>setEventForm({...eventForm,holidayPolicy:e.target.value as EventForm["holidayPolicy"]})}><option value="skip">건너뛰기</option><option value="next">다음 평일로 이동</option><option value="previous">이전 평일로 이동</option></select>}</div>
+   {(eventForm.excludeHolidays||eventForm.excludeWeekends)&&<p className="optionHint">제외 날짜는 Google Calendar 반복 예외일로 저장됩니다. 종료일이 없으면 우선 1년 범위에서 적용합니다.</p>}
+   {eventForm.seriesId&&<label>수정 범위<select value={eventForm.editScope} onChange={e=>setEventForm({...eventForm,editScope:e.target.value as "single"|"future"|"series"})}><option value="single">이 일정만</option><option value="future">이 일정과 이후 일정</option><option value="series">반복 일정 전체</option></select></label>}
+  </div>
+ </details>}
+
+ <label className="eventMemoField">메모<textarea value={eventForm.description} onChange={e=>setEventForm({...eventForm,description:e.target.value})} placeholder="장소, 참석자, 준비물 등 필요한 내용을 자유롭게 적으세요."/></label>
+
+ <div className="modalActions eventModalActions compactEventActions">
+  {eventForm.id&&<div className="deleteActionGroup">{eventForm.seriesId?<><button type="button" className="dangerBtn" onClick={()=>deleteEvent("single")}>이 일정만 삭제</button><button type="button" className="btnDangerOutline" onClick={()=>deleteEvent("future")}>이 일정과 이후 삭제</button><button type="button" className="btnDangerOutline" onClick={()=>deleteEvent("series")}>반복 전체 삭제</button></>:<button type="button" className="dangerBtn" onClick={()=>deleteEvent("single")}>일정 삭제</button>}{events.find(x=>x.id===eventForm.id)?.htmlLink&&<button type="button" className="btnSecondary" onClick={()=>window.open(events.find(x=>x.id===eventForm.id)?.htmlLink,"_blank")}>Google에서 열기</button>}</div>}
   <button className="goldBtn primarySaveBtn" disabled={savingEvent}>{savingEvent?"저장 중…":"Google Calendar에 저장"}</button>
  </div>
  </form></div>}

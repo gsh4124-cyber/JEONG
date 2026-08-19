@@ -9,7 +9,7 @@ type Props = {
   allowUnassigned?: boolean;
 };
 
-export function ContextPicker({ contexts, value, onChange, label = "Context", allowUnassigned = true }: Props) {
+export function ContextPicker({ contexts, value, onChange, label = "맥락", allowUnassigned = true }: Props) {
   return <label className={styles.picker}>
     <span>{label}</span>
     <select value={value ?? ""} onChange={(event) => onChange(event.target.value || undefined)}>

@@ -28,10 +28,20 @@ export type ContextCalendarPreference = {
   defaultCalendarId?: string;
 };
 
+/** JEONG-only metadata for a Google Calendar event/series. Google stays the schedule source of truth. */
+export type CalendarEventContextOverride = {
+  eventKey: string;
+  contextId?: string;
+  updatedAt: string;
+};
+
 export type PlanningHorizon = "DAY" | "WEEK" | "MONTH";
 export type Plan = {
   id: string; horizon: "MONTH" | "WEEK"; contextId?: string;
   periodStart: string; periodEnd: string; direction: string; focus?: string[]; reviewNote?: string;
+  weeklyReview?: { good: string; learned: string; joy: string; continue: string; updatedAt: string };
+  /** Persisted by month key on the existing MONTH plan; optional for existing data. */
+  monthlyReview?: { good: string; learned: string; joy: string; continue: string; updatedAt: string };
   createdAt: string; updatedAt: string;
 };
 export type Goal = {
@@ -48,12 +58,15 @@ export type RecurrenceRule =
   | { type: "DAILY" }
   | { type: "WEEKDAYS" }
   | { type: "WEEKLY"; weekdays: number[]; interval?: number }
+  | { type: "WEEKLY_BLOCKS"; blocks: Array<{ startDay: number; endDay: number; target: number }> }
   | { type: "MONTHLY"; dayOfMonth: number };
 
 export type RecurringTaskDefinition = {
   id: string;
   contextId?: string;
   projectId?: string;
+  /** Optional milestone within the linked project that this routine supports. */
+  milestoneId?: string;
   title: string;
   description?: string;
   recurrence: RecurrenceRule;
@@ -68,6 +81,7 @@ export type RecurringTaskDefinition = {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  sortOrder?: number;
 };
 
 export type RecurringTaskCompletion = {
@@ -88,14 +102,25 @@ export type TaskItem = {
   bucket: TaskBucket;
   scheduledAt: string;
   durationMinutes: number;
+  /** User-provided estimate used for planning; existing durationMinutes remains the source when present. */
+  estimatedMinutes?: number;
   syncCalendar: boolean;
   calendarEventId?: string;
   calendarId?: string;
   projectId?: string;
   contextId?: string;
+  /** Retains the original date when a user deliberately carries a task forward. */
+  originalScheduledDate?: string;
+  carriedFrom?: string;
+  carryHistory?: string[];
+  /** Deliberate future planning changes are distinct from overdue carry-forward history. */
+  rescheduleHistory?: Array<{ from: string; to: string; plannedAt: string }>;
+  dueDate?: string;
+  note?: string;
+  sortOrder?: number;
 };
 
-export type Milestone = { id: string; title: string; done: boolean; weight: number };
+export type Milestone = { id: string; title: string; done: boolean; weight: number; startDate?: string; dueDate?: string };
 
 export type Project = {
   id: string;
@@ -106,6 +131,12 @@ export type Project = {
   milestones: Milestone[];
   note: string;
   contextId?: string;
+  /** Optional dates keep existing projects valid without requiring a migration. */
+  startDate?: string;
+  dueDate?: string;
+  /** @deprecated Kept only while older local backups are normalized to dueDate. */
+  targetEndDate?: string;
+  completedAt?: string;
 };
 
 export type Activity = {
@@ -179,6 +210,11 @@ export type DailyPlanDraft = {
 
 export type Chapter = { id: string; title: string; startDate: string; endDate: string; description: string; active: boolean };
 
+/** Stores only a user's handling of a derived insight, never a duplicate of source records. */
+export type PersonalInsightPreference = { insightId: string; hidden?: boolean; acknowledgedAt?: string };
+/** Stores only a user's handling of a derived operating reminder, never the source Todo/Event. */
+export type OperatingReminderPreference = { reminderId: string; dismissedAt: string };
+
 export type LocalState = DailyPlanDraft & {
   schemaVersion: number;
   tasks: TaskItem[];
@@ -191,8 +227,11 @@ export type LocalState = DailyPlanDraft & {
   contexts: Context[];
   calendarContextMappings: CalendarContextMapping[];
   contextCalendarPreferences: ContextCalendarPreference[];
+  calendarEventContextOverrides?: CalendarEventContextOverride[];
   recurringTasks: RecurringTaskDefinition[];
   recurringTaskCompletions: RecurringTaskCompletion[];
   plans: Plan[];
   goals: Goal[];
+  personalInsightPreferences?: PersonalInsightPreference[];
+  operatingReminderPreferences?: OperatingReminderPreference[];
 };

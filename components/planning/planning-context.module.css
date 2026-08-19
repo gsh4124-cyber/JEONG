@@ -1,9 +1,9 @@
 .filter { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
 .filter button { min-height:32px; padding:6px 12px; border:1px solid color-mix(in srgb, var(--line, #c69a3b) 45%, transparent); border-radius:999px; background:color-mix(in srgb, var(--panel, #fff) 78%, transparent); color:inherit; font:inherit; cursor:pointer; transition:background .18s ease,border-color .18s ease; }
 .filter button[data-active="true"] { background:color-mix(in srgb, var(--gold, #c69a3b) 20%, var(--panel, #fff)); border-color:color-mix(in srgb, var(--gold, #c69a3b) 72%, transparent); }
-.picker { display:grid; gap:6px; color:inherit; }
+.picker { display:grid; align-self:stretch; grid-template-rows:auto minmax(44px,1fr); gap:6px; color:inherit; }
 .picker > span { font-size:12px; font-weight:700; opacity:.76; }
-.picker select { min-height:40px; border-radius:12px; }
+.picker select { min-height:44px; height:44px; border-radius:12px; }
 .tag { display:inline-flex; align-items:center; gap:4px; width:max-content; font-size:11px; opacity:.74; }
 .mapping { display:grid; gap:10px; }
 .mappingRow { display:grid; grid-template-columns:minmax(0,1fr) minmax(130px,180px) auto; gap:10px; align-items:center; }

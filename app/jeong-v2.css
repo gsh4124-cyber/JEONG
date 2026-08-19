@@ -1,0 +1,2513 @@
+/* JEONG UI v2 — canonical visual layer.
+   Function/data logic stays in the existing components. This file intentionally
+   owns the final visual hierarchy so older incremental CSS cannot fragment it. */
+
+.jeongV2{
+  --v2-page:#f5f0e7;
+  --v2-page-2:#efe7da;
+  --v2-surface:rgba(255,253,249,.93);
+  --v2-surface-solid:#fffdf9;
+  --v2-surface-soft:#f8f2e8;
+  --v2-field:#fbf7f0;
+  --v2-line:rgba(111,84,46,.13);
+  --v2-line-strong:rgba(151,108,42,.25);
+  --v2-text:#2f291f;
+  --v2-text-soft:#5f564a;
+  --v2-muted:#8b8173;
+  --v2-gold:#b98024;
+  --v2-gold-2:#d39a35;
+  --v2-gold-soft:#f4e8cf;
+  --v2-success:#397c58;
+  --v2-danger:#a84d45;
+  --v2-info:#5c79a0;
+  --v2-shadow:0 14px 42px rgba(71,54,31,.07);
+  --v2-shadow-soft:0 8px 28px rgba(71,54,31,.045);
+  --v2-radius-xl:24px;
+  --v2-radius-lg:18px;
+  --v2-radius-md:13px;
+  --v2-page-max:1480px;
+  color:var(--v2-text);
+  background:var(--v2-page);
+}
+html[data-theme="dark"] .jeongV2{
+  --v2-page:#07111d;
+  --v2-page-2:#0a1625;
+  --v2-surface:rgba(13,27,46,.93);
+  --v2-surface-solid:#0f1d30;
+  --v2-surface-soft:#101f33;
+  --v2-field:#0c1a2b;
+  --v2-line:rgba(161,190,226,.12);
+  --v2-line-strong:rgba(202,169,99,.25);
+  --v2-text:#f1ede4;
+  --v2-text-soft:#c7c0b4;
+  --v2-muted:#8f9caf;
+  --v2-gold:#d4ad5e;
+  --v2-gold-2:#e1bc70;
+  --v2-gold-soft:rgba(209,170,93,.12);
+  --v2-success:#7fc39c;
+  --v2-danger:#e08b83;
+  --v2-info:#8fb5df;
+  --v2-shadow:0 18px 52px rgba(0,0,0,.26);
+  --v2-shadow-soft:0 10px 32px rgba(0,0,0,.18);
+}
+
+.jeongV2 *{box-sizing:border-box}
+.jeongV2 button,.jeongV2 input,.jeongV2 textarea,.jeongV2 select{font:inherit}
+.jeongV2 button{cursor:pointer}
+.jeongV2 .lifeShell{min-height:100dvh!important;background:
+  radial-gradient(circle at 72% 8%,rgba(222,180,99,.10),transparent 25%),
+  linear-gradient(180deg,var(--v2-page),var(--v2-page-2))!important}
+html[data-theme="dark"] .jeongV2 .lifeShell{background:
+  radial-gradient(circle at 78% 0%,rgba(54,95,145,.18),transparent 30%),
+  linear-gradient(180deg,var(--v2-page),#050c16)!important}
+
+.jeongV2 .contentArea{
+  --page-gutter:28px;
+  width:100%!important;min-width:0!important;max-width:none!important;
+  padding:20px var(--page-gutter) 52px!important;overflow-x:clip!important;
+  background:transparent!important;
+}
+.jeongV2 .contentArea::before,.jeongV2 .contentArea::after{content:none!important}
+.jeongV2 .contentArea> :not(.topHeader):not([class*="hero"]){max-width:var(--v2-page-max);margin-left:auto;margin-right:auto}
+
+.jeongV2 .premiumCard{
+  border:1px solid var(--v2-line)!important;border-radius:var(--v2-radius-lg)!important;
+  background:var(--v2-surface)!important;color:var(--v2-text)!important;
+  box-shadow:var(--v2-shadow-soft)!important;backdrop-filter:blur(18px) saturate(110%)!important;
+}
+.jeongV2 .premiumCard:hover{box-shadow:var(--v2-shadow-soft)!important;transform:none!important}
+.jeongV2 .premiumCard h1,.jeongV2 .premiumCard h2,.jeongV2 .premiumCard h3,.jeongV2 .premiumCard strong{color:var(--v2-text)!important}
+.jeongV2 .premiumCard p,.jeongV2 .premiumCard small{color:var(--v2-muted)!important}
+
+.jeongV2 .goldBtn{
+  min-height:42px!important;padding:9px 16px!important;border:1px solid rgba(137,92,24,.08)!important;
+  border-radius:11px!important;background:linear-gradient(180deg,var(--v2-gold-2),var(--v2-gold))!important;
+  color:#fffaf0!important;font-weight:800!important;box-shadow:0 7px 18px rgba(160,105,28,.14)!important;
+}
+.jeongV2 .goldBtn:hover{filter:brightness(1.025)}
+.jeongV2 .softBtn,.jeongV2 .btnSecondary{
+  min-height:38px!important;padding:8px 12px!important;border:1px solid var(--v2-line)!important;
+  border-radius:10px!important;background:var(--v2-surface-solid)!important;color:var(--v2-text-soft)!important;
+  box-shadow:none!important;
+}
+.jeongV2 .softBtn:hover,.jeongV2 .btnSecondary:hover{border-color:var(--v2-line-strong)!important;background:var(--v2-field)!important}
+.jeongV2 input,.jeongV2 textarea,.jeongV2 select{
+  border:1px solid var(--v2-line)!important;border-radius:11px!important;background:var(--v2-field)!important;
+  color:var(--v2-text)!important;box-shadow:none!important;outline:none!important;
+}
+.jeongV2 input:focus,.jeongV2 textarea:focus,.jeongV2 select:focus{border-color:rgba(185,128,36,.58)!important;box-shadow:0 0 0 3px rgba(185,128,36,.09)!important}
+.jeongV2 input::placeholder,.jeongV2 textarea::placeholder{color:var(--v2-muted)!important;opacity:.72}
+
+/* Sidebar — quieter, denser, stable */
+.jeongV2 .premiumSidebar{
+  width:216px!important;min-width:216px!important;height:100dvh!important;position:sticky!important;top:0!important;
+  border-right:1px solid var(--v2-line)!important;background:rgba(250,247,240,.88)!important;
+  box-shadow:none!important;backdrop-filter:blur(24px)!important;
+}
+html[data-theme="dark"] .jeongV2 .premiumSidebar{background:rgba(7,17,29,.92)!important}
+.jeongV2 .brandBlock{min-height:112px!important;padding:22px 18px!important;border-bottom:1px solid var(--v2-line)!important}
+.jeongV2 .brandBlock .seal{width:40px!important;height:40px!important;border-radius:12px!important;background:var(--v2-gold-soft)!important;color:var(--v2-gold)!important;border:1px solid var(--v2-line-strong)!important;box-shadow:none!important}
+.jeongV2 .brandBlock strong{font-size:.78rem!important;letter-spacing:.01em!important}
+.jeongV2 .brandBlock small{font-size:.61rem!important;color:var(--v2-muted)!important}
+.jeongV2 .navScroll{padding:14px 12px 18px!important}
+.jeongV2 .navGroup{margin:0 0 10px!important;gap:2px!important}
+.jeongV2 .navGroup>span{padding:8px 10px 4px!important;color:var(--v2-muted)!important;font-size:.58rem!important;letter-spacing:.08em!important}
+.jeongV2 .navGroup button{min-height:39px!important;padding:0 11px!important;border-radius:10px!important;color:var(--v2-text-soft)!important;font-size:.73rem!important}
+.jeongV2 .navGroup button:hover{background:var(--v2-field)!important;color:var(--v2-text)!important}
+.jeongV2 .navGroup button.active{background:var(--v2-gold-soft)!important;color:var(--v2-gold)!important;box-shadow:inset 2px 0 0 var(--v2-gold)!important}
+html[data-theme="dark"] .jeongV2 .navGroup button.active{background:rgba(210,174,101,.10)!important}
+
+/* generic page header + subpage header */
+.jeongV2 .subpageHeader{
+  display:flex!important;align-items:center!important;gap:18px!important;min-height:72px!important;
+  padding:15px 18px!important;margin-bottom:16px!important;
+}
+.jeongV2 .subpageHeader>div{display:grid!important;gap:2px!important}
+.jeongV2 .subpageHeader span{color:var(--v2-gold)!important;font-size:.68rem!important;font-weight:800!important;letter-spacing:.04em!important}
+.jeongV2 .subpageHeader h2{margin:0!important;font-size:1.05rem!important;letter-spacing:-.025em!important}
+.jeongV2 .backToRecords{min-height:38px!important;padding:8px 11px!important;border:1px solid var(--v2-line)!important;border-radius:10px!important;background:var(--v2-surface-solid)!important;color:var(--v2-text)!important}
+
+/* Home operating surfaces */
+.jeongV2 .homeOperatingAction,.jeongV2 .briefBubble{border:1px solid var(--v2-line)!important;border-radius:13px!important;background:var(--v2-field)!important;box-shadow:none!important}
+.jeongV2 .briefBubble{padding:12px 14px!important}
+.jeongV2 .briefBubble strong{font-size:.86rem!important}
+.jeongV2 .briefBubble p{margin:5px 0!important;font-size:.76rem!important;line-height:1.5!important}
+
+/* Calendar — one system, four distinct views */
+.jeongV2 .calendarWorkspace{display:grid!important;grid-template-columns:minmax(0,1fr) 318px!important;gap:16px!important;align-items:start!important;overflow:visible!important}
+.jeongV2 .calendarPage{min-width:0!important;overflow:hidden!important}
+.jeongV2 .calendarCompactHeader{display:flex!important;align-items:center!important;gap:16px!important;padding:18px 18px 12px!important;border-bottom:1px solid var(--v2-line)!important}
+.jeongV2 .calendarCompactHeader>div:first-child{margin-right:auto!important}
+.jeongV2 .calendarCompactHeader span{color:var(--v2-gold)!important;font-size:.65rem!important;font-weight:800!important}
+.jeongV2 .calendarCompactHeader h2{margin:3px 0 0!important;font-size:1.25rem!important;letter-spacing:-.035em!important}
+.jeongV2 .calendarHeaderHint{max-width:260px!important;color:var(--v2-muted)!important;font-size:.68rem!important;text-align:right!important;line-height:1.4!important}
+.jeongV2 .calendarPage>details.eventOptionSection{margin:10px 18px 0!important;padding:0!important;border:0!important;background:transparent!important}
+.jeongV2 .calendarPage>details.eventOptionSection>summary{display:inline-flex!important;align-items:center!important;gap:6px!important;padding:6px 9px!important;border:1px solid var(--v2-line)!important;border-radius:9px!important;background:var(--v2-field)!important;color:var(--v2-muted)!important;font-size:.68rem!important}
+.jeongV2 .calendarToolbar{display:grid!important;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)!important;align-items:center!important;gap:12px!important;padding:12px 18px!important;border-bottom:1px solid var(--v2-line)!important;background:rgba(255,255,255,.18)!important}
+.jeongV2 .calendarPrimaryControls,.jeongV2 .calendarSecondaryControls,.jeongV2 .calendarModeTabs,.jeongV2 .monthDisplayTabs{display:flex!important;align-items:center!important;gap:6px!important}
+.jeongV2 .calendarSecondaryControls{justify-content:flex-end!important}
+.jeongV2 .calendarToolbar button,.jeongV2 .calendarModeTabs button,.jeongV2 .monthDisplayTabs button{min-height:38px!important;padding:7px 11px!important;border:1px solid var(--v2-line)!important;border-radius:10px!important;background:var(--v2-surface-solid)!important;color:var(--v2-text-soft)!important}
+.jeongV2 .calendarModeTabs,.jeongV2 .monthDisplayTabs{padding:3px!important;border:1px solid var(--v2-line)!important;border-radius:12px!important;background:var(--v2-field)!important}
+.jeongV2 .calendarModeTabs button,.jeongV2 .monthDisplayTabs button{min-height:31px!important;border:0!important;background:transparent!important}
+.jeongV2 .calendarModeTabs button.active,.jeongV2 .monthDisplayTabs button.active{background:var(--v2-surface-solid)!important;color:var(--v2-gold)!important;box-shadow:0 2px 8px rgba(80,58,27,.06)!important}
+.jeongV2 .calendarToolbar .goldBtn{border:0!important;background:linear-gradient(180deg,var(--v2-gold-2),var(--v2-gold))!important;color:white!important}
+.jeongV2 .monthCalendar{padding:12px 16px 16px!important}
+.jeongV2 .weekHeader{display:grid!important;grid-template-columns:repeat(7,minmax(0,1fr))!important;padding:0 2px 7px!important;color:var(--v2-muted)!important;font-size:.68rem!important;text-align:center!important}
+.jeongV2 .monthGrid{display:grid!important;grid-template-columns:repeat(7,minmax(0,1fr))!important;grid-template-rows:repeat(6,minmax(92px,1fr))!important;gap:6px!important;height:clamp(575px,calc(100dvh - 300px),720px)!important;overflow:visible!important}
+.jeongV2 .monthGrid>button{min-width:0!important;min-height:0!important;padding:9px!important;border:1px solid var(--v2-line)!important;border-radius:12px!important;background:var(--v2-surface-solid)!important;color:var(--v2-text)!important;text-align:left!important;overflow:hidden!important}
+.jeongV2 .monthGrid>button:hover{border-color:var(--v2-line-strong)!important;background:var(--v2-field)!important}
+.jeongV2 .monthGrid>button.selected{border-color:rgba(185,128,36,.52)!important;box-shadow:inset 0 0 0 1px rgba(185,128,36,.14)!important}
+.jeongV2 .monthGrid>button.outside{opacity:.42!important}
+.jeongV2 .monthGrid>button>b{display:inline-grid!important;place-items:center!important;width:24px!important;height:24px!important;font-size:.8rem!important}
+.jeongV2 .monthGrid>button>span{display:block!important;margin-top:5px!important;padding:5px 6px!important;border-radius:7px!important;background:var(--v2-gold-soft)!important;color:var(--v2-text-soft)!important;font-size:.62rem!important;line-height:1.25!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+.jeongV2 .monthGrid>button>small{display:block!important;margin-top:4px!important;color:var(--v2-muted)!important;font-size:.6rem!important}
+.jeongV2 .selectedDayPanel{position:sticky!important;top:16px!important;padding:17px!important;max-height:calc(100dvh - 32px)!important;overflow:auto!important}
+.jeongV2 .selectedDayHead{display:grid!important;grid-template-columns:1fr!important;gap:10px!important;padding-bottom:13px!important;border-bottom:1px solid var(--v2-line)!important}
+.jeongV2 .selectedDayHead button{width:100%!important;min-height:42px!important;border:0!important;background:linear-gradient(180deg,var(--v2-gold-2),var(--v2-gold))!important;color:#fff!important}
+.jeongV2 .selectedDayList{display:grid!important;gap:8px!important;margin-top:12px!important;max-height:none!important;overflow:visible!important}
+.jeongV2 .selectedDayList article{display:grid!important;grid-template-columns:60px minmax(0,1fr)!important;gap:10px!important;padding:10px 11px!important;border:1px solid var(--v2-line)!important;border-radius:11px!important;background:var(--v2-field)!important}
+.jeongV2 .selectedDayList article>span{display:none!important}
+.jeongV2 .selectedDayList time{color:var(--v2-gold)!important;font-weight:800!important;font-size:.72rem!important;line-height:1.35!important}
+.jeongV2 .selectedDayList strong{font-size:.78rem!important;white-space:normal!important;line-height:1.35!important}
+.jeongV2 .selectedDayList small{font-size:.65rem!important}
+
+/* Calendar side panel: Calendar is schedule; the right rail is Todo only. */
+.jeongV2 .taskSidePanel{display:block!important}
+.jeongV2 .taskSidePanel .selectedDayIdentity{display:grid!important;gap:3px!important}
+.jeongV2 .taskSidePanel .selectedDayIdentity small{color:var(--v2-muted)!important;font-size:.66rem!important;line-height:1.4!important}
+.jeongV2 .selectedDayRangeTabs{display:grid!important;grid-template-columns:minmax(0,1.6fr) repeat(2,minmax(0,.7fr))!important;gap:6px!important;margin:13px 0 12px!important;padding:3px!important;border:1px solid var(--v2-line)!important;border-radius:12px!important;background:var(--v2-field)!important}
+.jeongV2 .selectedDayRangeTabs button{min-height:36px!important;padding:7px 8px!important;border:0!important;border-radius:9px!important;background:transparent!important;color:var(--v2-text-soft)!important;font-size:.7rem!important;font-weight:750!important}
+.jeongV2 .selectedDayRangeTabs button.active{background:var(--v2-surface-solid)!important;color:var(--v2-gold)!important;box-shadow:0 4px 12px rgba(71,54,31,.06)!important}
+.jeongV2 .calendarTaskPanel{display:grid!important;gap:8px!important}
+.jeongV2 .calendarTaskPanel>header{display:flex!important;align-items:center!important;justify-content:space-between!important;padding:4px 1px 8px!important;border-bottom:1px solid var(--v2-line)!important}
+.jeongV2 .calendarTaskPanel>header span{color:var(--v2-gold)!important;font-size:.68rem!important;font-weight:800!important}
+.jeongV2 .calendarTaskPanel>header b{font-size:.72rem!important}
+.jeongV2 .calendarTaskPanel>div{display:grid!important;gap:7px!important}
+.jeongV2 .calendarTaskPanel .dayTaskRow{grid-template-columns:24px minmax(0,1fr)!important;min-height:44px!important;padding:9px 10px!important;border:1px solid var(--v2-line)!important;border-radius:10px!important;background:var(--v2-field)!important}
+.jeongV2 .calendarTaskPanel .dayTaskRow>span{min-width:0!important;overflow-wrap:anywhere!important;font-size:.76rem!important}
+.jeongV2 .calendarTaskPanel .dayTaskRow small{margin-left:5px!important;color:var(--v2-gold)!important;font-size:.6rem!important;text-decoration:none!important}
+.jeongV2 .calendarWorkspace:has(.dayAgenda){grid-template-columns:minmax(0,1fr) 318px!important}
+.jeongV2 .calendarWorkspace:has(.dayAgenda) .selectedDayPanel{display:block!important}
+.jeongV2 .legacyCalendarLinkNote{display:block!important;margin:2px 0 10px!important;color:var(--v2-muted)!important;font-size:.68rem!important;line-height:1.45!important}
+
+.jeongV2 .monthListView,.jeongV2 .weekListView{padding:14px 16px 18px!important}
+.jeongV2 .monthListTools{display:grid!important;grid-template-columns:minmax(0,1fr) 180px auto!important;gap:9px!important;margin-bottom:12px!important}
+.jeongV2 .monthAgendaList{max-height:calc(100dvh - 355px)!important;overflow-y:auto!important;overflow-x:hidden!important;scrollbar-gutter:stable!important}.jeongV2 .weekListView{max-height:none!important;overflow:visible!important}
+.jeongV2 .monthAgendaList>section{padding:0!important;border-top:1px solid var(--v2-line)!important}
+.jeongV2 .monthAgendaList>section>header{display:flex!important;align-items:center!important;justify-content:space-between!important;padding:12px 4px 8px!important}
+.jeongV2 .monthAgendaList article{display:grid!important;grid-template-columns:90px minmax(0,1fr) auto!important;gap:14px!important;align-items:center!important;min-height:66px!important;padding:10px 12px!important;border:0!important;border-top:1px solid var(--v2-line)!important;border-radius:0!important;background:transparent!important}
+.jeongV2 .monthAgendaList article:hover{background:var(--v2-field)!important}
+
+.jeongV2 .weekAgenda{display:grid!important;grid-template-columns:repeat(7,minmax(118px,1fr))!important;gap:6px!important;padding:12px 14px 16px!important;overflow-x:auto!important;scrollbar-width:thin!important}
+.jeongV2 .weekDayColumn{min-width:118px!important;border:1px solid var(--v2-line)!important;border-radius:13px!important;background:var(--v2-surface-solid)!important;overflow:hidden!important}
+.jeongV2 .weekDayHead{display:grid!important;grid-template-columns:1fr auto!important;grid-template-areas:"weekday count" "day count"!important;width:100%!important;padding:10px!important;border:0!important;border-bottom:1px solid var(--v2-line)!important;background:var(--v2-field)!important;text-align:left!important}
+.jeongV2 .weekDayHead span{grid-area:weekday!important;color:var(--v2-muted)!important;font-size:.62rem!important}.jeongV2 .weekDayHead strong{grid-area:day!important;font-size:1rem!important}.jeongV2 .weekDayHead small{grid-area:count!important;align-self:center!important;color:var(--v2-muted)!important;font-size:.58rem!important}
+.jeongV2 .weekDayColumn>article,.jeongV2 .weekDayColumn>button:not(.weekDayHead){margin:7px!important;padding:8px!important;border:1px solid var(--v2-line)!important;border-radius:9px!important;background:var(--v2-field)!important;overflow:hidden!important}
+.jeongV2 .weekDayColumn strong{display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;overflow:hidden!important;word-break:keep-all!important;overflow-wrap:anywhere!important;font-size:.7rem!important;line-height:1.3!important}
+
+.jeongV2 .dayAgenda{padding:14px 16px 18px!important}
+.jeongV2 .dayAgenda>header{display:flex!important;align-items:flex-end!important;justify-content:space-between!important;margin-bottom:10px!important}
+.jeongV2 .dayAgenda>article{display:grid!important;grid-template-columns:120px minmax(0,1fr) auto!important;gap:16px!important;align-items:center!important;min-height:76px!important;padding:14px 16px!important;border:1px solid var(--v2-line)!important;border-radius:12px!important;background:var(--v2-surface-solid)!important;margin-bottom:8px!important}
+
+/* Tasks */
+.jeongV2 .taskComposer{padding:16px!important}
+.jeongV2 .taskComposer,.jeongV2 .taskForm{gap:10px!important}
+.jeongV2 .taskComposer input,.jeongV2 .taskComposer select{min-height:46px!important}
+.jeongV2 .taskBoard,.jeongV2 .taskSections{gap:14px!important}
+.jeongV2 .taskColumn,.jeongV2 .taskSection{padding:14px!important}
+.jeongV2 .taskRow{border-color:var(--v2-line)!important;background:var(--v2-surface-solid)!important}
+
+/* Projects — status first, editing second */
+.jeongV2 .projectWorkspace{display:grid!important;grid-template-columns:260px minmax(0,1fr)!important;gap:16px!important;align-items:start!important}
+.jeongV2 .projectList{position:sticky!important;top:16px!important;max-height:calc(100dvh - 32px)!important;padding:13px!important;overflow:auto!important}
+.jeongV2 .projectListItems{display:grid!important;gap:7px!important}
+.jeongV2 .projectListItems>button{padding:12px!important;border:1px solid transparent!important;border-radius:11px!important;background:transparent!important}
+.jeongV2 .projectListItems>button:hover{background:var(--v2-field)!important}
+.jeongV2 .projectListItems>button.active{border-color:var(--v2-line-strong)!important;background:var(--v2-gold-soft)!important}
+.jeongV2 .projectDetail{padding:20px!important}
+.jeongV2 .projectHero{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:18px!important;align-items:start!important;padding-bottom:18px!important;border-bottom:1px solid var(--v2-line)!important}
+.jeongV2 .projectProgressSummary{min-width:96px!important;padding:0!important}
+.jeongV2 .projectProgressSummary b{font-size:2rem!important;color:var(--v2-gold)!important}
+.jeongV2 .projectIntelligence{margin:16px 0!important;padding:15px!important;border:1px solid var(--v2-line-strong)!important;border-radius:15px!important;background:linear-gradient(145deg,var(--v2-field),var(--v2-surface-solid))!important}
+.jeongV2 .projectIntelligenceGrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+.jeongV2 .projectIntelligenceGrid>div{min-height:84px!important;padding:12px!important;border:1px solid var(--v2-line)!important;border-radius:11px!important;background:var(--v2-surface-solid)!important}
+.jeongV2 .projectSection{margin-top:17px!important;padding-top:17px!important;border-top:1px solid var(--v2-line)!important}
+.jeongV2 .projectMemoPanel{border:1px solid var(--v2-line)!important;background:var(--v2-field)!important}
+
+/* Records + analytics */
+.jeongV2 .recordsHero,.jeongV2 .aiBridgeHero{padding:20px!important}
+.jeongV2 .recordsHero h2,.jeongV2 .aiBridgeHero h2{margin:4px 0 7px!important;font-size:1.3rem!important;letter-spacing:-.035em!important}
+.jeongV2 .recordStats,.jeongV2 .analyticsStats,.jeongV2 .analyticsTopGrid{gap:12px!important}
+.jeongV2 .recordStats article,.jeongV2 .analyticsStats article{min-height:104px!important;padding:16px!important}
+.jeongV2 .timelinePreview,.jeongV2 .dashboardSection{padding:17px!important}
+.jeongV2 .intelligenceMetricGrid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px!important}
+.jeongV2 .intelligenceMetricGrid article{padding:13px!important;border:1px solid var(--v2-line)!important;border-radius:12px!important;background:var(--v2-field)!important}
+.jeongV2 .intelligenceObservations article{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:12px!important;padding:12px 0!important;border-top:1px solid var(--v2-line)!important}
+
+/* Activity + notes */
+.jeongV2 .activityComposer,.jeongV2 .noteComposer{padding:18px!important}
+.jeongV2 .activityComposer{display:grid!important;grid-template-columns:repeat(12,minmax(0,1fr))!important;gap:12px!important;align-items:start!important}
+.jeongV2 .activityComposer>label{min-width:0!important;display:grid!important;gap:6px!important}
+.jeongV2 .activityComposer .activityTypeField,.jeongV2 .activityComposer .activityDateField,.jeongV2 .activityComposer .activityTitleField{grid-column:span 4!important}
+.jeongV2 .activityComposer .activityDurationField,.jeongV2 .activityComposer .activityAmountField{grid-column:span 3!important}
+.jeongV2 .activityComposer .activityProjectField{grid-column:span 6!important}
+.jeongV2 .activityComposer .activityReflectionField{grid-column:1/-1!important}
+.jeongV2 .activityComposer .activityLearnField,.jeongV2 .activityComposer .activityApplyField{grid-column:span 6!important}
+.jeongV2 .activityComposer .activitySaveBtn{grid-column:10/-1!important;width:100%!important;justify-self:stretch!important}
+.jeongV2 .activityComposer textarea{min-height:96px!important;height:auto!important;resize:vertical!important}
+.jeongV2 .noteComposer{display:grid!important;grid-template-columns:220px minmax(0,1fr) auto!important;gap:10px!important}
+.jeongV2 .noteComposer textarea{grid-column:1/-1!important;min-height:220px!important}
+.jeongV2 .noteComposer select:last-of-type{grid-column:1/3!important}
+
+/* Review */
+.jeongV2 .reviewWorkspace{display:grid!important;grid-template-columns:220px minmax(0,1fr)!important;gap:16px!important;align-items:start!important}
+.jeongV2 .reviewHistory{position:sticky!important;top:16px!important;padding:12px!important}
+.jeongV2 .reviewForm{padding:18px!important}
+.jeongV2 .reviewGrid,.jeongV2 .reviewSummary{gap:10px!important}
+.jeongV2 .reviewGrid textarea{min-height:88px!important}
+.jeongV2 .reviewForm fieldset{border-color:var(--v2-line)!important}
+
+/* Assistant — conversation is primary */
+.jeongV2 .assistantChat{display:grid!important;gap:14px!important;width:min(100%,1440px)!important;margin:0 auto 16px!important;padding:20px!important}
+.jeongV2 .assistantChat>header{padding-bottom:12px!important;border-bottom:1px solid var(--v2-line)!important}
+.jeongV2 .assistantChat>header span{color:var(--v2-gold)!important;font-size:.66rem!important;font-weight:800!important;letter-spacing:.08em!important}
+.jeongV2 .assistantChat>header h2{margin:4px 0 0!important;font-size:1.2rem!important}
+.jeongV2 .assistantSuggestions{display:flex!important;flex-wrap:wrap!important;gap:7px!important}
+.jeongV2 .assistantSuggestions button{min-height:36px!important;padding:7px 11px!important;border:1px solid var(--v2-line)!important;border-radius:999px!important;background:var(--v2-field)!important;color:var(--v2-text-soft)!important}
+.jeongV2 .assistantMessages{display:grid!important;gap:8px!important;min-height:280px!important;max-height:420px!important;padding:4px!important;overflow:auto!important}
+.jeongV2 .assistantMessages p{width:min(84%,720px)!important;margin:0!important;padding:11px 13px!important;border:1px solid var(--v2-line)!important;border-radius:13px!important;background:var(--v2-field)!important;line-height:1.55!important}
+.jeongV2 .assistantMessages p.user{justify-self:end!important;background:var(--v2-gold-soft)!important}
+.jeongV2 .assistantMessages p.assistant{justify-self:start!important}
+.jeongV2 .assistantComposer{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:8px!important;padding-top:4px!important}
+.jeongV2 .assistantComposer input{min-height:46px!important;padding:10px 13px!important}
+.jeongV2 .aiBridgeDisclosure,.jeongV2 .aiEngineDisclosure{width:min(100%,1440px)!important;margin:0 auto 16px!important;overflow:hidden!important}
+.jeongV2 .aiBridgeDisclosure>summary,.jeongV2 .aiEngineDisclosure>summary{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;padding:15px 17px!important;cursor:pointer!important;list-style:none!important}
+.jeongV2 .aiBridgeDisclosure>summary::-webkit-details-marker,.jeongV2 .aiEngineDisclosure>summary::-webkit-details-marker{display:none!important}
+.jeongV2 .aiBridgeDisclosure>summary div,.jeongV2 .aiEngineDisclosure>summary div{display:grid!important;gap:2px!important}
+.jeongV2 .aiBridgeDisclosure>summary span,.jeongV2 .aiEngineDisclosure>summary span{color:var(--v2-gold)!important;font-size:.63rem!important;font-weight:800!important}
+.jeongV2 .aiBridgeDisclosure>summary small,.jeongV2 .aiEngineDisclosure>summary small{font-size:.7rem!important}
+.jeongV2 .aiBridgeDisclosureBody,.jeongV2 .aiEngineDisclosureBody{padding:0 14px 14px!important}
+.jeongV2 .aiBridgeDisclosureBody>.premiumCard{box-shadow:none!important}
+
+/* Settings */
+.jeongV2 .settingsPanel,.jeongV2 .settingsCard{padding:18px!important}
+.jeongV2 .settingsRow{min-height:58px!important;border-color:var(--v2-line)!important}
+
+/* Modals */
+.jeongV2 .overlay{background:rgba(31,27,22,.48)!important;backdrop-filter:blur(8px)!important}
+html[data-theme="dark"] .jeongV2 .overlay{background:rgba(0,5,11,.64)!important}
+.jeongV2 .editModal,.jeongV2 .advancedEventModal,.jeongV2 .jeongDialog,.jeongV2 .morningCard{
+  border:1px solid var(--v2-line)!important;border-radius:20px!important;background:var(--v2-surface-solid)!important;
+  box-shadow:0 30px 90px rgba(28,20,10,.22)!important;
+}
+html[data-theme="dark"] .jeongV2 .editModal,html[data-theme="dark"] .jeongV2 .advancedEventModal,html[data-theme="dark"] .jeongV2 .jeongDialog,html[data-theme="dark"] .jeongV2 .morningCard{box-shadow:0 32px 100px rgba(0,0,0,.55)!important}
+.jeongV2 .modalHead,.jeongV2 .dialogHeader{padding-bottom:12px!important;border-bottom:1px solid var(--v2-line)!important}
+.jeongV2 .eventOptionSection{border:1px solid var(--v2-line)!important;background:var(--v2-field)!important}
+
+/* responsive architecture */
+@media(max-width:1320px){
+  .jeongV2 .contentArea{padding:18px 20px 44px!important}
+  .jeongV2 .calendarWorkspace{grid-template-columns:minmax(0,1fr) 292px!important}
+  .jeongV2 .projectWorkspace{grid-template-columns:235px minmax(0,1fr)!important}
+  .jeongV2 .intelligenceMetricGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(max-width:1120px){
+  .jeongV2 .premiumSidebar{width:184px!important;min-width:184px!important}
+  .jeongV2 .calendarWorkspace{grid-template-columns:1fr!important}
+  .jeongV2 .selectedDayPanel{position:static!important;max-height:none!important}
+  .jeongV2 .calendarWorkspace:has(.dayAgenda){grid-template-columns:1fr!important}
+  .jeongV2 .selectedDayList{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .jeongV2 .calendarToolbar{grid-template-columns:1fr auto!important}
+  .jeongV2 .calendarCenterControls{order:3;grid-column:1/-1!important;justify-self:center!important}
+  .jeongV2 .calendarSecondaryControls{justify-self:end!important}
+  .jeongV2 .projectWorkspace{grid-template-columns:1fr!important}
+  .jeongV2 .projectList{position:static!important;max-height:none!important}
+  .jeongV2 .projectListItems{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .jeongV2 .reviewWorkspace{grid-template-columns:1fr!important}
+  .jeongV2 .reviewHistory{position:static!important;display:flex!important;gap:7px!important;overflow-x:auto!important}
+  .jeongV2 .reviewHistory input{min-width:150px!important}
+  .jeongV2 .reviewHistory button{min-width:max-content!important}
+}
+@media(max-width:900px){
+  .jeongV2 .calendarCompactHeader{align-items:flex-start!important;flex-wrap:wrap!important}
+  .jeongV2 .calendarHeaderHint{display:none!important}
+  .jeongV2 .monthGrid{grid-template-rows:repeat(6,minmax(84px,1fr))!important;height:auto!important}
+  .jeongV2 .monthAgendaList article{grid-template-columns:78px minmax(0,1fr)!important}.jeongV2 .monthAgendaList article>.monthListStatus{display:none!important}
+  .jeongV2 .monthAgendaList{max-height:58dvh!important}
+  .jeongV2 .selectedDayList{grid-template-columns:1fr!important}
+  .jeongV2 .activityComposer{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .jeongV2 .activityComposer>label,.jeongV2 .activityComposer .activityTypeField,.jeongV2 .activityComposer .activityDateField,.jeongV2 .activityComposer .activityTitleField,.jeongV2 .activityComposer .activityDurationField,.jeongV2 .activityComposer .activityAmountField,.jeongV2 .activityComposer .activityProjectField,.jeongV2 .activityComposer .activityLearnField,.jeongV2 .activityComposer .activityApplyField{grid-column:span 1!important}
+  .jeongV2 .activityComposer .activityReflectionField,.jeongV2 .activityComposer .activitySaveBtn{grid-column:1/-1!important}
+  .jeongV2 .noteComposer{grid-template-columns:1fr!important}.jeongV2 .noteComposer textarea,.jeongV2 .noteComposer select:last-of-type{grid-column:1!important}.jeongV2 .noteComposer .goldBtn{width:100%!important}
+}
+@media(max-width:760px){
+  .jeongV2 .contentArea{padding:12px 12px 88px!important}
+  .jeongV2 .mobileBottomNav{display:grid!important;border:1px solid var(--v2-line)!important;background:rgba(255,253,249,.94)!important;box-shadow:0 16px 44px rgba(60,45,25,.15)!important;backdrop-filter:blur(20px)!important}
+  html[data-theme="dark"] .jeongV2 .mobileBottomNav{background:rgba(8,18,31,.95)!important}
+  .jeongV2 .calendarToolbar{grid-template-columns:1fr!important;gap:9px!important}
+  .jeongV2 .calendarPrimaryControls,.jeongV2 .calendarSecondaryControls{justify-content:space-between!important;width:100%!important}
+  .jeongV2 .calendarPrimaryControls strong{margin-left:auto!important}
+  .jeongV2 .calendarCenterControls{grid-column:1!important;order:2!important}
+  .jeongV2 .calendarSecondaryControls{order:3!important}
+  .jeongV2 .monthGrid{gap:4px!important}.jeongV2 .monthGrid>button{padding:6px!important}.jeongV2 .monthGrid>button>span{display:none!important}.jeongV2 .monthGrid>button>small{font-size:.56rem!important}
+  .jeongV2 .weekAgenda{grid-template-columns:repeat(7,minmax(132px,1fr))!important}
+  .jeongV2 .dayAgenda>article{grid-template-columns:76px minmax(0,1fr)!important}.jeongV2 .dayAgenda>article>span:last-child{display:none!important}
+  .jeongV2 .projectListItems{grid-template-columns:1fr!important}
+  .jeongV2 .projectIntelligenceGrid,.jeongV2 .intelligenceMetricGrid{grid-template-columns:1fr!important}
+  .jeongV2 .assistantMessages{min-height:220px!important}.jeongV2 .assistantMessages p{width:92%!important}.jeongV2 .assistantComposer{grid-template-columns:1fr!important}.jeongV2 .assistantComposer button{width:100%!important}
+  .jeongV2 .reviewSummary,.jeongV2 .reviewGrid{grid-template-columns:1fr!important}
+}
+@media(max-width:520px){
+  .jeongV2 .contentArea{padding-inline:9px!important}
+  .jeongV2 .premiumCard{border-radius:15px!important}
+  .jeongV2 .subpageHeader{padding:12px!important;gap:10px!important}.jeongV2 .subpageHeader h2{font-size:.94rem!important}
+  .jeongV2 .calendarCompactHeader{padding:14px 12px 10px!important}.jeongV2 .calendarToolbar{padding:10px 12px!important}
+  .jeongV2 .calendarPrimaryControls{display:grid!important;grid-template-columns:auto auto auto 1fr!important}.jeongV2 .calendarPrimaryControls strong{text-align:right!important;font-size:.78rem!important}
+  .jeongV2 .calendarSecondaryControls{display:grid!important;grid-template-columns:1fr!important}.jeongV2 .calendarModeTabs{width:100%!important}.jeongV2 .calendarModeTabs button{flex:1!important}
+  .jeongV2 .monthListTools{grid-template-columns:1fr!important}
+  .jeongV2 .selectedDayRangeTabs{grid-template-columns:1fr repeat(2,.58fr)!important}
+  .jeongV2 .activityComposer{grid-template-columns:1fr!important}.jeongV2 .activityComposer>label,.jeongV2 .activityComposer [class*="activity"]{grid-column:1!important}
+  .jeongV2 .assistantChat{padding:14px!important}.jeongV2 .assistantMessages p{width:100%!important}
+}
+
+/* =========================================================
+   JEONG refinement pass · 2026-08-13
+   User-driven geometry corrections after live-screen QA.
+   ========================================================= */
+
+/* Morning: gratitude belongs below the direction fields, full-width and calm. */
+@media(min-width:761px){
+ .jeongV2 .morningCard{grid-template-columns:1fr 1fr!important;row-gap:10px!important}
+ .jeongV2 .morningCard fieldset{grid-column:1/-1!important;grid-row:auto!important;display:grid!important;grid-template-columns:1fr!important;gap:7px!important;margin:2px 0 0!important}
+ .jeongV2 .morningCard fieldset legend{margin-bottom:1px!important}
+ .jeongV2 .morningCard fieldset input{width:100%!important;min-height:38px!important;padding:8px 10px!important}
+}
+
+/* Calendar view-height authority: month/list/week-list all occupy one visual stage. */
+.jeongV2 .calendarPage{--calendar-view-height:clamp(575px,calc(100dvh - 300px),720px)}
+.jeongV2 .monthGrid{height:var(--calendar-view-height)!important}
+.jeongV2 .monthListView,.jeongV2 .weekListView{display:flex!important;flex-direction:column!important;height:calc(var(--calendar-view-height) + 30px)!important;min-height:calc(var(--calendar-view-height) + 30px)!important;max-height:calc(var(--calendar-view-height) + 30px)!important;overflow:hidden!important}
+.jeongV2 .monthListView .monthAgendaList,.jeongV2 .weekListView .monthAgendaList{flex:1 1 auto!important;min-height:0!important;max-height:none!important;overflow-y:auto!important;overflow-x:hidden!important;scrollbar-gutter:stable!important}
+
+/* Calendar day preview: clicking a date shows the complete schedule without taking the Todo rail away. */
+.jeongV2 .calendarDayPreviewModal{width:min(640px,calc(100vw - 32px));max-height:min(720px,calc(100dvh - 32px));overflow:auto;padding:20px;border:1px solid var(--v2-line);border-radius:20px;background:var(--v2-surface-solid);box-shadow:0 30px 90px rgba(28,20,10,.22)}
+.jeongV2 .calendarDayPreviewModal .modalHead{margin-bottom:10px}
+.jeongV2 .calendarDayPreviewModal .modalHead p{margin:4px 0 0;color:var(--v2-muted);font-size:.72rem}
+.jeongV2 .calendarDayPreviewList{display:grid;gap:7px}
+.jeongV2 .calendarDayPreviewList>button{display:grid;grid-template-columns:74px minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;min-height:62px;padding:10px 12px;border:1px solid var(--v2-line);border-radius:11px;background:var(--v2-field);color:var(--v2-text);text-align:left}
+.jeongV2 .calendarDayPreviewList>button:hover{border-color:var(--v2-line-strong);background:var(--v2-surface-solid)}
+.jeongV2 .calendarDayPreviewList time{color:var(--v2-gold);font-size:.72rem;font-weight:800}
+.jeongV2 .calendarDayPreviewList span{display:grid;min-width:0;gap:3px}.jeongV2 .calendarDayPreviewList strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.82rem}.jeongV2 .calendarDayPreviewList small{color:var(--v2-muted);font-size:.66rem}.jeongV2 .calendarDayPreviewList b{color:var(--v2-muted);font-size:.66rem;font-weight:700}
+.jeongV2 .calendarDayPreviewList>p{margin:0;padding:24px;text-align:center;color:var(--v2-muted)}
+.jeongV2 .calendarDayPreviewActions{display:flex;justify-content:flex-end;margin-top:12px;padding-top:12px;border-top:1px solid var(--v2-line)}
+html[data-theme="dark"] .jeongV2 .calendarDayPreviewModal{box-shadow:0 32px 100px rgba(0,0,0,.55)}
+
+/* Todo rail: one daily bucket; recurring occurrences are visually identical to daily todos. */
+.jeongV2 .selectedDayRangeTabs{grid-template-columns:1.25fr .75fr .75fr!important}
+.jeongV2 .calendarTaskPanel .dayTaskRow small{display:none!important}
+
+/* Compact Google Calendar editor: essentials first; details on demand. */
+.jeongV2 .compactEventModal{width:min(820px,calc(100vw - 40px))!important;max-height:calc(100dvh - 28px)!important;padding:18px 20px 16px!important;overflow:auto!important}
+.jeongV2 .compactEventModal .eventModalHead{margin-bottom:10px!important}
+.jeongV2 .compactEventModal .eventCoreStack{display:grid!important;gap:9px!important}
+.jeongV2 .compactEventModal .eventCoreStack>label,.jeongV2 .compactEventModal .eventCoreStack .picker{margin-top:0!important}
+.jeongV2 .compactEventModal .eventAllDayToggle{display:flex!important;align-items:center!important;gap:8px!important;width:max-content!important;margin:0!important}
+.jeongV2 .compactEventModal .eventTimeFields,.jeongV2 .compactEventModal .eventCoreOptions{gap:9px!important}
+.jeongV2 .compactEventModal input,.jeongV2 .compactEventModal select{min-height:42px!important;padding:8px 10px!important}
+.jeongV2 .compactEventModal .eventCollapsible{margin:9px 0 0!important;padding:0!important;overflow:hidden!important;border:1px solid var(--v2-line)!important;border-radius:12px!important;background:var(--v2-field)!important}
+.jeongV2 .compactEventModal .eventCollapsible>summary{display:flex!important;align-items:center!important;justify-content:space-between!important;min-height:42px!important;padding:9px 12px!important;cursor:pointer!important;list-style:none!important;color:var(--v2-text-soft)!important;font-size:.76rem!important;font-weight:800!important}
+.jeongV2 .compactEventModal .eventCollapsible>summary::-webkit-details-marker{display:none!important}
+.jeongV2 .compactEventModal .eventCollapsible>summary:after{content:"⌄";color:var(--v2-muted);font-size:.75rem}
+.jeongV2 .compactEventModal .eventCollapsible[open]>summary{border-bottom:1px solid var(--v2-line)!important;background:var(--v2-surface-solid)!important}
+.jeongV2 .compactEventModal .eventCollapsibleBody{display:grid!important;gap:9px!important;padding:10px 12px 12px!important}
+.jeongV2 .compactEventModal .eventCollapsibleBody label{margin-top:0!important}
+.jeongV2 .compactEventModal .recurrenceTopGrid,.jeongV2 .compactEventModal .recurrenceEndGrid{gap:9px!important}
+.jeongV2 .compactEventModal .weekdayQuickPicks{margin:0!important}
+.jeongV2 .compactEventModal .reminderList{gap:7px!important}
+.jeongV2 .compactEventModal .eventLocationRow{margin-top:0!important}
+.jeongV2 .compactEventModal textarea{min-height:78px!important;max-height:130px!important}
+.jeongV2 .compactEventModal .compactEventActions{position:sticky!important;bottom:-16px!important;z-index:3;align-items:center!important;margin:10px -20px -16px!important;padding:12px 20px!important;border-top:1px solid var(--v2-line)!important;background:color-mix(in srgb,var(--v2-surface-solid) 94%,transparent)!important;backdrop-filter:blur(12px)!important}
+.jeongV2 .compactEventModal .primarySaveBtn{margin-left:auto!important;min-width:190px!important}
+
+/* Todo composer: two disciplined rows; Context never collapses into vertical text. */
+@media(min-width:821px){
+ .jeongV2 .taskComposer{display:grid!important;grid-template-columns:repeat(12,minmax(0,1fr))!important;gap:10px!important;align-items:flex-end!important}
+ .jeongV2 .taskComposer>:nth-child(1){grid-column:span 4!important}
+ .jeongV2 .taskComposer>:nth-child(2){grid-column:span 2!important}
+ .jeongV2 .taskComposer>:nth-child(3){grid-column:span 3!important}
+ .jeongV2 .taskComposer>:nth-child(4){grid-column:span 3!important}
+ .jeongV2 .taskComposer>:nth-child(5){grid-column:span 4!important}
+ .jeongV2 .taskComposer>:nth-child(6){grid-column:span 4!important;min-width:0!important;padding:0!important}
+ .jeongV2 .taskComposer>:nth-child(7){grid-column:span 4!important;width:100%!important;min-height:46px!important}
+ .jeongV2 .taskComposer>:nth-child(6)>span{white-space:nowrap!important}
+ .jeongV2 .taskComposer>:nth-child(6)>select{width:100%!important;min-width:0!important}
+}
+
+/* Projects: compact header, no duplicate progress/purpose cards, secondary data behind disclosure. */
+.jeongV2 .projectDetail{padding:16px!important}
+.jeongV2 .projectHero{grid-template-columns:minmax(0,1fr) auto auto!important;gap:12px!important;align-items:center!important;min-height:0!important;padding:8px 2px 12px!important;margin:0!important}
+.jeongV2 .projectIdentity{align-self:center!important}.jeongV2 .projectIdentity h2{margin:5px 0 2px!important}.jeongV2 .projectIdentity p{margin:2px 0!important;max-width:720px!important;line-height:1.4!important}.jeongV2 .projectIdentity .projectPeriod{display:block!important;margin-top:4px!important}
+.jeongV2 .projectProgressSummary{align-self:center!important;min-width:118px!important;text-align:right!important}.jeongV2 .projectProgressSummary b{font-size:2rem!important}.jeongV2 .projectProgressSummary span{display:block!important;margin-top:3px!important;max-width:180px!important;font-size:.65rem!important;line-height:1.35!important}
+.jeongV2 .projectHero>.softBtn{align-self:center!important;margin:0!important}
+.jeongV2 .projectMainProgress{margin-bottom:10px!important}
+.jeongV2 .projectIntelligenceCompact{margin:10px 0!important;padding:12px!important}
+.jeongV2 .projectIntelligenceCompact .projectIntelligenceHead{margin-bottom:9px!important}
+.jeongV2 .projectSignalRow{display:grid!important;grid-template-columns:1.35fr .75fr .95fr!important;gap:8px!important}
+.jeongV2 .projectSignalRow>div{min-width:0!important;padding:9px 10px!important;border:1px solid var(--v2-line)!important;border-radius:10px!important;background:var(--v2-surface-solid)!important}
+.jeongV2 .projectSignalRow span{display:block!important;margin-bottom:4px!important;color:var(--v2-muted)!important;font-size:.62rem!important;font-weight:800!important}.jeongV2 .projectSignalRow strong{display:block!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:.76rem!important}
+.jeongV2 .projectCompactPanel{margin:8px 0 0!important;padding:0!important;border:1px solid var(--v2-line)!important;border-radius:12px!important;background:var(--v2-field)!important;overflow:hidden!important}
+.jeongV2 .projectCompactPanel>summary{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;min-height:52px!important;padding:10px 13px!important;cursor:pointer!important;list-style:none!important}
+.jeongV2 .projectCompactPanel>summary::-webkit-details-marker{display:none!important}.jeongV2 .projectCompactPanel>summary>div{display:flex!important;align-items:baseline!important;gap:8px!important}.jeongV2 .projectCompactPanel>summary h3{margin:0!important;font-size:.9rem!important}.jeongV2 .projectCompactPanel>summary small{color:var(--v2-muted)!important;font-size:.65rem!important}.jeongV2 .projectCompactPanel>summary>span{color:var(--v2-muted)!important}.jeongV2 .projectCompactPanel[open]>summary{border-bottom:1px solid var(--v2-line)!important;background:var(--v2-surface-solid)!important}
+.jeongV2 .projectCompactBody{padding:11px 12px 12px!important}.jeongV2 .projectCompactActions{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;margin-bottom:9px!important}.jeongV2 .projectCompactActions p{margin:0!important;color:var(--v2-muted)!important;font-size:.7rem!important}
+.jeongV2 .projectMemoPanel{margin-top:8px!important}
+.jeongV2 .projectFooterActions{margin-top:10px!important}
+
+/* Activity logging: simple two-column form and a normal save button. */
+@media(min-width:821px){
+ .jeongV2 .activityComposer{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important;padding:18px!important;align-items:start!important}
+ .jeongV2 .activityComposer .activityTypeField,.jeongV2 .activityComposer .activityDateField{grid-column:span 1!important}
+ .jeongV2 .activityComposer .activityTitleField{grid-column:1/-1!important}
+ .jeongV2 .activityComposer .activityDurationField,.jeongV2 .activityComposer .activityAmountField{grid-column:span 1!important}
+ .jeongV2 .activityComposer .activityProjectField{grid-column:1/-1!important}
+ .jeongV2 .activityComposer .activityReflectionField{grid-column:1/-1!important}
+ .jeongV2 .activityComposer .activityLearnField,.jeongV2 .activityComposer .activityApplyField{grid-column:span 1!important}
+ .jeongV2 .activityComposer .activitySaveBtn{grid-column:2!important;justify-self:end!important;width:auto!important;min-width:148px!important;white-space:nowrap!important;writing-mode:horizontal-tb!important}
+ .jeongV2 .activityComposer textarea{min-height:94px!important;height:94px!important}
+}
+
+@media(max-width:820px){
+ .jeongV2 .calendarPage{--calendar-view-height:auto}
+ .jeongV2 .monthListView,.jeongV2 .weekListView{height:58dvh!important;min-height:420px!important;max-height:620px!important}
+ .jeongV2 .calendarDayPreviewList>button{grid-template-columns:58px minmax(0,1fr)!important}.jeongV2 .calendarDayPreviewList b{display:none!important}
+ .jeongV2 .compactEventModal{width:min(100%,calc(100vw - 20px))!important;padding:16px!important}
+ .jeongV2 .compactEventModal .twoFields{grid-template-columns:1fr!important}
+ .jeongV2 .compactEventModal .compactEventActions{margin-inline:-16px!important;padding-inline:16px!important}
+ .jeongV2 .projectSignalRow{grid-template-columns:1fr!important}
+ .jeongV2 .projectHero{grid-template-columns:1fr auto!important}.jeongV2 .projectProgressSummary{grid-column:1!important;text-align:left!important}.jeongV2 .projectHero>.softBtn{grid-column:2!important;grid-row:1!important}
+ .jeongV2 .activityComposer{grid-template-columns:1fr!important}.jeongV2 .activityComposer>*{grid-column:1!important}.jeongV2 .activityComposer .activitySaveBtn{justify-self:stretch!important;width:100%!important}
+}
+
+/* =========================================================
+   JEONG refinement · 2026-08-13 round 2
+   ========================================================= */
+
+/* Home: reduce the visual header and lower the greeting just enough to breathe under the eyebrow. */
+.jeongV2 .heroGreetingBalance{transform:none}
+
+/* Calendar date preview: header/actions stay put; only the schedule list scrolls. */
+.jeongV2 .calendarDayPreviewModal{
+  display:grid!important;
+  grid-template-rows:auto minmax(0,1fr) auto!important;
+  max-height:min(700px,calc(100dvh - 40px))!important;
+  overflow:hidden!important;
+}
+.jeongV2 .calendarDayPreviewList{
+  min-height:0!important;
+  max-height:min(52dvh,500px)!important;
+  padding-right:4px!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  scrollbar-gutter:stable!important;
+}
+.jeongV2 .calendarDayPreviewActions{margin-top:10px!important}
+
+/* Calendar editor: recurrence belongs to the schedule itself. Keep the controls dense and expose details only when needed. */
+.jeongV2 .compactEventModal{
+  width:min(760px,calc(100vw - 36px))!important;
+  padding:15px 18px 14px!important;
+}
+.jeongV2 .compactEventModal .eventCoreStack{gap:7px!important}
+.jeongV2 .compactEventModal label{gap:5px!important;font-size:.72rem!important}
+.jeongV2 .compactEventModal input,
+.jeongV2 .compactEventModal select{
+  min-height:38px!important;
+  height:38px!important;
+  padding:6px 9px!important;
+  border-radius:9px!important;
+}
+.jeongV2 .compactEventModal .eventRecurrenceHint{
+  display:block!important;
+  margin:-1px 1px 1px!important;
+  color:var(--v2-muted)!important;
+  font-size:.64rem!important;
+  line-height:1.45!important;
+}
+.jeongV2 .compactEventModal .eventCollapsible{margin-top:7px!important}
+.jeongV2 .compactEventModal .eventCollapsible>summary{
+  min-height:36px!important;
+  padding:7px 10px!important;
+  font-size:.7rem!important;
+}
+.jeongV2 .compactEventModal .eventCollapsibleBody{
+  gap:7px!important;
+  padding:9px 10px 10px!important;
+}
+.jeongV2 .compactEventModal .recurrenceSection .eventCollapsibleBody{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  align-items:start!important;
+}
+.jeongV2 .compactEventModal .recurrenceSection .weekdayQuickPicks,
+.jeongV2 .compactEventModal .recurrenceSection .weekdayBlock,
+.jeongV2 .compactEventModal .recurrenceSection .exceptionOptions,
+.jeongV2 .compactEventModal .recurrenceSection .optionHint,
+.jeongV2 .compactEventModal .recurrenceSection>div>label:last-child{
+  grid-column:1/-1!important;
+}
+.jeongV2 .compactEventModal .weekdayQuickPicks{display:flex!important;flex-wrap:wrap!important;gap:5px!important}
+.jeongV2 .compactEventModal .weekdayQuickPicks button,
+.jeongV2 .compactEventModal .weekdayPicker label{
+  min-height:30px!important;
+  padding:5px 8px!important;
+  font-size:.66rem!important;
+}
+.jeongV2 .compactEventModal .weekdayPicker{gap:5px!important;margin:6px 0 0!important}
+.jeongV2 .compactEventModal textarea{min-height:62px!important;max-height:110px!important}
+.jeongV2 .compactEventModal .compactEventActions{
+  margin:8px -18px -14px!important;
+  padding:10px 18px!important;
+}
+.jeongV2 .compactEventModal .primarySaveBtn{min-width:166px!important;min-height:40px!important}
+
+/* Todo wording: recurring Todo is not a Calendar schedule. */
+.jeongV2 .taskComposer+section .cardTitle>.goldBtn{white-space:nowrap!important}
+
+/* Activity: two compact information rows, followed by long horizontal writing fields. */
+.jeongV2 .activityComposer{
+  grid-template-columns:repeat(12,minmax(0,1fr))!important;
+  gap:10px 12px!important;
+  padding:16px 18px 18px!important;
+}
+.jeongV2 .activityComposer .activityTypeField{grid-column:1/3!important}
+.jeongV2 .activityComposer .activityDateField{grid-column:3/5!important}
+.jeongV2 .activityComposer .activityTitleField{grid-column:5/13!important}
+.jeongV2 .activityComposer .activityDurationField{grid-column:1/3!important}
+.jeongV2 .activityComposer .activityAmountField{grid-column:3/5!important}
+.jeongV2 .activityComposer .activityProjectField{grid-column:5/13!important}
+.jeongV2 .activityComposer .activityReflectionField,
+.jeongV2 .activityComposer .activityLearnField,
+.jeongV2 .activityComposer .activityApplyField{grid-column:1/-1!important}
+.jeongV2 .activityComposer textarea{
+  min-height:52px!important;
+  height:52px!important;
+  resize:vertical!important;
+}
+.jeongV2 .activityComposer .activityReflectionField textarea{min-height:58px!important;height:58px!important}
+.jeongV2 .activityComposer .activitySaveBtn{
+  grid-column:10/-1!important;
+  justify-self:end!important;
+  width:min(100%,190px)!important;
+  min-height:40px!important;
+}
+
+/* Review: make the selected option fully readable in the compact row. */
+.jeongV2 .reviewStatusField select,
+.jeongV2 .reviewSummary select{
+  height:42px!important;
+  min-height:42px!important;
+  padding:0 38px 0 12px!important;
+  line-height:42px!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+}
+
+/* Records: summary cards are in-place filters, not misleading navigation shortcuts. */
+.jeongV2 .recordSummaryGrid .activeRecordSummary{
+  border-color:var(--v2-line-strong)!important;
+  background:linear-gradient(145deg,var(--v2-gold-soft),var(--v2-surface))!important;
+}
+.jeongV2 .recordSummaryGrid button[aria-pressed="true"]{
+  color:var(--v2-gold)!important;
+  border-color:var(--v2-line-strong)!important;
+  background:var(--v2-surface-solid)!important;
+}
+
+/* Assistant: JEONG's answer box should visually balance the full-width composer below. */
+.jeongV2 .assistantMessages p.assistant{width:100%!important;max-width:none!important}
+.jeongV2 .assistantMessages p.user{width:min(82%,760px)!important}
+
+/* Settings: one disciplined column; no oversized empty panels and no narrow orphan disclosure. */
+.jeongV2 .advancedAccessPanel,
+.jeongV2 .settingsPanel,
+.jeongV2 .aiEngineDisclosure{
+  width:100%!important;
+  max-width:var(--v2-page-max)!important;
+  margin:0 auto 12px!important;
+}
+.jeongV2 .advancedAccessPanel{padding:13px 16px!important}
+.jeongV2 .advancedAccessPanel .cardTitle{margin:0!important;align-items:center!important}
+.jeongV2 .advancedAccessButtons{display:flex!important;gap:8px!important;flex-wrap:wrap!important}
+.jeongV2 .settingsPanel{padding:0!important;overflow:hidden!important}
+.jeongV2 .settingsPanel>h2{margin:0!important;padding:16px 18px 8px!important;font-size:1.25rem!important}
+.jeongV2 .settingsPanel>div{
+  min-height:52px!important;
+  padding:10px 18px!important;
+  border-top:1px solid var(--v2-line)!important;
+  border-bottom:0!important;
+}
+.jeongV2 .settingsPanel button,.jeongV2 .settingsPanel .importBtn{min-height:38px!important;padding:7px 11px!important}
+.jeongV2 .aiEngineDisclosure>summary{min-height:62px!important;padding:12px 16px!important}
+
+/* Sidebar account control: retain account/logout access, remove the redundant '고금제일 황제' row. */
+.jeongV2~.accountMenu.sidebarAccountMenu,
+.accountMenu.sidebarAccountMenu{
+  left:178px!important;
+  right:auto!important;
+  bottom:27px!important;
+  width:32px!important;
+  z-index:125!important;
+}
+.accountMenu.sidebarAccountMenu>summary{
+  width:32px!important;
+  height:32px!important;
+  min-height:32px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:50%!important;
+  background:transparent!important;
+}
+.accountMenu.sidebarAccountMenu>summary::after{content:none!important;display:none!important}
+.accountMenu.sidebarAccountMenu>summary img,
+.accountMenu.sidebarAccountMenu>summary>span{width:32px!important;height:32px!important}
+.accountMenu.sidebarAccountMenu .accountDropdown{left:auto!important;right:0!important;bottom:40px!important}
+
+@media(max-width:1120px){
+  .accountMenu.sidebarAccountMenu{left:146px!important}
+  .jeongV2 .compactEventModal .recurrenceSection .eventCollapsibleBody{grid-template-columns:1fr!important}
+  .jeongV2 .compactEventModal .recurrenceSection>*{grid-column:1!important}
+}
+@media(max-width:900px){
+  .jeongV2 .activityComposer{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .jeongV2 .activityComposer .activityTypeField,.jeongV2 .activityComposer .activityDateField,
+  .jeongV2 .activityComposer .activityDurationField,.jeongV2 .activityComposer .activityAmountField{grid-column:span 1!important}
+  .jeongV2 .activityComposer .activityTitleField,.jeongV2 .activityComposer .activityProjectField,
+  .jeongV2 .activityComposer .activityReflectionField,.jeongV2 .activityComposer .activityLearnField,
+  .jeongV2 .activityComposer .activityApplyField{grid-column:1/-1!important}
+  .jeongV2 .activityComposer .activitySaveBtn{grid-column:2!important}
+}
+@media(max-width:760px){
+  .accountMenu.sidebarAccountMenu{display:none!important}
+  .jeongV2 .activityComposer{grid-template-columns:1fr!important}
+  .jeongV2 .activityComposer>*{grid-column:1!important}
+  .jeongV2 .activityComposer .activitySaveBtn{width:100%!important;justify-self:stretch!important}
+}
+
+/* =========================================================
+   JEONG refinement · 2026-08-13 round 3
+   ========================================================= */
+
+/* Calendar: context owns the visual color, so manual event colors are unnecessary. */
+.jeongV2 .calendarEventTone.context-personal{--event-tone:#c3912d;--event-tone-soft:rgba(195,145,45,.12)}
+.jeongV2 .calendarEventTone.context-work{--event-tone:#4667b2;--event-tone-soft:rgba(70,103,178,.11)}
+.jeongV2 .calendarEventTone.context-church{--event-tone:#8b64b7;--event-tone-soft:rgba(139,100,183,.11)}
+.jeongV2 .monthGrid>button>span.calendarEventTone{border-left:3px solid var(--event-tone)!important;background:var(--event-tone-soft)!important}
+.jeongV2 .monthAgendaList article.calendarEventTone,.jeongV2 .weekDayEvents article.calendarEventTone,.jeongV2 .agendaView article.calendarEventTone{border-left:3px solid var(--event-tone)!important;background:linear-gradient(90deg,var(--event-tone-soft),var(--v2-surface-solid) 18%)!important}
+
+/* Event editor: keep only core schedule controls, visible alert control, recurrence, and one memo field. */
+.jeongV2 .compactEventModal{width:min(720px,calc(100vw - 36px))!important;max-height:min(720px,calc(100dvh - 34px))!important}
+.jeongV2 .compactEventModal .eventReminderRow{display:grid!important;grid-template-columns:auto minmax(170px,1fr)!important;align-items:center!important;gap:10px!important;margin-top:8px!important;padding:9px 10px!important;border:1px solid var(--v2-line)!important;border-radius:10px!important;background:var(--v2-field)!important}
+.jeongV2 .compactEventModal .eventReminderToggle{display:flex!important;align-items:center!important;gap:7px!important;margin:0!important;white-space:nowrap!important}
+.jeongV2 .compactEventModal .eventReminderToggle input{width:18px!important;height:18px!important;min-height:18px!important;padding:0!important}
+.jeongV2 .compactEventModal .eventReminderRow select{width:100%!important}
+.jeongV2 .compactEventModal .eventReminderRow select:disabled{opacity:.5!important}
+.jeongV2 .compactEventModal .eventMemoField{display:grid!important;gap:5px!important;margin-top:8px!important}
+.jeongV2 .compactEventModal .eventMemoField textarea{min-height:74px!important;height:74px!important;max-height:120px!important}
+.jeongV2 .compactEventModal .recurrenceSection{margin-top:8px!important}
+.jeongV2 .compactEventModal .recurrenceSection>summary{min-height:34px!important}
+
+/* Activity: use every horizontal pixel; top rows are balanced, writing areas are long and shallow. */
+@media(min-width:901px){
+ .jeongV2 .activityComposer{grid-template-columns:repeat(12,minmax(0,1fr))!important;gap:9px 12px!important;padding:16px 18px!important}
+ .jeongV2 .activityComposer .activityTypeField{grid-column:1/3!important}
+ .jeongV2 .activityComposer .activityDateField{grid-column:3/5!important}
+ .jeongV2 .activityComposer .activityTitleField{grid-column:5/13!important}
+ .jeongV2 .activityComposer .activityDurationField{grid-column:1/3!important}
+ .jeongV2 .activityComposer .activityAmountField{grid-column:3/5!important}
+ .jeongV2 .activityComposer .activityProjectField{grid-column:5/13!important}
+ .jeongV2 .activityComposer .activityReflectionField,.jeongV2 .activityComposer .activityLearnField,.jeongV2 .activityComposer .activityApplyField{grid-column:1/-1!important}
+ .jeongV2 .activityComposer .activityReflectionField textarea,.jeongV2 .activityComposer .activityLearnField textarea,.jeongV2 .activityComposer .activityApplyField textarea{height:46px!important;min-height:46px!important;max-height:84px!important}
+ .jeongV2 .activityComposer .activitySaveBtn{grid-column:10/-1!important;justify-self:end!important;width:180px!important;min-height:40px!important}
+}
+
+/* Projects: deadline and memo are core information, never hidden behind a disclosure. */
+.jeongV2 .projectVisibleMeta{display:grid!important;grid-template-columns:220px minmax(0,1fr)!important;gap:10px!important;margin:10px 0!important;padding:12px!important;border:1px solid var(--v2-line)!important;border-radius:12px!important;background:var(--v2-field)!important}
+.jeongV2 .projectVisibleMeta label{display:grid!important;gap:6px!important;color:var(--v2-text-soft)!important;font-size:.7rem!important;font-weight:800!important}
+.jeongV2 .projectVisibleMeta input{height:40px!important;min-height:40px!important}
+.jeongV2 .projectVisibleMeta textarea{height:58px!important;min-height:58px!important;max-height:120px!important;resize:vertical!important}
+
+/* Records: equal summary cards, fixed timeline viewport, then browse by year and month. */
+.jeongV2 .recordSummaryGrid{grid-auto-rows:104px!important}
+.jeongV2 .recordSummaryGrid>article{height:104px!important;min-height:104px!important}
+.jeongV2 .recordsTimelineCard{height:430px!important;min-height:430px!important;overflow:hidden!important}
+.jeongV2 .recordsTimelineCard .groupedRecordTimeline{height:340px!important;max-height:340px!important;overflow-y:auto!important;overflow-x:hidden!important;padding-right:4px!important;scrollbar-gutter:stable!important}
+.jeongV2 .recordYearGroup,.jeongV2 .recordMonthGroup,.jeongV2 .timelineYearGroup,.jeongV2 .timelineMonthGroup{border:1px solid var(--v2-line)!important;border-radius:10px!important;background:var(--v2-surface-solid)!important;overflow:hidden!important}
+.jeongV2 .recordYearGroup+.recordYearGroup,.jeongV2 .timelineYearGroup+.timelineYearGroup{margin-top:8px!important}
+.jeongV2 .recordMonthGroup+.recordMonthGroup,.jeongV2 .timelineMonthGroup+.timelineMonthGroup{margin-top:6px!important}
+.jeongV2 .recordYearGroup>summary,.jeongV2 .recordMonthGroup>summary,.jeongV2 .timelineYearGroup>summary,.jeongV2 .timelineMonthGroup>summary{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;min-height:38px!important;padding:8px 11px!important;cursor:pointer!important;list-style:none!important}
+.jeongV2 .recordYearGroup>summary::-webkit-details-marker,.jeongV2 .recordMonthGroup>summary::-webkit-details-marker,.jeongV2 .timelineYearGroup>summary::-webkit-details-marker,.jeongV2 .timelineMonthGroup>summary::-webkit-details-marker{display:none!important}
+.jeongV2 .recordYearGroup>summary:after,.jeongV2 .recordMonthGroup>summary:after,.jeongV2 .timelineYearGroup>summary:after,.jeongV2 .timelineMonthGroup>summary:after{content:"⌄";color:var(--v2-muted)!important}
+.jeongV2 .recordYearGroup:not([open])>summary:after,.jeongV2 .recordMonthGroup:not([open])>summary:after,.jeongV2 .timelineYearGroup:not([open])>summary:after,.jeongV2 .timelineMonthGroup:not([open])>summary:after{content:"›"}
+.jeongV2 .recordYearGroup>summary span,.jeongV2 .recordMonthGroup>summary span,.jeongV2 .timelineYearGroup>summary span,.jeongV2 .timelineMonthGroup>summary span{margin-left:auto!important;color:var(--v2-muted)!important;font-size:.67rem!important;font-weight:650!important}
+.jeongV2 .recordYearGroup>div,.jeongV2 .timelineYearGroup>div{padding:0 7px 7px!important}
+.jeongV2 .recordMonthGroup>div{padding:0 7px 7px!important}
+.jeongV2 .groupedTimelineList{height:560px!important;max-height:560px!important;overflow-y:auto!important;padding:12px!important;scrollbar-gutter:stable!important}
+.jeongV2 .timelineMonthGroup>div{padding:0 10px 8px!important}
+
+@media(max-width:900px){
+ .jeongV2 .projectVisibleMeta{grid-template-columns:1fr!important}
+ .jeongV2 .recordsTimelineCard{height:390px!important;min-height:390px!important}
+ .jeongV2 .recordsTimelineCard .groupedRecordTimeline{height:300px!important;max-height:300px!important}
+ .jeongV2 .compactEventModal .eventReminderRow{grid-template-columns:1fr!important}
+}
+.jeongV2 .calendarEventTone.context-unassigned{--event-tone:var(--v2-gold);--event-tone-soft:var(--v2-gold-soft)}
+
+
+/* =========================================================
+   JEONG refinement · 2026-08-13 round 4
+   ========================================================= */
+
+/* Calendar side range: day / week / month are equal controls. */
+.jeongV2 .selectedDayRangeTabs{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important}
+.jeongV2 .selectedDayRangeTabs button{width:100%!important;padding-inline:8px!important}
+
+/* Todo: title first, then four compact options in one line, then project + action. */
+.jeongV2 .compactTaskComposer{display:grid!important;grid-template-columns:1fr!important;gap:10px!important;padding:16px 18px!important}
+.jeongV2 .compactTaskComposer .taskTitleField{width:100%!important;min-height:46px!important}
+.jeongV2 .compactTaskComposer .taskOptionRow{display:grid!important;grid-template-columns:minmax(120px,.78fr) minmax(200px,1.45fr) minmax(150px,.92fr) minmax(150px,1fr)!important;gap:9px!important;align-items:flex-end!important}
+.jeongV2 .compactTaskComposer .taskOptionRow>*{min-width:0!important}
+.jeongV2 .compactTaskComposer .taskOptionRow input,.jeongV2 .compactTaskComposer .taskOptionRow select{width:100%!important;min-height:44px!important}
+.jeongV2 .compactTaskComposer .taskContextField{min-width:0!important}
+.jeongV2 .compactTaskComposer .taskContextField .picker{margin:0!important;padding:0!important}
+.jeongV2 .compactTaskComposer .taskContextField .picker>span{font-size:.62rem!important}
+.jeongV2 .compactTaskComposer .taskProjectRow{display:grid!important;grid-template-columns:minmax(0,1fr) 170px!important;gap:9px!important;align-items:center!important}
+.jeongV2 .compactTaskComposer .taskProjectField,.jeongV2 .compactTaskComposer .taskAddBtn{width:100%!important;min-height:44px!important}
+.jeongV2 .compactTaskComposer+.premiumCard .cardTitle{min-height:34px!important}
+
+/* Project edit: dates are a pair; status stays compact instead of consuming a full visual column. */
+.jeongV2 .projectCoreFields{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 150px 190px 190px!important;gap:10px!important;align-items:flex-end!important}
+.jeongV2 .projectCoreFields>label:nth-child(1){grid-column:1/3!important}
+.jeongV2 .projectCoreFields>.nextActionField{grid-column:3/6!important}
+.jeongV2 .projectCoreFields>.statusField{grid-column:1!important}
+.jeongV2 .projectCoreFields>.projectStartField{grid-column:2!important}
+.jeongV2 .projectCoreFields>.projectEndField{grid-column:3!important}
+.jeongV2 .projectCoreFields>.statusField select{width:150px!important;min-height:40px!important;padding-block:6px!important}
+.jeongV2 .projectCoreFields>.projectStartField input,.jeongV2 .projectCoreFields>.projectEndField input{min-height:40px!important}
+.jeongV2 .projectVisibleMeta.editingProjectMeta{grid-template-columns:1fr!important}
+
+/* Calendar editor: context + recurrence + alert share one row; known-width controls stay compact. */
+.jeongV2 .compactEventModal .eventCoreOptionsTriple{display:grid!important;grid-template-columns:minmax(180px,1fr) minmax(160px,.85fr) minmax(210px,1fr)!important;gap:9px!important;align-items:flex-end!important}
+.jeongV2 .compactEventModal .eventCoreOptionsTriple>*{min-width:0!important}
+.jeongV2 .compactEventModal .eventReminderInline{display:grid!important;gap:5px!important}
+.jeongV2 .compactEventModal .eventReminderInline>span{color:var(--v2-text-soft)!important;font-size:.68rem!important;font-weight:800!important}
+.jeongV2 .compactEventModal .eventReminderInline>div{display:grid!important;grid-template-columns:auto minmax(115px,1fr)!important;align-items:center!important;gap:7px!important;min-height:40px!important}
+.jeongV2 .compactEventModal .eventReminderInline .eventReminderToggle{display:flex!important;align-items:center!important;gap:4px!important;margin:0!important;white-space:nowrap!important}
+.jeongV2 .compactEventModal .eventReminderInline .eventReminderToggle input{width:16px!important;height:16px!important;min-height:16px!important;padding:0!important}
+.jeongV2 .compactEventModal .eventReminderInline select{width:100%!important;min-height:40px!important}
+.jeongV2 .compactEventModal .eventTimeFields{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+.jeongV2 .compactEventModal .recurrenceSection .eventCollapsibleBody{gap:9px!important}
+.jeongV2 .compactEventModal .recurrenceTopGrid,.jeongV2 .compactEventModal .recurrenceEndGrid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
+.jeongV2 .compactEventModal .weekdayQuickPicks{gap:5px!important}.jeongV2 .compactEventModal .weekdayQuickPicks button{min-height:31px!important;padding:5px 8px!important}
+.jeongV2 .compactEventModal .eventMemoField textarea{height:62px!important;min-height:62px!important}
+
+/* Records: preserve year/month folding but give entries room to breathe. */
+.jeongV2 .recordYearGroup>summary,.jeongV2 .recordMonthGroup>summary,.jeongV2 .timelineYearGroup>summary,.jeongV2 .timelineMonthGroup>summary{min-height:42px!important;padding:9px 12px!important}
+.jeongV2 .recordMonthGroup>div,.jeongV2 .timelineMonthGroup>div{display:grid!important;gap:7px!important;padding:5px 9px 10px!important}
+.jeongV2 .recordMonthGroup article{display:grid!important;grid-template-columns:104px minmax(0,1fr)!important;align-items:center!important;gap:14px!important;min-height:52px!important;padding:10px 12px!important;border:1px solid var(--v2-line)!important;border-radius:10px!important;background:var(--v2-field)!important}
+.jeongV2 .recordMonthGroup article time{font-size:.72rem!important;line-height:1.5!important}.jeongV2 .recordMonthGroup article>div{display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;align-items:center!important;gap:6px 10px!important}.jeongV2 .recordMonthGroup article>div>span{padding:3px 7px!important;border-radius:999px!important;background:var(--v2-gold-soft)!important;color:var(--v2-gold)!important;font-size:.62rem!important;font-weight:800!important}.jeongV2 .recordMonthGroup article strong{font-size:.78rem!important;line-height:1.45!important}.jeongV2 .recordMonthGroup article p{grid-column:2!important;margin:2px 0 0!important;color:var(--v2-muted)!important;font-size:.68rem!important;line-height:1.5!important}
+
+/* Activity: keep every field inside the card and keep the save action on its own safe row. */
+@media(min-width:901px){
+ .jeongV2 .activityComposer{overflow:hidden!important}
+ .jeongV2 .activityComposer .activitySaveBtn{grid-column:1/-1!important;justify-self:end!important;width:160px!important;min-height:40px!important;margin-top:2px!important}
+}
+
+/* Review: save belongs at the lower right with breathing room from gratitude. */
+.jeongV2 .reviewForm .reviewSaveBtn{display:flex!important;justify-content:center!important;justify-self:end!important;width:160px!important;min-height:40px!important;margin:16px 0 0 auto!important}
+
+@media(max-width:860px){
+ .jeongV2 .compactTaskComposer .taskOptionRow{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .jeongV2 .projectCoreFields{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .jeongV2 .projectCoreFields>label,.jeongV2 .projectCoreFields>label:nth-child(1),.jeongV2 .projectCoreFields>.nextActionField,.jeongV2 .projectCoreFields>.statusField,.jeongV2 .projectCoreFields>.projectStartField,.jeongV2 .projectCoreFields>.projectEndField{grid-column:auto!important}
+ .jeongV2 .compactEventModal .eventCoreOptionsTriple{grid-template-columns:1fr 1fr!important}.jeongV2 .compactEventModal .eventReminderInline{grid-column:1/-1!important}
+}
+@media(max-width:720px){
+ .jeongV2 .compactTaskComposer .taskOptionRow,.jeongV2 .compactTaskComposer .taskProjectRow{grid-template-columns:1fr!important}
+ .jeongV2 .compactEventModal .eventCoreOptionsTriple{grid-template-columns:1fr!important}
+ .jeongV2 .recordMonthGroup article{grid-template-columns:1fr!important;gap:6px!important}
+ .jeongV2 .reviewForm .reviewSaveBtn{width:100%!important}
+}
+
+/* =========================================================
+   JEONG refinement · 2026-08-13 round 5
+   ========================================================= */
+
+/* Todo composer: one compact operational line. Scope determines the period, so no redundant date/time fields. */
+.jeongV2 .oneLineTaskComposer{
+  display:grid!important;
+  grid-template-columns:minmax(220px,2fr) 98px minmax(150px,1.05fr) 132px 116px!important;
+  gap:8px!important;
+  align-items:flex-end!important;
+  padding:14px 16px!important;
+  overflow:hidden!important;
+}
+.jeongV2 .oneLineTaskComposer>*{min-width:0!important;margin:0!important}
+.jeongV2 .oneLineTaskComposer .taskTitleField,
+.jeongV2 .oneLineTaskComposer .taskBucketField,
+.jeongV2 .oneLineTaskComposer .taskProjectField,
+.jeongV2 .oneLineTaskComposer .taskAddBtn{width:100%!important;height:42px!important;min-height:42px!important}
+.jeongV2 .oneLineTaskComposer .taskContextField{display:block!important;min-width:0!important}
+.jeongV2 .oneLineTaskComposer .taskContextField>label{display:block!important;margin:0!important}
+.jeongV2 .oneLineTaskComposer .taskContextField>label>span{display:none!important}
+.jeongV2 .oneLineTaskComposer .taskContextField select{width:100%!important;height:42px!important;min-height:42px!important;margin:0!important}
+@media(max-width:980px){
+ .jeongV2 .oneLineTaskComposer{grid-template-columns:minmax(190px,2fr) 92px minmax(135px,1fr) 120px 104px!important}
+}
+@media(max-width:760px){
+ .jeongV2 .oneLineTaskComposer{grid-template-columns:1fr 1fr!important}
+ .jeongV2 .oneLineTaskComposer .taskTitleField{grid-column:1/-1!important}
+ .jeongV2 .oneLineTaskComposer .taskProjectField{grid-column:1/-1!important}
+ .jeongV2 .oneLineTaskComposer .taskAddBtn{grid-column:1/-1!important}
+}
+
+/* Event editor: title, time row and context/repeat/alert row all share exact starts, ends and control heights. */
+.jeongV2 .compactEventModal{width:min(700px,calc(100vw - 32px))!important;padding:16px 18px 14px!important}
+.jeongV2 .compactEventModal .eventCoreStack{gap:10px!important}
+.jeongV2 .compactEventModal .eventCoreStack>label:not(.eventAllDayToggle),
+.jeongV2 .compactEventModal .eventTimeFields>label,
+.jeongV2 .compactEventModal .eventCoreOptionsTriple>label,
+.jeongV2 .compactEventModal .eventReminderInline{display:grid!important;grid-template-rows:16px 42px!important;gap:5px!important;align-items:stretch!important;margin:0!important}
+.jeongV2 .compactEventModal .eventCoreStack input:not([type="checkbox"]),
+.jeongV2 .compactEventModal .eventCoreStack select{height:42px!important;min-height:42px!important;width:100%!important;margin:0!important}
+.jeongV2 .compactEventModal .eventTimeFields{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;align-items:flex-end!important}
+.jeongV2 .compactEventModal .eventCoreOptionsTriple{grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr) minmax(0,1.05fr)!important;gap:10px!important;align-items:flex-end!important}
+.jeongV2 .compactEventModal .eventCoreOptionsTriple>label>span,
+.jeongV2 .compactEventModal .eventReminderInline>span{align-self:end!important;line-height:16px!important}
+.jeongV2 .compactEventModal .eventReminderInline>div{height:42px!important;min-height:42px!important;grid-template-columns:auto minmax(0,1fr)!important}
+.jeongV2 .compactEventModal .eventReminderInline select{height:42px!important;min-height:42px!important}
+.jeongV2 .compactEventModal .eventMemoField{margin-top:10px!important}
+.jeongV2 .compactEventModal .eventMemoField textarea{width:100%!important;min-height:64px!important;height:64px!important}
+@media(max-width:720px){
+ .jeongV2 .compactEventModal .eventCoreOptionsTriple{grid-template-columns:1fr!important}
+ .jeongV2 .compactEventModal .eventCoreOptionsTriple>label,
+ .jeongV2 .compactEventModal .eventReminderInline{grid-template-rows:auto 42px!important}
+}
+
+/* Project period: one authoritative start→deadline line; memo no longer repeats the deadline. */
+.jeongV2 .projectPeriod{display:flex!important;align-items:center!important;flex-wrap:wrap!important;gap:5px 7px!important;margin-top:6px!important;color:var(--v2-muted)!important}
+.jeongV2 .projectPeriod span{white-space:nowrap!important}
+.jeongV2 .projectPeriod i{font-style:normal!important;color:var(--v2-gold)!important}
+.jeongV2 .projectPeriod b{padding:2px 6px!important;border-radius:999px!important;background:var(--v2-gold-soft)!important;color:var(--v2-gold)!important;font-size:.64rem!important}
+.jeongV2 .projectVisibleMeta.projectMemoOnly{grid-template-columns:1fr!important;margin-top:10px!important}
+.jeongV2 .projectVisibleMeta.projectMemoOnly .projectMemoField{width:100%!important}
+
+/* Project edit fields: two text fields, then compact status/start/deadline controls aligned to the same baseline. */
+.jeongV2 .projectCoreFields{grid-template-columns:150px minmax(170px,1fr) minmax(170px,1fr)!important;gap:10px!important;align-items:flex-end!important}
+.jeongV2 .projectCoreFields>label:nth-child(1),
+.jeongV2 .projectCoreFields>.nextActionField{grid-column:1/-1!important}
+.jeongV2 .projectCoreFields>.statusField{grid-column:1!important}
+.jeongV2 .projectCoreFields>.projectStartField{grid-column:2!important}
+.jeongV2 .projectCoreFields>.projectEndField{grid-column:3!important}
+.jeongV2 .projectCoreFields>.statusField select{width:100%!important}
+.jeongV2 .projectCoreFields>.statusField select,
+.jeongV2 .projectCoreFields>.projectStartField input,
+.jeongV2 .projectCoreFields>.projectEndField input{height:40px!important;min-height:40px!important}
+
+/* Milestones now carry their own period and stay visually aligned. */
+.jeongV2 .milestoneBody{display:grid!important;grid-template-columns:minmax(0,1.5fr) 130px minmax(150px,.8fr) minmax(150px,.8fr)!important;gap:9px!important;align-items:flex-end!important}
+.jeongV2 .milestoneBody>label{min-width:0!important;margin:0!important}
+.jeongV2 .milestoneBody .milestoneDeleteBtn{grid-column:1/-1!important;justify-self:end!important;margin-top:2px!important}
+.jeongV2 .milestoneDialogMeta{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 150px!important;gap:10px!important;align-items:flex-end!important}
+.jeongV2 .milestoneDialogMeta>label{min-width:0!important;margin:0!important}
+@media(max-width:860px){
+ .jeongV2 .projectCoreFields{grid-template-columns:1fr 1fr!important}
+ .jeongV2 .projectCoreFields>.statusField,.jeongV2 .projectCoreFields>.projectStartField,.jeongV2 .projectCoreFields>.projectEndField{grid-column:auto!important}
+ .jeongV2 .milestoneBody,.jeongV2 .milestoneDialogMeta{grid-template-columns:1fr 1fr!important}
+}
+@media(max-width:620px){
+ .jeongV2 .projectCoreFields,.jeongV2 .milestoneBody,.jeongV2 .milestoneDialogMeta{grid-template-columns:1fr!important}
+ .jeongV2 .projectCoreFields>*{grid-column:1!important}
+}
+
+/* Records: year/month details are user-controlled. Keep the viewport stable and entries readable. */
+.jeongV2 .recordYearGroup>summary,.jeongV2 .timelineYearGroup>summary{min-height:46px!important;padding:10px 13px!important}
+.jeongV2 .recordMonthGroup>summary,.jeongV2 .timelineMonthGroup>summary{min-height:42px!important;padding:9px 12px!important}
+.jeongV2 .recordMonthGroup article{grid-template-columns:100px minmax(0,1fr)!important;gap:16px!important;padding:11px 13px!important}
+.jeongV2 .recordMonthGroup article>div{gap:7px 12px!important}
+
+/* Activity and review/detail forms: shared left/right edges and consistent control rhythm. */
+.jeongV2 .activityComposer{padding:16px 18px!important;gap:10px 12px!important}
+.jeongV2 .activityComposer input,.jeongV2 .activityComposer select{height:42px!important;min-height:42px!important;width:100%!important}
+.jeongV2 .activityComposer label{min-width:0!important;margin:0!important}
+.jeongV2 .activityComposer .activityReflectionField textarea,
+.jeongV2 .activityComposer .activityLearnField textarea,
+.jeongV2 .activityComposer .activityApplyField textarea{width:100%!important;min-height:48px!important;height:48px!important}
+.jeongV2 .activityComposer .activitySaveBtn{margin-top:4px!important;margin-right:0!important}
+
+/* The separate Google account bubble duplicated the JEONG profile in the sidebar. */
+.accountMenu.sidebarAccountMenu{display:none!important}
+
+/* =========================================================
+   JEONG refinement · 2026-08-13 round 6
+   ========================================================= */
+
+/* Todo: keep the operational composer on one line at normal desktop/split-window widths. */
+.jeongV2 .oneLineTaskComposer{
+  grid-template-columns:minmax(175px,2fr) 86px minmax(125px,1.05fr) 104px 88px!important;
+  gap:7px!important;
+  align-items:center!important;
+}
+.jeongV2 .oneLineTaskComposer .taskTitleField,
+.jeongV2 .oneLineTaskComposer .taskBucketField,
+.jeongV2 .oneLineTaskComposer .taskProjectField,
+.jeongV2 .oneLineTaskComposer .taskContextField select,
+.jeongV2 .oneLineTaskComposer .taskAddBtn{height:40px!important;min-height:40px!important}
+.jeongV2 .taskTabs{padding:12px 16px!important;gap:9px!important}
+.jeongV2 .taskTabs button{margin:0!important}
+@media(max-width:980px) and (min-width:701px){
+ .jeongV2 .oneLineTaskComposer{grid-template-columns:minmax(145px,1.8fr) 78px minmax(108px,1fr) 94px 78px!important;gap:6px!important;padding-inline:12px!important}
+ .jeongV2 .oneLineTaskComposer input,.jeongV2 .oneLineTaskComposer select,.jeongV2 .oneLineTaskComposer button{font-size:.76rem!important}
+}
+@media(max-width:700px){
+ .jeongV2 .oneLineTaskComposer{grid-template-columns:1fr 1fr!important;align-items:flex-end!important}
+ .jeongV2 .oneLineTaskComposer .taskTitleField,.jeongV2 .oneLineTaskComposer .taskProjectField,.jeongV2 .oneLineTaskComposer .taskAddBtn{grid-column:1/-1!important}
+ .jeongV2 .taskTabs{padding-inline:12px!important}
+}
+
+/* Project: Goal and period must read as project metadata, not faint helper text. */
+.jeongV2 .projectIdentity{display:grid!important;gap:6px!important;min-width:0!important}
+.jeongV2 .projectIdentity>h2,.jeongV2 .projectIdentity>.projectNameInput{margin-bottom:2px!important}
+.jeongV2 .projectGoalSummary{
+  display:grid!important;
+  grid-template-columns:42px minmax(0,1fr)!important;
+  gap:8px!important;
+  align-items:start!important;
+  max-width:760px!important;
+  padding:7px 9px!important;
+  border:1px solid var(--v2-line)!important;
+  border-radius:9px!important;
+  background:var(--v2-surface-soft)!important;
+}
+.jeongV2 .projectGoalSummary span,.jeongV2 .projectPeriodLabel{color:var(--v2-gold)!important;font-size:.66rem!important;font-weight:800!important;line-height:1.45!important}
+.jeongV2 .projectGoalSummary strong{min-width:0!important;color:var(--v2-text)!important;font-size:.79rem!important;font-weight:700!important;line-height:1.45!important;overflow-wrap:anywhere!important}
+.jeongV2 .projectPeriod{
+  display:flex!important;
+  align-items:center!important;
+  flex-wrap:wrap!important;
+  gap:5px 7px!important;
+  max-width:760px!important;
+  margin-top:0!important;
+  padding:6px 9px!important;
+  border:1px solid var(--v2-line)!important;
+  border-radius:9px!important;
+  background:var(--v2-surface-soft)!important;
+  color:var(--v2-muted)!important;
+}
+.jeongV2 .projectPeriod .projectPeriodLabel{min-width:42px!important}
+.jeongV2 .projectPeriod strong{color:var(--v2-text)!important;font-size:.7rem!important;font-weight:700!important;white-space:nowrap!important}
+.jeongV2 .projectPeriod i{font-style:normal!important;color:var(--v2-gold)!important}
+
+/* Records: collapsing a year/month also collapses the visual space. Scroll only after content grows. */
+.jeongV2 .recordsTimelineCard{height:auto!important;min-height:0!important;overflow:visible!important}
+.jeongV2 .recordsTimelineCard .groupedRecordTimeline{
+  height:auto!important;
+  min-height:0!important;
+  max-height:360px!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  padding-right:4px!important;
+  scrollbar-gutter:stable!important;
+}
+.jeongV2 .recordYearGroup:not([open])>div,.jeongV2 .recordMonthGroup:not([open])>div{display:none!important}
+.jeongV2 .recordEmptyAction{display:grid!important;justify-items:start!important;gap:6px!important;padding:20px 14px!important;border:1px dashed var(--v2-line)!important;border-radius:10px!important;background:var(--v2-surface-soft)!important}
+.jeongV2 .recordEmptyAction strong{color:var(--v2-text)!important;font-size:.85rem!important}
+.jeongV2 .recordEmptyAction span{color:var(--v2-muted)!important;font-size:.72rem!important;line-height:1.5!important}
+.jeongV2 .recordEmptyAction button{min-height:34px!important;padding:6px 10px!important;border:1px solid var(--v2-line)!important;border-radius:8px!important;background:var(--v2-surface)!important;color:var(--v2-text)!important;font-weight:700!important}
+
+/* Activity: all controls share the same right edge; text fields use the full card width. */
+.jeongV2 .activityComposer{
+  display:grid!important;
+  grid-template-columns:minmax(145px,.72fr) minmax(170px,.82fr) minmax(0,2.5fr)!important;
+  gap:10px 12px!important;
+  align-items:flex-end!important;
+  width:100%!important;
+  max-width:100%!important;
+  padding:16px 18px!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+}
+.jeongV2 .activityComposer .activityTypeField{grid-column:1!important}
+.jeongV2 .activityComposer .activityDateField{grid-column:2!important}
+.jeongV2 .activityComposer .activityTitleField{grid-column:3!important}
+.jeongV2 .activityComposer .activityDurationField{grid-column:1!important}
+.jeongV2 .activityComposer .activityAmountField{grid-column:2!important}
+.jeongV2 .activityComposer .activityProjectField{grid-column:3!important}
+.jeongV2 .activityComposer .activityReflectionField,.jeongV2 .activityComposer .activityLearnField,.jeongV2 .activityComposer .activityApplyField{grid-column:1/-1!important}
+.jeongV2 .activityComposer>label{min-width:0!important;max-width:100%!important;margin:0!important}
+.jeongV2 .activityComposer input,.jeongV2 .activityComposer select,.jeongV2 .activityComposer textarea,.jeongV2 .activityComposer .unitInput{width:100%!important;max-width:100%!important;box-sizing:border-box!important}
+.jeongV2 .activityComposer .activityReflectionField textarea,.jeongV2 .activityComposer .activityLearnField textarea,.jeongV2 .activityComposer .activityApplyField textarea{height:48px!important;min-height:48px!important;resize:vertical!important}
+.jeongV2 .activityComposer .activitySaveBtn{grid-column:1/-1!important;justify-self:end!important;width:160px!important;max-width:100%!important;min-height:40px!important;margin:2px 0 0!important;writing-mode:horizontal-tb!important}
+.jeongV2 .activityEmptyState{grid-column:1/-1!important;display:grid!important;gap:6px!important;min-height:100px!important;align-content:center!important;text-align:center!important}
+.jeongV2 .activityEmptyState strong{color:var(--v2-text)!important}
+.jeongV2 .activityEmptyState span{color:var(--v2-muted)!important;font-size:.76rem!important}
+@media(max-width:900px){
+ .jeongV2 .activityComposer{grid-template-columns:1fr 1fr!important}
+ .jeongV2 .activityComposer .activityTypeField,.jeongV2 .activityComposer .activityDateField,.jeongV2 .activityComposer .activityDurationField,.jeongV2 .activityComposer .activityAmountField{grid-column:auto!important}
+ .jeongV2 .activityComposer .activityTitleField,.jeongV2 .activityComposer .activityProjectField,.jeongV2 .activityComposer .activityReflectionField,.jeongV2 .activityComposer .activityLearnField,.jeongV2 .activityComposer .activityApplyField{grid-column:1/-1!important}
+}
+@media(max-width:600px){
+ .jeongV2 .activityComposer{grid-template-columns:1fr!important}
+ .jeongV2 .activityComposer>*{grid-column:1!important}
+ .jeongV2 .activityComposer .activitySaveBtn{width:100%!important}
+}
+
+/* =========================================================
+   JEONG refinement · 2026-08-13 round 7
+   Project header metadata + true inline editing
+   ========================================================= */
+.jeongV2 .projectIdentity{gap:7px!important}
+.jeongV2 .projectGoalSummary{
+  display:grid!important;
+  grid-template-columns:46px minmax(0,1fr)!important;
+  align-items:start!important;
+  gap:10px!important;
+  max-width:820px!important;
+  padding:5px 0 5px 11px!important;
+  border:0!important;
+  border-left:3px solid color-mix(in srgb,var(--v2-gold) 72%,transparent)!important;
+  border-radius:0!important;
+  background:transparent!important;
+}
+.jeongV2 .projectPeriod{
+  display:flex!important;
+  align-items:center!important;
+  flex-wrap:wrap!important;
+  gap:6px 9px!important;
+  max-width:820px!important;
+  min-height:31px!important;
+  padding:4px 0 4px 11px!important;
+  border:0!important;
+  border-left:3px solid color-mix(in srgb,var(--v2-gold) 34%,transparent)!important;
+  border-radius:0!important;
+  background:transparent!important;
+}
+.jeongV2 .projectGoalSummary>span,.jeongV2 .projectPeriodLabel{align-self:start!important;padding-top:1px!important;color:var(--v2-gold)!important;font-size:.64rem!important;font-weight:850!important;letter-spacing:.02em!important}
+.jeongV2 .projectGoalSummary strong{font-size:.82rem!important;font-weight:760!important;line-height:1.5!important}
+.jeongV2 .projectPeriod strong{font-size:.72rem!important;font-weight:760!important}
+.jeongV2 .projectPeriod>b{margin-left:2px!important;padding:3px 7px!important;border-radius:999px!important;background:var(--v2-gold-soft)!important;color:var(--v2-gold)!important;font-size:.62rem!important;font-weight:850!important}
+.jeongV2 .projectStatusInlineSelect{width:max-content!important;min-width:96px!important;height:30px!important;min-height:30px!important;padding:3px 28px 3px 9px!important;border:1px solid var(--v2-line)!important;border-radius:999px!important;background:var(--v2-surface-solid)!important;color:var(--v2-text)!important;font-size:.66rem!important;font-weight:800!important}
+.jeongV2 .projectGoalSummary.editing,.jeongV2 .projectPeriod.editing{padding-top:7px!important;padding-bottom:7px!important}
+.jeongV2 .projectGoalInlineInput{width:100%!important;min-height:52px!important;padding:8px 10px!important;border:1px solid var(--v2-line)!important;border-radius:9px!important;background:var(--v2-surface-solid)!important;color:var(--v2-text)!important;font-size:.78rem!important;line-height:1.45!important;resize:vertical!important}
+.jeongV2 .projectInlineDate{display:flex!important;align-items:center!important;gap:6px!important;min-width:0!important}.jeongV2 .projectInlineDate>span{color:var(--v2-muted)!important;font-size:.62rem!important;font-weight:750!important;white-space:nowrap!important}.jeongV2 .projectInlineDate input{width:148px!important;height:34px!important;min-height:34px!important;padding:4px 7px!important;border:1px solid var(--v2-line)!important;border-radius:8px!important;background:var(--v2-surface-solid)!important;color:var(--v2-text)!important;font-size:.68rem!important}
+.jeongV2 .projectInlineNextAction{width:100%!important;height:34px!important;min-height:34px!important;padding:5px 8px!important;border:1px solid var(--v2-line)!important;border-radius:8px!important;background:var(--v2-surface)!important;color:var(--v2-text)!important;font-size:.74rem!important;font-weight:700!important}
+.jeongV2 .projectCoreFields{display:none!important}
+@media(max-width:760px){
+ .jeongV2 .projectGoalSummary{grid-template-columns:1fr!important;gap:4px!important}
+ .jeongV2 .projectPeriod{align-items:flex-start!important}
+ .jeongV2 .projectPeriodLabel{flex:0 0 100%!important}
+ .jeongV2 .projectInlineDate{flex:1 1 150px!important}
+ .jeongV2 .projectInlineDate input{width:100%!important}
+}
+
+/* =========================================================
+   JEONG refinement · 2026-08-13 round 8
+   Final alignment authority
+   ========================================================= */
+
+/* Todo composer: five controls, one actual row on desktop. Earlier nth-child rules are explicitly reset. */
+.jeongV2 .oneLineTaskComposer{
+  display:grid!important;
+  grid-template-columns:minmax(300px,2.2fr) 118px minmax(190px,1.25fr) 170px 118px!important;
+  gap:9px!important;
+  align-items:center!important;
+  padding:14px 16px!important;
+  overflow:visible!important;
+}
+.jeongV2 .oneLineTaskComposer>*{grid-column:auto!important;grid-row:auto!important;min-width:0!important;margin:0!important}
+.jeongV2 .oneLineTaskComposer .taskTitleField,
+.jeongV2 .oneLineTaskComposer .taskBucketField,
+.jeongV2 .oneLineTaskComposer .taskProjectField,
+.jeongV2 .oneLineTaskComposer .taskContextField select,
+.jeongV2 .oneLineTaskComposer .taskAddBtn{width:100%!important;height:42px!important;min-height:42px!important}
+.jeongV2 .oneLineTaskComposer .taskContextField{display:block!important;min-width:0!important}
+.jeongV2 .oneLineTaskComposer .taskContextField>label{display:block!important;grid-template-rows:1fr!important;gap:0!important;margin:0!important}
+.jeongV2 .oneLineTaskComposer .taskContextField>label>span{display:none!important}
+@media(max-width:1120px) and (min-width:821px){
+ .jeongV2 .oneLineTaskComposer{grid-template-columns:minmax(230px,2fr) 104px minmax(150px,1.1fr) 145px 104px!important;gap:7px!important;padding-inline:12px!important}
+}
+@media(max-width:820px){
+ .jeongV2 .oneLineTaskComposer{grid-template-columns:1fr 1fr!important;align-items:flex-end!important}
+ .jeongV2 .oneLineTaskComposer .taskTitleField,.jeongV2 .oneLineTaskComposer .taskProjectField,.jeongV2 .oneLineTaskComposer .taskAddBtn{grid-column:1/-1!important}
+}
+
+/* Project metadata: stable label/value spacing; the period cannot collapse into one unreadable token. */
+.jeongV2 .projectIdentity{gap:8px!important}
+.jeongV2 .projectGoalSummary{max-width:860px!important;grid-template-columns:48px minmax(0,1fr)!important;gap:11px!important;padding:6px 0 6px 12px!important}
+.jeongV2 .projectGoalSummary>span{line-height:1.5!important}.jeongV2 .projectGoalSummary strong{line-height:1.5!important}
+.jeongV2 .projectPeriod:not(.editing){display:grid!important;grid-template-columns:48px auto 16px auto auto!important;align-items:center!important;justify-content:start!important;column-gap:10px!important;row-gap:5px!important;max-width:860px!important;min-height:34px!important;padding:6px 0 6px 12px!important;white-space:nowrap!important}
+.jeongV2 .projectPeriod:not(.editing) .projectPeriodLabel{min-width:0!important;padding:0!important;align-self:center!important}
+.jeongV2 .projectPeriod:not(.editing) strong{font-size:.74rem!important;line-height:1.35!important;white-space:nowrap!important}
+.jeongV2 .projectPeriod:not(.editing) i{display:block!important;width:16px!important;text-align:center!important;line-height:1!important}
+.jeongV2 .projectPeriod:not(.editing)>b{margin-left:2px!important;white-space:nowrap!important}
+.jeongV2 .projectPeriod.editing{display:grid!important;grid-template-columns:48px minmax(190px,230px) 18px minmax(190px,230px) auto!important;align-items:flex-end!important;gap:8px 10px!important;max-width:860px!important;padding:7px 0 7px 12px!important}
+.jeongV2 .projectPeriod.editing .projectPeriodLabel{align-self:center!important;padding:0!important}
+.jeongV2 .projectPeriod.editing .projectInlineDate{display:grid!important;grid-template-columns:34px minmax(0,1fr)!important;align-items:center!important;gap:6px!important}
+.jeongV2 .projectPeriod.editing .projectInlineDate input{width:100%!important;min-width:0!important}
+@media(max-width:760px){
+ .jeongV2 .projectPeriod:not(.editing){grid-template-columns:1fr!important;white-space:normal!important;padding-left:10px!important}
+ .jeongV2 .projectPeriod:not(.editing) i{display:none!important}
+ .jeongV2 .projectPeriod.editing{grid-template-columns:1fr!important;padding-left:10px!important}
+ .jeongV2 .projectPeriod.editing>i{display:none!important}
+ .jeongV2 .projectPeriod.editing .projectInlineDate{grid-template-columns:42px minmax(0,1fr)!important;width:100%!important}
+}
+
+/* Review action is a normal horizontal button and sits clear of the gratitude card. */
+.jeongV2 .reviewForm .reviewSaveBtn{display:inline-flex!important;align-items:center!important;justify-content:center!important;justify-self:end!important;width:auto!important;min-width:144px!important;min-height:40px!important;margin:16px 0 0 auto!important;padding:8px 14px!important;white-space:nowrap!important;writing-mode:horizontal-tb!important;text-orientation:mixed!important;letter-spacing:-.01em!important;line-height:1.2!important}
+
+/* Shared typography and box rhythm: compact, but never cramped. */
+.jeongV2 .premiumCard,.jeongV2 .subpageHeader{line-height:1.45!important}
+.jeongV2 .premiumCard h1,.jeongV2 .premiumCard h2,.jeongV2 .premiumCard h3,.jeongV2 .subpageHeader h1,.jeongV2 .subpageHeader h2,.jeongV2 .subpageHeader h3{letter-spacing:-.025em!important;line-height:1.28!important}
+.jeongV2 .premiumCard p,.jeongV2 .premiumCard small,.jeongV2 .premiumCard label,.jeongV2 .premiumCard span{line-height:1.45}
+.jeongV2 input,.jeongV2 select,.jeongV2 textarea,.jeongV2 button{letter-spacing:-.012em}
+.jeongV2 .taskTabs{gap:10px!important}.jeongV2 .taskTabs button{margin:0!important}
+.jeongV2 .projectWorkspace,.jeongV2 .reviewWorkspace,.jeongV2 .calendarWorkspace{gap:16px!important}
+.jeongV2 .projectSection+.projectSection,.jeongV2 .projectSection+.projectVisibleMeta{margin-top:10px!important}
+
+/* Personal information opened from the sidebar profile control. */
+.jeongV2 .profilePage{display:grid!important;gap:18px!important;width:100%!important;max-width:var(--v2-page-max)!important;padding:22px!important}
+.jeongV2 .profilePageHeader{display:flex!important;align-items:center!important;gap:14px!important;padding-bottom:18px!important;border-bottom:1px solid var(--v2-line)!important}
+.jeongV2 .profilePageHeader>div:last-child{display:grid!important;gap:3px!important;min-width:0!important}.jeongV2 .profilePageHeader span{color:var(--v2-gold)!important;font-size:.65rem!important;font-weight:800!important;letter-spacing:.08em!important}.jeongV2 .profilePageHeader h2{margin:0!important;font-size:1.35rem!important}.jeongV2 .profilePageHeader p{margin:0!important}
+.jeongV2 .profilePageAvatar{display:grid!important;place-items:center!important;flex:0 0 52px!important;width:52px!important;height:52px!important;overflow:hidden!important;border:1px solid var(--v2-line-strong)!important;border-radius:16px!important;background:var(--v2-gold-soft)!important;color:var(--v2-gold)!important;font-weight:850!important}.jeongV2 .profilePageAvatar img{display:block!important;width:100%!important;height:100%!important;object-fit:cover!important}
+.jeongV2 .profileInfoGrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}.jeongV2 .profileInfoGrid article{display:grid!important;gap:5px!important;min-width:0!important;padding:15px!important;border:1px solid var(--v2-line)!important;border-radius:13px!important;background:var(--v2-field)!important}.jeongV2 .profileInfoGrid article>span{color:var(--v2-gold)!important;font-size:.67rem!important;font-weight:800!important}.jeongV2 .profileInfoGrid article>strong{min-width:0!important;overflow-wrap:anywhere!important;font-size:.9rem!important}.jeongV2 .profileInfoGrid article>small{line-height:1.45!important}.jeongV2 .profilePageActions{display:flex!important;justify-content:flex-end!important}
+@media(max-width:720px){.jeongV2 .profileInfoGrid{grid-template-columns:1fr!important}.jeongV2 .profilePage{padding:16px!important}}
+
+/* JEONG final compatibility layer · 2026-08-14 */
+.jeongV2 .taskComposer.oneLineTaskComposer{grid-template-columns:minmax(320px,1fr) 112px minmax(168px,210px) 132px 104px!important;align-items:center!important;justify-content:stretch!important;gap:8px!important;width:100%!important}
+.jeongV2 .taskComposer.oneLineTaskComposer>*{grid-column:auto!important;grid-row:auto!important;min-width:0!important}
+.jeongV2 .taskComposer.oneLineTaskComposer .taskContextField>label{display:block!important;margin:0!important;padding:0!important}.jeongV2 .taskComposer.oneLineTaskComposer .taskContextField>label>span{display:none!important}
+.jeongV2 .taskComposer.oneLineTaskComposer .taskRecurringQuick{grid-column:1/-1!important;display:grid!important;grid-template-columns:150px 190px minmax(220px,1fr)!important;align-items:flex-end!important;gap:8px 12px!important;width:min(100%,760px)!important}
+.jeongV2 .compactEventModal{border-radius:20px!important;background-clip:padding-box!important}.jeongV2 .compactEventModal .eventModalHead{border-radius:20px 20px 0 0!important;overflow:hidden!important}
+.jeongV2 .compactEventModal .recurrenceRuleRow{display:grid!important;grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr)!important;align-items:start!important;gap:12px!important}
+.jeongV2 .compactEventModal .recurrenceTopGrid{display:grid!important;grid-template-columns:1fr!important;gap:8px!important}.jeongV2 .compactEventModal .recurrenceTopGrid>label{display:grid!important;grid-template-columns:86px minmax(0,1fr)!important;align-items:center!important;gap:9px!important;min-height:42px!important}
+.jeongV2 .compactEventModal .intervalInput{display:flex!important;align-items:center!important;gap:7px!important;min-width:0!important;white-space:nowrap!important}.jeongV2 .compactEventModal .intervalInput input{flex:0 0 72px!important;width:72px!important;min-width:72px!important;height:42px!important;min-height:42px!important}
+.jeongV2 .compactEventModal .recurrenceEndGrid{display:grid!important;grid-template-columns:1fr!important;align-items:start!important;gap:8px!important}.jeongV2 .compactEventModal .recurrenceEndGrid>label{display:grid!important;grid-template-columns:104px minmax(0,1fr)!important;grid-template-rows:none!important;align-items:center!important;gap:9px!important;min-width:0!important;min-height:42px!important}.jeongV2 .compactEventModal .recurrenceEndGrid select,.jeongV2 .compactEventModal .recurrenceEndGrid input{width:100%!important;height:42px!important;min-height:42px!important}
+.jeongV2 .projectListStatusProgress{display:inline-flex!important;align-items:center!important;gap:8px!important;min-height:24px!important}.jeongV2 .projectListStatusProgress .statusBadge{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:22px!important;padding:4px 8px!important;line-height:1!important}
+.jeongV2 .projectIdentityTitleRow{display:flex!important;align-items:center!important;gap:10px!important}.jeongV2 .projectIdentityTitleRow .statusBadge{display:inline-flex!important;align-items:center!important;min-height:23px!important;padding:4px 8px!important;line-height:1!important}.jeongV2 .projectProgressSummary>b{color:var(--v2-gold)!important;font-size:2rem!important;line-height:1!important}
+.jeongV2 .recordSummaryGrid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+@media(max-width:1080px) and (min-width:821px){.jeongV2 .taskComposer.oneLineTaskComposer{grid-template-columns:minmax(230px,1fr) 104px minmax(150px,180px) 118px 92px!important;gap:7px!important}}
+@media(max-width:820px){.jeongV2 .taskComposer.oneLineTaskComposer{grid-template-columns:1fr 1fr!important;align-items:flex-end!important}.jeongV2 .taskComposer.oneLineTaskComposer .taskTitleField,.jeongV2 .taskComposer.oneLineTaskComposer .taskProjectField,.jeongV2 .taskComposer.oneLineTaskComposer .taskAddBtn{grid-column:1/-1!important}.jeongV2 .taskComposer.oneLineTaskComposer .taskRecurringQuick{grid-template-columns:1fr 1fr!important;width:100%!important}.jeongV2 .compactEventModal .recurrenceRuleRow{grid-template-columns:1fr!important}}
+@media(max-width:560px){.jeongV2 .taskComposer.oneLineTaskComposer{grid-template-columns:1fr!important}.jeongV2 .taskComposer.oneLineTaskComposer>*{grid-column:1!important}.jeongV2 .taskComposer.oneLineTaskComposer .taskRecurringQuick{grid-template-columns:1fr!important}}
+
+/* R12: the --page-gutter token must always match the actual content padding.
+   Generic hero left/right edges use this token, so keeping it synchronized
+   prevents header drift at narrower widths. */
+@media(max-width:1320px){.jeongV2 .contentArea{--page-gutter:20px!important}}
+@media(max-width:760px){.jeongV2 .contentArea{--page-gutter:12px!important}}
+@media(max-width:520px){.jeongV2 .contentArea{--page-gutter:9px!important}}
+
+/* =========================================================
+   JEONG refinement R13 · 2026-08-14
+   Recurrence controls, recurring Todo row, analytics readability.
+   ========================================================= */
+.jeongV2 .compactEventModal .recurrenceRuleRow{
+  display:grid!important;
+  grid-template-columns:minmax(220px,.9fr) minmax(230px,1fr) minmax(190px,.82fr)!important;
+  align-items:center!important;
+  gap:10px!important;
+  width:100%!important;
+}
+.jeongV2 .compactEventModal .recurrenceInlineGroup{
+  display:grid!important;
+  grid-template-columns:auto minmax(0,1fr)!important;
+  align-items:center!important;
+  gap:8px!important;
+  min-width:0!important;
+}
+.jeongV2 .compactEventModal .recurrenceInlineLabel{
+  color:var(--v2-muted)!important;
+  font-size:.72rem!important;
+  font-weight:750!important;
+  line-height:1.25!important;
+  white-space:nowrap!important;
+}
+.jeongV2 .compactEventModal .recurrenceIntervalGroup .intervalInput{
+  display:grid!important;
+  grid-template-columns:auto 70px auto!important;
+  align-items:center!important;
+  gap:7px!important;
+  min-width:0!important;
+}
+.jeongV2 .compactEventModal .recurrenceIntervalGroup .intervalInput input{
+  width:70px!important;
+  min-width:70px!important;
+  height:40px!important;
+  min-height:40px!important;
+}
+.jeongV2 .compactEventModal .recurrenceInlineGroup>select,
+.jeongV2 .compactEventModal .recurrenceInlineGroup>input{
+  width:100%!important;
+  min-width:0!important;
+  height:40px!important;
+  min-height:40px!important;
+}
+.jeongV2 .compactEventModal .recurrenceRuleRow:not(:has(.recurrenceConditionalGroup)){
+  grid-template-columns:minmax(250px,.95fr) minmax(280px,1.05fr)!important;
+}
+@media(max-width:780px){
+  .jeongV2 .compactEventModal .recurrenceRuleRow,
+  .jeongV2 .compactEventModal .recurrenceRuleRow:not(:has(.recurrenceConditionalGroup)){
+    grid-template-columns:1fr!important;
+    align-items:stretch!important;
+  }
+  .jeongV2 .compactEventModal .recurrenceInlineGroup{grid-template-columns:104px minmax(0,1fr)!important}
+}
+
+.jeongV2 .taskComposer.oneLineTaskComposer .taskRecurringQuick{
+  grid-column:1/-1!important;
+  display:grid!important;
+  grid-template-columns:minmax(210px,260px) minmax(245px,300px) minmax(0,1fr)!important;
+  align-items:center!important;
+  gap:8px 14px!important;
+  width:100%!important;
+  max-width:none!important;
+  padding-top:2px!important;
+}
+.jeongV2 .taskComposer.oneLineTaskComposer .taskRecurringQuick>label{
+  display:grid!important;
+  grid-template-columns:auto minmax(0,1fr)!important;
+  align-items:center!important;
+  gap:8px!important;
+  min-width:0!important;
+  margin:0!important;
+}
+.jeongV2 .taskComposer.oneLineTaskComposer .taskRecurringQuick>label>span{
+  color:var(--v2-muted)!important;
+  font-size:.7rem!important;
+  font-weight:750!important;
+  line-height:1.25!important;
+  white-space:nowrap!important;
+}
+.jeongV2 .taskComposer.oneLineTaskComposer .taskRecurringQuick>label>select,
+.jeongV2 .taskComposer.oneLineTaskComposer .taskRecurringQuick>label>input{
+  width:100%!important;
+  min-width:0!important;
+  height:42px!important;
+  min-height:42px!important;
+}
+.jeongV2 .taskComposer.oneLineTaskComposer .taskRecurringQuick>small{
+  min-width:0!important;
+  margin:0!important;
+  color:var(--v2-muted)!important;
+  font-size:.68rem!important;
+  line-height:1.4!important;
+}
+@media(max-width:900px){
+  .jeongV2 .taskComposer.oneLineTaskComposer .taskRecurringQuick{grid-template-columns:1fr 1fr!important}
+  .jeongV2 .taskComposer.oneLineTaskComposer .taskRecurringQuick>small{grid-column:1/-1!important}
+}
+@media(max-width:560px){
+  .jeongV2 .taskComposer.oneLineTaskComposer .taskRecurringQuick{grid-template-columns:1fr!important}
+  .jeongV2 .taskComposer.oneLineTaskComposer .taskRecurringQuick>small{grid-column:1!important}
+}
+
+.jeongV2 .intelligenceMetricGrid article{
+  display:grid!important;
+  grid-template-columns:auto minmax(0,1fr)!important;
+  grid-template-areas:"metricLabel metricValue" "metricMeta metricMeta"!important;
+  align-items:baseline!important;
+  column-gap:8px!important;
+  row-gap:7px!important;
+}
+.jeongV2 .intelligenceMetricGrid article>span{
+  grid-area:metricLabel!important;
+  color:var(--v2-muted)!important;
+  line-height:1.3!important;
+  white-space:nowrap!important;
+}
+.jeongV2 .intelligenceMetricGrid article>strong{
+  grid-area:metricValue!important;
+  justify-self:start!important;
+  font-size:1rem!important;
+  line-height:1.2!important;
+}
+.jeongV2 .intelligenceMetricGrid article>small{
+  grid-area:metricMeta!important;
+  color:var(--v2-muted)!important;
+  line-height:1.45!important;
+}
+
+/* =========================================================
+   JEONG refinement R14 · Todo inline recurrence + compact drag order
+   ========================================================= */
+.jeongV2 .taskComposer.oneLineTaskComposer .taskMemoField{
+  grid-column:1/-1!important;
+  width:100%!important;
+  min-height:64px!important;
+  max-height:96px!important;
+  padding:10px 12px!important;
+  resize:vertical!important;
+}
+.jeongV2 .taskComposer.oneLineTaskComposer .taskRecurringQuick{
+  grid-column:1/-1!important;
+  display:grid!important;
+  grid-template-columns:minmax(210px,260px) minmax(250px,310px) minmax(0,1fr)!important;
+  align-items:center!important;
+  gap:10px 16px!important;
+  width:100%!important;
+  max-width:none!important;
+}
+.jeongV2 .taskComposer.oneLineTaskComposer .taskRecurringQuick>label{
+  display:grid!important;
+  grid-template-columns:auto minmax(0,1fr)!important;
+  align-items:center!important;
+  gap:9px!important;
+  min-width:0!important;
+  margin:0!important;
+}
+.jeongV2 .taskComposer.oneLineTaskComposer .taskRecurringQuick>label>span{white-space:nowrap!important}
+.jeongV2 .taskComposer.oneLineTaskComposer .taskRecurringQuick select,
+.jeongV2 .taskComposer.oneLineTaskComposer .taskRecurringQuick input{
+  width:100%!important;
+  min-width:0!important;
+  height:40px!important;
+  min-height:40px!important;
+  padding-left:12px!important;
+  padding-right:10px!important;
+}
+.jeongV2 .taskComposer.oneLineTaskComposer .taskRecurringQuick small{margin:0!important;line-height:1.45!important}
+.jeongV2 .taskBoardCard{padding-bottom:16px!important}
+.jeongV2 .taskTabs{display:flex!important;flex-wrap:wrap!important;gap:10px!important}
+.jeongV2 .rows article{
+  grid-template-columns:22px 18px minmax(0,1fr) auto!important;
+  column-gap:9px!important;
+  align-items:center!important;
+}
+.jeongV2 .taskDragHandle{
+  display:inline-grid!important;
+  place-items:center!important;
+  align-self:stretch!important;
+  width:18px!important;
+  color:var(--v2-muted)!important;
+  cursor:grab!important;
+  user-select:none!important;
+  font-size:.72rem!important;
+  letter-spacing:-.18em!important;
+  opacity:.58!important;
+}
+.jeongV2 .rows article:active .taskDragHandle{cursor:grabbing!important}
+.jeongV2 .rows article>div>strong+span{margin-left:9px!important}
+.jeongV2 .taskNotePreview{margin:4px 0 0!important;color:var(--v2-muted)!important;font-size:.68rem!important;line-height:1.48!important}
+.jeongV2 .recurringDefinitionRows article{min-height:72px!important}
+
+/* Calendar recurrence: all controls stay inside the modal in one row. */
+.jeongV2 .compactEventModal .recurrenceRuleRow{
+  grid-template-columns:minmax(180px,.9fr) minmax(205px,1fr) minmax(170px,.86fr)!important;
+  gap:9px!important;
+  align-items:center!important;
+  overflow:hidden!important;
+}
+.jeongV2 .compactEventModal .recurrenceInlineGroup{min-width:0!important;overflow:hidden!important}
+.jeongV2 .compactEventModal .recurrenceInlineGroup>select,
+.jeongV2 .compactEventModal .recurrenceInlineGroup>input{min-width:0!important;max-width:100%!important;box-sizing:border-box!important;padding-left:10px!important;padding-right:8px!important}
+.jeongV2 .compactEventModal .recurrenceConditionalGroup{grid-template-columns:auto minmax(0,1fr)!important}
+.jeongV2 .compactEventModal .recurrenceConditionalGroup input{font-size:.78rem!important}
+@media(max-width:820px){
+ .jeongV2 .taskComposer.oneLineTaskComposer .taskMemoField{grid-column:1/-1!important}
+ .jeongV2 .taskComposer.oneLineTaskComposer .taskRecurringQuick{grid-template-columns:1fr!important}
+ .jeongV2 .rows article{grid-template-columns:22px 18px minmax(0,1fr) auto!important}
+ .jeongV2 .compactEventModal .recurrenceRuleRow{grid-template-columns:1fr!important;overflow:visible!important}
+}
+@media(max-width:520px){
+ .jeongV2 .rows article{grid-template-columns:22px 16px minmax(0,1fr)!important}
+ .jeongV2 .rows article .taskRowActions{grid-column:3!important;justify-self:end!important}
+}
+
+/* =========================================================
+   JEONG refinement R15 · 2026-08-14
+   Calendar consistency, project linkage/order, spacing authority.
+   ========================================================= */
+
+/* Calendar Todo rail: today is stable, completed rows stay visible at the bottom,
+   and six or more rows use an internal scroll instead of growing the whole page. */
+.jeongV2 .calendarTaskPanel>div{
+  max-height:252px!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  overscroll-behavior:contain!important;
+  scrollbar-gutter:stable!important;
+  padding-right:4px!important;
+}
+.jeongV2 .calendarTaskPanel .dayTaskRow.done>span{
+  color:var(--v2-muted)!important;
+  text-decoration:line-through!important;
+  opacity:.7!important;
+}
+.jeongV2 .calendarTaskPanel .dayTaskToggle{flex:none!important}
+
+/* Event recurrence controls are one readable line on desktop and never escape the modal. */
+.jeongV2 .compactEventModal .recurrenceSection .eventCollapsibleBody{padding-top:12px!important}
+.jeongV2 .compactEventModal .recurrenceRuleRow{
+  display:grid!important;
+  grid-template-columns:minmax(190px,.92fr) minmax(220px,1.08fr) minmax(180px,.86fr)!important;
+  align-items:center!important;
+  gap:12px!important;
+  width:100%!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+}
+.jeongV2 .compactEventModal .recurrenceInlineGroup{
+  display:grid!important;
+  grid-template-columns:max-content minmax(0,1fr)!important;
+  align-items:center!important;
+  gap:8px!important;
+  min-width:0!important;
+}
+.jeongV2 .compactEventModal .recurrenceIntervalGroup .intervalInput{
+  display:grid!important;
+  grid-template-columns:max-content 64px max-content!important;
+  align-items:center!important;
+  gap:6px!important;
+  min-width:0!important;
+}
+.jeongV2 .compactEventModal .recurrenceInlineGroup>select,
+.jeongV2 .compactEventModal .recurrenceInlineGroup>input{min-width:0!important;width:100%!important}
+@media(max-width:760px){
+ .jeongV2 .compactEventModal .recurrenceRuleRow{grid-template-columns:1fr!important;overflow:visible!important}
+}
+
+/* Todo recurring quick controls get breathing room from the divider above. */
+.jeongV2 .taskComposer.oneLineTaskComposer.hasRecurringQuick{row-gap:12px!important}
+.jeongV2 .taskComposer.oneLineTaskComposer .taskRecurringQuick{
+  margin-top:4px!important;
+  padding-top:12px!important;
+  border-top:1px solid var(--v2-line)!important;
+}
+
+/* Project identity: status/percentage remain compact; period is one clean row without arrows. */
+.jeongV2 .projectPeriod{
+  display:grid!important;
+  grid-template-columns:48px max-content max-content max-content!important;
+  align-items:center!important;
+  justify-content:start!important;
+  column-gap:18px!important;
+  row-gap:7px!important;
+  width:100%!important;
+  margin-top:8px!important;
+}
+.jeongV2 .projectPeriod.editing{grid-template-columns:48px minmax(180px,220px) minmax(180px,220px) max-content!important}
+.jeongV2 .projectPeriod>i{display:none!important}
+.jeongV2 .projectPeriod>strong{white-space:nowrap!important;line-height:1.35!important}
+.jeongV2 .projectInlineDate{display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;align-items:center!important;gap:7px!important;margin:0!important}
+.jeongV2 .projectInlineDate input{width:100%!important;min-width:0!important}
+.jeongV2 .projectHero>.softBtn{margin-right:10px!important;min-width:62px!important}
+@media(max-width:820px){
+ .jeongV2 .projectPeriod,.jeongV2 .projectPeriod.editing{grid-template-columns:1fr 1fr!important;column-gap:10px!important}
+ .jeongV2 .projectPeriodLabel{grid-column:1/-1!important}
+}
+
+/* Milestones: one-row dialog metadata, drag handle and comfortable edit grid. */
+.jeongV2 .milestoneDialogMeta{
+  display:grid!important;
+  grid-template-columns:minmax(150px,1fr) minmax(150px,1fr) 150px!important;
+  align-items:end!important;
+  gap:12px!important;
+}
+.jeongV2 .milestoneDialogMeta>label{min-width:0!important;margin:0!important}
+.jeongV2 .milestoneDialogMeta input{width:100%!important;min-width:0!important}
+.jeongV2 .milestoneAccordion>details>summary{
+  grid-template-columns:18px 22px minmax(0,1fr) 24px!important;
+  gap:9px!important;
+  align-items:center!important;
+}
+.jeongV2 .milestoneDragHandle{
+  display:grid!important;
+  place-items:center!important;
+  width:18px!important;
+  color:var(--v2-muted)!important;
+  cursor:grab!important;
+  font-size:.78rem!important;
+  line-height:1!important;
+  user-select:none!important;
+}
+.jeongV2 .milestoneDragHandle:active{cursor:grabbing!important}
+.jeongV2 .milestoneBody{
+  grid-template-columns:minmax(0,1.5fr) 140px minmax(150px,.85fr) minmax(150px,.85fr)!important;
+  gap:10px!important;
+  align-items:end!important;
+}
+.jeongV2 .milestoneDeleteBtn{margin-top:2px!important}
+@media(max-width:820px){
+ .jeongV2 .milestoneDialogMeta,.jeongV2 .milestoneBody{grid-template-columns:1fr!important}
+}
+
+/* Linked recurring tasks use the same readable spacing as normal linked tasks. */
+.jeongV2 .linkedAccordions article>span small{margin-left:8px!important;color:var(--v2-gold)!important;font-size:.62rem!important;font-weight:750!important}
+
+/* Timeline rows: count and chevron have matching vertical rhythm. */
+.jeongV2 .timelineYearGroup>summary,.jeongV2 .timelineMonthGroup>summary{min-height:48px!important;padding:8px 12px!important}
+.jeongV2 .timelineYearGroup>summary:after,.jeongV2 .timelineMonthGroup>summary:after{
+  display:grid!important;
+  place-items:center!important;
+  flex:0 0 30px!important;
+  width:30px!important;
+  height:30px!important;
+  border:1px solid var(--v2-line)!important;
+  border-radius:9px!important;
+  background:var(--v2-field)!important;
+  line-height:1!important;
+}
+.jeongV2 .timelineYearGroup>summary span,.jeongV2 .timelineMonthGroup>summary span{display:flex!important;align-items:center!important;min-height:30px!important}
+
+/* General last-mile spacing. */
+.jeongV2 .projectSignalRow>div,.jeongV2 .linkedAccordions>details,.jeongV2 .milestoneAccordion>details{line-height:1.45!important}
+.jeongV2 .projectSection>summary{padding-inline:14px!important}
+.jeongV2 .projectCompactBody{padding:12px 14px 14px!important}
+
+/* =========================================================
+   JEONG refinement R16 · Routine + polished event time fields
+   ========================================================= */
+.jeongV2 .taskComposer.oneLineTaskComposer .taskRecurringQuick{
+  grid-template-columns:minmax(150px,190px) minmax(360px,1fr)!important;
+  align-items:end!important;
+  width:100%!important;
+  max-width:none!important;
+  column-gap:14px!important;
+  row-gap:9px!important;
+}
+.jeongV2 .taskComposer.oneLineTaskComposer .taskRecurringQuick>label{
+  display:grid!important;
+  gap:7px!important;
+  min-width:0!important;
+}
+.jeongV2 .taskComposer.oneLineTaskComposer .taskRecurringQuick>label>span,
+.jeongV2 .taskComposer.oneLineTaskComposer .routineWeekdayField>span{
+  color:var(--muted)!important;
+  font-size:.72rem!important;
+  font-weight:750!important;
+  line-height:1.2!important;
+}
+.jeongV2 .taskComposer.oneLineTaskComposer .routineWeekdayField{
+  display:grid!important;
+  gap:7px!important;
+  min-width:0!important;
+}
+.jeongV2 .taskComposer.oneLineTaskComposer .routineWeekdayPicker{
+  display:grid!important;
+  grid-template-columns:repeat(7,minmax(38px,1fr))!important;
+  gap:6px!important;
+  min-width:0!important;
+}
+.jeongV2 .taskComposer.oneLineTaskComposer .routineWeekdayPicker>button{
+  min-width:0!important;
+  min-height:42px!important;
+  padding:7px 5px!important;
+  border:1px solid var(--line)!important;
+  border-radius:10px!important;
+  background:var(--panel-soft)!important;
+  color:var(--muted)!important;
+  font-size:.76rem!important;
+  font-weight:760!important;
+  line-height:1!important;
+}
+.jeongV2 .taskComposer.oneLineTaskComposer .routineWeekdayPicker>button.selected{
+  border-color:color-mix(in srgb,var(--gold) 50%,var(--line))!important;
+  background:color-mix(in srgb,var(--gold) 12%,var(--panel-soft))!important;
+  color:var(--gold)!important;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--gold) 12%,transparent)!important;
+}
+.jeongV2 .taskComposer.oneLineTaskComposer .taskRecurringQuick>small{
+  grid-column:1/-1!important;
+  padding-top:1px!important;
+  color:var(--muted)!important;
+  font-size:.69rem!important;
+  line-height:1.5!important;
+}
+
+.jeongV2 .compactEventModal .eventTimeFields{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:12px!important;
+  align-items:end!important;
+}
+.jeongV2 .compactEventModal .eventDateTimeControl{
+  display:grid!important;
+  gap:7px!important;
+  min-width:0!important;
+}
+.jeongV2 .compactEventModal .eventDateTimeControl>span{
+  color:var(--text)!important;
+  font-size:.74rem!important;
+  font-weight:760!important;
+  line-height:1.2!important;
+}
+.jeongV2 .compactEventModal .eventDateTimeInner{
+  display:grid!important;
+  grid-template-columns:minmax(138px,1fr) auto!important;
+  align-items:center!important;
+  gap:7px!important;
+  min-width:0!important;
+}
+.jeongV2 .compactEventModal .eventDateOnly,
+.jeongV2 .compactEventModal .eventTimeSelects select{
+  height:44px!important;
+  min-height:44px!important;
+  border:1px solid var(--line)!important;
+  border-radius:10px!important;
+  background:var(--panel-soft)!important;
+  color:var(--text)!important;
+  font-size:.78rem!important;
+  font-weight:650!important;
+  outline:none!important;
+}
+.jeongV2 .compactEventModal .eventDateOnly{
+  width:100%!important;
+  min-width:0!important;
+  padding:0 11px!important;
+}
+.jeongV2 .compactEventModal .eventTimeSelects{
+  display:grid!important;
+  grid-template-columns:66px 54px 8px 54px!important;
+  align-items:center!important;
+  gap:5px!important;
+}
+.jeongV2 .compactEventModal .eventTimeSelects select{
+  width:100%!important;
+  min-width:0!important;
+  padding:0 7px!important;
+  text-align:center!important;
+  text-align-last:center!important;
+}
+.jeongV2 .compactEventModal .eventTimeColon{
+  display:grid!important;
+  place-items:center!important;
+  color:var(--muted)!important;
+  font-size:.9rem!important;
+  font-weight:800!important;
+}
+.jeongV2 .compactEventModal .eventAllDayToggle{margin-bottom:2px!important}
+
+@media(max-width:920px){
+  .jeongV2 .taskComposer.oneLineTaskComposer .taskRecurringQuick{grid-template-columns:1fr!important}
+  .jeongV2 .taskComposer.oneLineTaskComposer .taskRecurringQuick>small{grid-column:1!important}
+  .jeongV2 .compactEventModal .eventDateTimeInner{grid-template-columns:1fr!important}
+  .jeongV2 .compactEventModal .eventTimeSelects{grid-template-columns:72px 1fr 8px 1fr!important}
+}
+@media(max-width:620px){
+  .jeongV2 .compactEventModal .eventTimeFields{grid-template-columns:1fr!important}
+  .jeongV2 .taskComposer.oneLineTaskComposer .routineWeekdayPicker{grid-template-columns:repeat(7,minmax(34px,1fr))!important;gap:4px!important}
+  .jeongV2 .taskComposer.oneLineTaskComposer .routineWeekdayPicker>button{min-height:38px!important;padding-inline:2px!important}
+}
+
+
+/* =========================================================
+   JEONG refinement R17 · cadence, event editor, weather/record rhythm
+   ========================================================= */
+
+/* Start and End are separate rows. Date stays left; time is directly editable on the right. */
+.jeongV2 .compactEventModal .eventTimeFields{
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:12px!important;
+  align-items:stretch!important;
+}
+.jeongV2 .compactEventModal .eventDateTimeControl{
+  grid-template-columns:72px minmax(0,1fr)!important;
+  align-items:center!important;
+  gap:10px!important;
+}
+.jeongV2 .compactEventModal .eventDateTimeControl>span{margin:0!important}
+.jeongV2 .compactEventModal .eventDateTimeInner{
+  display:grid!important;
+  grid-template-columns:minmax(170px,.9fr) minmax(250px,1.1fr)!important;
+  align-items:center!important;
+  gap:9px!important;
+  min-width:0!important;
+}
+.jeongV2 .compactEventModal .eventTimeSelects{
+  display:grid!important;
+  grid-template-columns:72px minmax(68px,1fr) 10px minmax(68px,1fr)!important;
+  align-items:center!important;
+  gap:6px!important;
+  min-width:0!important;
+}
+.jeongV2 .compactEventModal .eventTimeSelects select,
+.jeongV2 .compactEventModal .eventTimeSelects .eventTimeNumber{
+  width:100%!important;
+  min-width:0!important;
+  height:44px!important;
+  min-height:44px!important;
+  padding:0 8px!important;
+  border:1px solid var(--line)!important;
+  border-radius:10px!important;
+  background:var(--panel-soft)!important;
+  color:var(--text)!important;
+  font-size:.8rem!important;
+  font-weight:700!important;
+  text-align:center!important;
+  outline:none!important;
+}
+.jeongV2 .compactEventModal .eventTimeSelects .eventTimeNumber:focus,
+.jeongV2 .compactEventModal .eventTimeSelects select:focus{border-color:color-mix(in srgb,var(--gold) 52%,var(--line))!important;box-shadow:0 0 0 2px color-mix(in srgb,var(--gold) 10%,transparent)!important}
+
+/* Recurrence end is always visible; conditional end date/count gets its own second row. */
+.jeongV2 .compactEventModal .recurrenceRuleRow{
+  display:grid!important;
+  grid-template-columns:minmax(260px,1fr) minmax(260px,1fr)!important;
+  align-items:center!important;
+  gap:12px 16px!important;
+  width:100%!important;
+  max-width:100%!important;
+  overflow:visible!important;
+}
+.jeongV2 .compactEventModal .recurrenceIntervalGroup{grid-column:1!important}
+.jeongV2 .compactEventModal .recurrenceEndGroup{grid-column:2!important}
+.jeongV2 .compactEventModal .recurrenceConditionalGroup{grid-column:2!important}
+.jeongV2 .compactEventModal .recurrenceEndGroup>select,
+.jeongV2 .compactEventModal .recurrenceConditionalGroup>input{min-height:42px!important}
+
+/* Routine definitions use the same visual language as normal Todo rows. */
+.jeongV2 .routineScopeTabs{
+  display:flex!important;
+  align-items:center!important;
+  gap:7px!important;
+  margin:4px 0 12px!important;
+  padding:4px!important;
+  width:max-content!important;
+  max-width:100%!important;
+  border:1px solid var(--v2-line)!important;
+  border-radius:11px!important;
+  background:var(--v2-surface-soft)!important;
+}
+.jeongV2 .routineScopeTabs>button{
+  min-height:34px!important;
+  padding:6px 12px!important;
+  border:0!important;
+  border-radius:8px!important;
+  background:transparent!important;
+  color:var(--v2-muted)!important;
+  font-size:.72rem!important;
+  font-weight:760!important;
+}
+.jeongV2 .routineScopeTabs>button.active{
+  background:var(--v2-surface-solid)!important;
+  color:var(--v2-gold)!important;
+  box-shadow:0 1px 8px rgba(75,50,14,.07)!important;
+}
+.jeongV2 .recurringDefinitionRows .routineRowActions{gap:7px!important}
+.jeongV2 .recurringDefinitionRows .taskPauseBtn{color:var(--v2-muted)!important}
+.jeongV2 .recurringDefinitionRows .taskPauseBtn:hover{color:var(--v2-gold)!important;border-color:color-mix(in srgb,var(--v2-gold) 40%,var(--v2-line))!important}
+
+/* Recent-record year rows keep visually equal left/right breathing room even with a scrollbar. */
+.jeongV2 .recordsTimelineCard .groupedRecordTimeline{
+  padding-left:4px!important;
+  padding-right:4px!important;
+  scrollbar-gutter:stable both-edges!important;
+}
+
+@media(max-width:920px){
+ .jeongV2 .compactEventModal .eventDateTimeControl{grid-template-columns:1fr!important}
+ .jeongV2 .compactEventModal .eventDateTimeInner{grid-template-columns:1fr!important}
+ .jeongV2 .compactEventModal .recurrenceRuleRow{grid-template-columns:1fr!important}
+ .jeongV2 .compactEventModal .recurrenceIntervalGroup,
+ .jeongV2 .compactEventModal .recurrenceEndGroup,
+ .jeongV2 .compactEventModal .recurrenceConditionalGroup{grid-column:1!important}
+}
+@media(max-width:620px){
+ .jeongV2 .compactEventModal .eventTimeSelects{grid-template-columns:66px minmax(58px,1fr) 8px minmax(58px,1fr)!important}
+ .jeongV2 .routineScopeTabs{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;width:100%!important}
+ .jeongV2 .routineScopeTabs>button{padding-inline:6px!important}
+}
+
+/* =========================================================
+   JEONG refinement R18 · routine taxonomy + compact recurrence row
+   ========================================================= */
+/* Calendar editor: Start/End labels sit on the same vertical center as their controls. */
+.jeongV2 .compactEventModal .eventDateTimeControl{
+  grid-template-columns:58px minmax(0,1fr)!important;
+  align-items:center!important;
+}
+.jeongV2 .compactEventModal .eventDateTimeControl>span{
+  display:flex!important;
+  align-items:center!important;
+  min-height:44px!important;
+  line-height:1.2!important;
+}
+.jeongV2 .compactEventModal .eventDateTimeInner,
+.jeongV2 .compactEventModal .eventTimeSelects{align-items:center!important}
+.jeongV2 .compactEventModal .eventTimeSelects .eventTimeNumber{
+  font-variant-numeric:tabular-nums!important;
+}
+
+/* Repetition interval / end rule / conditional end value stay on one clean row on desktop. */
+.jeongV2 .compactEventModal .recurrenceSection .eventCollapsibleBody{padding-top:14px!important}
+.jeongV2 .compactEventModal .recurrenceRuleRow{
+  display:grid!important;
+  grid-template-columns:minmax(198px,.95fr) minmax(174px,.82fr) minmax(205px,1fr)!important;
+  align-items:center!important;
+  gap:10px!important;
+  width:100%!important;
+  overflow:visible!important;
+}
+.jeongV2 .compactEventModal .recurrenceIntervalGroup,
+.jeongV2 .compactEventModal .recurrenceEndGroup,
+.jeongV2 .compactEventModal .recurrenceConditionalGroup{
+  grid-column:auto!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:7px!important;
+  min-width:0!important;
+  overflow:visible!important;
+}
+.jeongV2 .compactEventModal .recurrenceInlineLabel{
+  flex:0 0 auto!important;
+  min-width:0!important;
+  white-space:nowrap!important;
+  font-size:.7rem!important;
+  line-height:1.2!important;
+}
+.jeongV2 .compactEventModal .recurrenceIntervalGroup .intervalInput{
+  display:flex!important;
+  flex:1 1 auto!important;
+  align-items:center!important;
+  gap:5px!important;
+  min-width:0!important;
+  white-space:nowrap!important;
+}
+.jeongV2 .compactEventModal .recurrenceIntervalGroup .intervalInput input{
+  flex:0 0 54px!important;
+  width:54px!important;
+  min-width:54px!important;
+  height:40px!important;
+  min-height:40px!important;
+  padding-inline:7px!important;
+  text-align:center!important;
+}
+.jeongV2 .compactEventModal .recurrenceEndGroup>select{
+  flex:1 1 auto!important;
+  width:auto!important;
+  min-width:112px!important;
+  max-width:132px!important;
+  height:40px!important;
+  min-height:40px!important;
+  padding-inline:9px!important;
+}
+.jeongV2 .compactEventModal .recurrenceConditionalGroup>input{
+  flex:1 1 auto!important;
+  width:auto!important;
+  min-width:132px!important;
+  height:40px!important;
+  min-height:40px!important;
+  padding-inline:9px!important;
+}
+
+/* Only two routine sections are shown, with enough breathing room from the divider above. */
+.jeongV2 .routineScopeTabs{
+  grid-template-columns:repeat(2,minmax(92px,1fr))!important;
+  margin:10px 0 14px!important;
+  padding:5px!important;
+}
+.jeongV2 .routineScopeTabs>button{min-width:92px!important}
+
+/* Full timeline should size to its contents; it scrolls only when expanded history needs it. */
+.jeongV2 .groupedTimelineList{
+  height:auto!important;
+  min-height:0!important;
+  max-height:min(520px,calc(100dvh - 330px))!important;
+  overflow-y:auto!important;
+  align-self:start!important;
+}
+
+@media(max-width:920px){
+  .jeongV2 .compactEventModal .eventDateTimeControl{grid-template-columns:1fr!important}
+  .jeongV2 .compactEventModal .eventDateTimeControl>span{min-height:0!important}
+  .jeongV2 .compactEventModal .recurrenceRuleRow{grid-template-columns:1fr!important}
+  .jeongV2 .compactEventModal .recurrenceIntervalGroup,
+  .jeongV2 .compactEventModal .recurrenceEndGroup,
+  .jeongV2 .compactEventModal .recurrenceConditionalGroup{grid-column:1!important}
+}
+@media(max-width:620px){
+  .jeongV2 .routineScopeTabs{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;width:100%!important}
+}
+
+/* =========================================================
+   JEONG refinement R19 · routine density / bounded lists
+   ========================================================= */
+/* Routine switcher is inset like the rest of the task board instead of
+   touching the card edge. Bulk controls use the same compact visual rhythm. */
+.jeongV2 .routineScopeToolbar{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  margin:14px 16px 12px!important;
+  min-width:0!important;
+}
+.jeongV2 .routineScopeToolbar .routineScopeTabs{
+  flex:0 1 auto!important;
+  margin:0!important;
+}
+.jeongV2 .routineBulkActions{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:7px!important;
+  min-width:0!important;
+}
+.jeongV2 .routineBulkActions>button{
+  min-height:34px!important;
+  padding:6px 11px!important;
+  border:1px solid var(--v2-line)!important;
+  border-radius:9px!important;
+  background:var(--v2-surface-soft)!important;
+  color:var(--v2-text)!important;
+  font-size:.68rem!important;
+  font-weight:760!important;
+  line-height:1.2!important;
+  white-space:nowrap!important;
+}
+.jeongV2 .routineBulkActions>button:hover{
+  border-color:color-mix(in srgb,var(--v2-gold) 42%,var(--v2-line))!important;
+  color:var(--v2-gold)!important;
+}
+
+/* Task/routine collections never make the whole page infinitely tall.
+   The card keeps its page rhythm and the growing collection scrolls inside. */
+.jeongV2 .taskBoardCard>.taskDefinitionRows,
+.jeongV2 .taskBoardCard>.recurringDefinitionRows{
+  max-height:min(540px,calc(100dvh - 430px))!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  overscroll-behavior:contain!important;
+  scrollbar-gutter:stable!important;
+  padding-top:14px!important;
+  padding-bottom:16px!important;
+}
+.jeongV2 .weeklyRoutinePreviewRow .weeklyRoutinePreviewIcon{
+  display:grid!important;
+  place-items:center!important;
+  width:22px!important;
+  height:22px!important;
+  border:1px solid color-mix(in srgb,var(--v2-gold) 48%,var(--v2-line))!important;
+  border-radius:7px!important;
+  color:var(--v2-gold)!important;
+  font-size:.76rem!important;
+  font-weight:850!important;
+  line-height:1!important;
+}
+.jeongV2 .weeklyRoutinePreviewRow>div>small{color:var(--v2-gold)!important}
+
+@media(max-width:820px){
+  .jeongV2 .routineScopeToolbar{align-items:stretch!important;flex-direction:column!important;margin:12px!important}
+  .jeongV2 .routineScopeToolbar .routineScopeTabs{width:100%!important}
+  .jeongV2 .routineBulkActions{width:100%!important;justify-content:stretch!important}
+  .jeongV2 .routineBulkActions>button{flex:1 1 0!important}
+  .jeongV2 .taskBoardCard>.taskDefinitionRows,
+  .jeongV2 .taskBoardCard>.recurringDefinitionRows{max-height:min(520px,58dvh)!important}
+}
+
+/* =========================================================
+   JEONG refinement R21 · routine list viewport
+   Keep the task page bounded, but show roughly 3–4 routine rows
+   before the list itself begins scrolling.
+   ========================================================= */
+@media(min-width:981px){
+  .jeongV2 .taskBoardCard>.recurringDefinitionRows{
+    min-height:360px!important;
+    max-height:min(440px,52dvh)!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    scrollbar-gutter:stable!important;
+  }
+  .jeongV2 .recurringDefinitionRows article{
+    min-height:78px!important;
+  }
+}
+@media(min-width:821px) and (max-width:980px){
+  .jeongV2 .taskBoardCard>.recurringDefinitionRows{
+    min-height:330px!important;
+    max-height:min(410px,50dvh)!important;
+  }
+}
+
+/* =========================================================
+   JEONG refinement R22 · fixed task board / 4-row routine viewport
+   ========================================================= */
+@media(min-width:981px){
+  .jeongV2 .taskBoardCard{
+    display:flex!important;
+    flex-direction:column!important;
+    height:540px!important;
+    min-height:540px!important;
+    max-height:540px!important;
+    overflow:hidden!important;
+  }
+  .jeongV2 .taskBoardCard>.cardTitle,
+  .jeongV2 .taskBoardCard>.taskTabs,
+  .jeongV2 .taskBoardCard>.routineScopeToolbar{
+    flex:0 0 auto!important;
+  }
+  .jeongV2 .taskBoardCard>.taskDefinitionRows,
+  .jeongV2 .taskBoardCard>.recurringDefinitionRows{
+    flex:1 1 auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    overscroll-behavior:contain!important;
+    scrollbar-gutter:stable!important;
+  }
+  .jeongV2 .recurringDefinitionRows article{
+    min-height:78px!important;
+  }
+}
+@media(min-width:821px) and (max-width:980px){
+  .jeongV2 .taskBoardCard{
+    display:flex!important;
+    flex-direction:column!important;
+    height:520px!important;
+    min-height:520px!important;
+    max-height:520px!important;
+    overflow:hidden!important;
+  }
+  .jeongV2 .taskBoardCard>.taskDefinitionRows,
+  .jeongV2 .taskBoardCard>.recurringDefinitionRows{
+    flex:1 1 auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+  }
+}
+
+/* =========================================================
+   JEONG refinement R23 · bounded dynamic surfaces
+   Growing collections scroll inside their own cards instead of stretching
+   the surrounding page rhythm. Static/form cards remain content-sized.
+   ========================================================= */
+@media(min-width:981px){
+  .jeongV2 .projectListItems,
+  .jeongV2 .peopleGrid,
+  .jeongV2 .activityCards,
+  .jeongV2 .noteGrid,
+  .jeongV2 .chapterGrid{
+    max-height:min(560px,calc(100dvh - 390px))!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    overscroll-behavior:contain!important;
+    scrollbar-gutter:stable!important;
+  }
+  .jeongV2 .projectList{overflow:hidden!important}
+  .jeongV2 .projectList>.projectListItems{overflow-y:auto!important}
+  .jeongV2 .projectDetail{max-height:min(680px,calc(100dvh - 270px))!important;overflow-y:auto!important;overflow-x:hidden!important;scrollbar-gutter:stable!important}
+  .jeongV2 .reviewHistory{max-height:min(650px,calc(100dvh - 300px))!important;overflow-y:auto!important;overflow-x:hidden!important;scrollbar-gutter:stable!important}
+  .jeongV2 .reviewForm{max-height:min(650px,calc(100dvh - 300px))!important;overflow-y:auto!important;overflow-x:hidden!important;scrollbar-gutter:stable!important}
+  .jeongV2 .groupedTimelineList{max-height:min(560px,calc(100dvh - 300px))!important;overflow-y:auto!important;overflow-x:hidden!important;scrollbar-gutter:stable!important}
+}
+
+/* Task page mode switches keep one outer frame; only the rows viewport changes. */
+@media(min-width:821px){
+  .jeongV2 .taskBoardCard{overflow:hidden!important}
+  .jeongV2 .taskBoardCard>.taskDefinitionRows,
+  .jeongV2 .taskBoardCard>.recurringDefinitionRows{min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;scrollbar-gutter:stable!important}
+}
+
+/* R23 hardening: project sidebar owns a bounded internal list, not page growth. */
+@media(min-width:981px){
+  .jeongV2 .projectList{display:flex!important;flex-direction:column!important;min-height:0!important}
+  .jeongV2 .projectList>.cardTitle{flex:0 0 auto!important}
+  .jeongV2 .projectList>.projectListItems{flex:1 1 auto!important;min-height:0!important;max-height:none!important}
+}
+@media(max-width:980px){
+  .jeongV2 .peopleGrid,
+  .jeongV2 .activityCards,
+  .jeongV2 .noteGrid,
+  .jeongV2 .chapterGrid{
+    max-height:60dvh!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    overscroll-behavior:contain!important;
+    scrollbar-gutter:stable!important;
+  }
+}
+
+/* =========================================================
+   JEONG refinement R24 · fixed dynamic panels / compact density
+   Dynamic collections keep a stable outer frame. Overflow belongs to their
+   inner list, never to the whole card/page.
+   ========================================================= */
+
+/* Calendar month: bring event pills closer to the date and fit 3 previews. */
+.jeongV2 .monthGrid>button{padding:7px 8px!important}
+.jeongV2 .monthGrid>button>b{
+  width:22px!important;height:20px!important;
+  font-size:.78rem!important;line-height:20px!important;
+}
+.jeongV2 .monthGrid>button>span{
+  margin-top:2px!important;
+  padding:3px 5px!important;
+  border-radius:6px!important;
+  font-size:.58rem!important;
+  line-height:1.12!important;
+}
+.jeongV2 .monthGrid>button>small{margin-top:2px!important;font-size:.57rem!important;line-height:1.1!important}
+
+/* Calendar Todo rail: one fixed frame; only task rows scroll. */
+@media(min-width:1241px){
+  .jeongV2 .calendarWorkspace>.selectedDayPanel.taskSidePanel{
+    display:flex!important;
+    flex-direction:column!important;
+    height:500px!important;
+    min-height:500px!important;
+    max-height:500px!important;
+    overflow:hidden!important;
+  }
+  .jeongV2 .calendarWorkspace>.selectedDayPanel.taskSidePanel>.selectedDayHead,
+  .jeongV2 .calendarWorkspace>.selectedDayPanel.taskSidePanel>.selectedDayRangeTabs{flex:0 0 auto!important}
+  .jeongV2 .calendarWorkspace>.selectedDayPanel.taskSidePanel>.calendarTaskPanel{
+    display:flex!important;
+    flex:1 1 auto!important;
+    min-height:0!important;
+    flex-direction:column!important;
+    overflow:hidden!important;
+  }
+  .jeongV2 .calendarWorkspace>.selectedDayPanel.taskSidePanel>.calendarTaskPanel>header{flex:0 0 auto!important}
+  .jeongV2 .calendarWorkspace>.selectedDayPanel.taskSidePanel>.calendarTaskPanel>div{
+    flex:1 1 auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    overscroll-behavior:contain!important;
+    scrollbar-gutter:stable!important;
+  }
+}
+
+/* Task/Routine cards: compact, aligned, and bounded. */
+.jeongV2 .taskBoardCard>.taskDefinitionRows,
+.jeongV2 .taskBoardCard>.recurringDefinitionRows{
+  align-content:start!important;
+  gap:8px!important;
+  padding:12px 16px 14px!important;
+}
+.jeongV2 .taskDefinitionRows article,
+.jeongV2 .recurringDefinitionRows article{
+  grid-template-columns:22px 18px minmax(0,1fr) auto!important;
+  align-items:center!important;
+  column-gap:9px!important;
+  padding:9px 13px!important;
+}
+.jeongV2 .taskDefinitionRows article{min-height:66px!important}
+.jeongV2 .recurringDefinitionRows article{
+  height:88px!important;
+  min-height:88px!important;
+  max-height:88px!important;
+  overflow:hidden!important;
+}
+.jeongV2 .taskDefinitionRows article>.taskCheck,
+.jeongV2 .recurringDefinitionRows article>.taskCheck{
+  align-self:center!important;
+  justify-self:center!important;
+  margin:0!important;
+}
+.jeongV2 .taskDefinitionRows article>.taskDragHandle,
+.jeongV2 .recurringDefinitionRows article>.taskDragHandle{align-self:center!important}
+.jeongV2 .taskDefinitionRows article>div:not(.taskRowActions),
+.jeongV2 .recurringDefinitionRows article>div:not(.taskRowActions){
+  display:block!important;
+  min-width:0!important;
+  overflow:hidden!important;
+}
+.jeongV2 .taskDefinitionRows article>div:not(.taskRowActions)>strong,
+.jeongV2 .recurringDefinitionRows article>div:not(.taskRowActions)>strong{
+  display:inline!important;
+  margin:0!important;
+  line-height:1.35!important;
+}
+.jeongV2 .taskDefinitionRows article>div:not(.taskRowActions)>small,
+.jeongV2 .recurringDefinitionRows article>div:not(.taskRowActions)>small{
+  display:block!important;
+  margin:3px 0 0!important;
+  overflow:hidden!important;
+  color:var(--v2-muted)!important;
+  font-size:.68rem!important;
+  line-height:1.32!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+.jeongV2 .taskDefinitionRows .taskNotePreview,
+.jeongV2 .recurringDefinitionRows .taskNotePreview{
+  display:-webkit-box!important;
+  margin:3px 0 0!important;
+  overflow:hidden!important;
+  font-size:.66rem!important;
+  line-height:1.28!important;
+  -webkit-box-orient:vertical!important;
+  -webkit-line-clamp:2!important;
+}
+.jeongV2 .taskDefinitionRows .taskRowActions,
+.jeongV2 .recurringDefinitionRows .taskRowActions{
+  align-self:center!important;
+  margin:0!important;
+}
+
+/* Weekly routine preview follows the same density and alignment rules. */
+.jeongV2 .weeklyRoutinePreviewRow{
+  min-height:72px!important;
+  padding:9px 13px!important;
+  align-items:center!important;
+}
+.jeongV2 .weeklyRoutinePreviewRow>div:not(.taskRowActions){min-width:0!important;overflow:hidden!important}
+.jeongV2 .weeklyRoutinePreviewRow .taskNotePreview{
+  display:-webkit-box!important;
+  margin-top:3px!important;
+  overflow:hidden!important;
+  -webkit-box-orient:vertical!important;
+  -webkit-line-clamp:2!important;
+}
+
+/* Keep all growth-prone list surfaces bounded; content scrolls within. */
+@media(min-width:981px){
+  .jeongV2 .peopleGrid,
+  .jeongV2 .activityCards,
+  .jeongV2 .noteGrid,
+  .jeongV2 .chapterGrid,
+  .jeongV2 .projectListItems,
+  .jeongV2 .reviewHistory,
+  .jeongV2 .groupedTimelineList{
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    overscroll-behavior:contain!important;
+    scrollbar-gutter:stable!important;
+  }
+}
+
+/* =========================================================
+   JEONG refinement R25 · dynamic-space authority
+   Static project detail stays page-sized. Collections get a preallocated
+   viewport and scroll only after the visible capacity is reached.
+   ========================================================= */
+
+/* Calendar month density: date and schedule previews form one compact stack.
+   Three event pills are visible before the +N summary. */
+.jeongV2 .monthCalendar{padding-top:8px!important}
+.jeongV2 .weekHeader{padding-bottom:4px!important}
+.jeongV2 .monthGrid{gap:5px!important}
+.jeongV2 .monthGrid>button{padding:5px 7px!important}
+.jeongV2 .monthGrid>button>b{
+  width:20px!important;
+  height:18px!important;
+  line-height:18px!important;
+  margin:0!important;
+  font-size:.76rem!important;
+}
+.jeongV2 .monthGrid>button>span{
+  height:15px!important;
+  min-height:15px!important;
+  max-height:15px!important;
+  margin-top:1px!important;
+  padding:2px 5px!important;
+  font-size:.56rem!important;
+  line-height:11px!important;
+}
+.jeongV2 .monthGrid>button>small{margin-top:1px!important;line-height:1!important}
+
+/* Calendar Todo checkboxes should read as checkboxes, not large controls. */
+.jeongV2 .calendarTaskPanel .dayTaskRow{
+  grid-template-columns:18px minmax(0,1fr)!important;
+  align-items:center!important;
+  column-gap:8px!important;
+}
+.jeongV2 .calendarTaskPanel .dayTaskToggle{
+  display:grid!important;
+  place-items:center!important;
+  width:16px!important;
+  height:16px!important;
+  min-width:16px!important;
+  min-height:16px!important;
+  max-width:16px!important;
+  max-height:16px!important;
+  margin:0!important;
+  padding:0!important;
+  border-radius:4px!important;
+  line-height:1!important;
+}
+.jeongV2 .calendarTaskPanel .dayTaskToggle>span{font-size:9px!important;line-height:1!important}
+.jeongV2 .calendarTaskPanel .dayTaskRow>span{align-self:center!important;line-height:1.35!important}
+
+/* Routine scope belongs with Context on the first toolbar row.
+   Bulk check/uncheck belongs at the far right of the period-tab row. */
+.jeongV2 .taskBoardTopToolbar{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:14px!important;
+  min-height:52px!important;
+  padding:12px 16px!important;
+}
+.jeongV2 .taskBoardTopToolbar .routineScopeTabs{
+  margin-left:auto!important;
+  flex:0 0 auto!important;
+}
+.jeongV2 .taskBoardCard>.taskTabs{
+  display:flex!important;
+  align-items:center!important;
+  flex-wrap:nowrap!important;
+  width:100%!important;
+  min-width:0!important;
+}
+.jeongV2 .taskBoardCard>.taskTabs>.routineBulkActions{
+  margin-left:auto!important;
+  flex:0 0 auto!important;
+}
+.jeongV2 .taskBoardCard>.taskTabs>.routineBulkActions>button{
+  min-height:34px!important;
+  margin:0!important;
+  padding:6px 11px!important;
+}
+@media(max-width:820px){
+  .jeongV2 .taskBoardTopToolbar{align-items:stretch!important;flex-direction:column!important}
+  .jeongV2 .taskBoardTopToolbar .routineScopeTabs{width:100%!important;margin-left:0!important}
+  .jeongV2 .taskBoardCard>.taskTabs{flex-wrap:wrap!important}
+  .jeongV2 .taskBoardCard>.taskTabs>.routineBulkActions{width:100%!important;margin-left:0!important;justify-content:flex-end!important}
+}
+
+/* Project detail is a normal document surface. Do not put a scrollbar inside it. */
+@media(min-width:981px){
+  .jeongV2 .projectDetail{
+    max-height:none!important;
+    height:auto!important;
+    overflow:visible!important;
+    scrollbar-gutter:auto!important;
+  }
+}
+
+/* R25 final optical corrections */
+.jeongV2 .monthGrid>button>span{box-sizing:border-box!important}
+.jeongV2 .taskBoardTopToolbar .routineScopeTabs{margin:0 0 0 auto!important}
+
+/* =========================================================
+   JEONG refinement R26 · calendar density / toolbar spacing / modal return
+   ========================================================= */
+
+/* Month cells get a little more vertical room. Keep three event previews,
+   but restore a small visual gap between date and schedule pills. */
+@media(min-width:821px){
+  .jeongV2 .monthGrid{
+    grid-template-rows:repeat(6,minmax(102px,1fr))!important;
+    height:clamp(630px,calc(100dvh - 255px),760px)!important;
+  }
+  .jeongV2 .monthGrid>button{padding:7px 8px!important}
+  .jeongV2 .monthGrid>button>span{
+    height:17px!important;
+    min-height:17px!important;
+    max-height:17px!important;
+    margin-top:3px!important;
+    padding:2px 5px!important;
+    line-height:13px!important;
+  }
+  .jeongV2 .monthGrid>button>small{margin-top:2px!important}
+}
+
+/* Calendar Todo rows size themselves to their content. A single weekly/monthly
+   Todo must never stretch into a tall empty card simply because the rail has room. */
+.jeongV2 .calendarTaskPanel>div{
+  align-content:start!important;
+  grid-auto-rows:max-content!important;
+}
+.jeongV2 .calendarTaskPanel .dayTaskRow{
+  min-height:38px!important;
+  height:auto!important;
+  padding:6px 8px!important;
+}
+.jeongV2 .calendarTaskPanel .dayTaskRow>span{
+  font-size:.74rem!important;
+  line-height:1.3!important;
+}
+
+/* The Context row is a toolbar, not a content block. Remove inherited padding
+   from the filter group so its top/bottom whitespace matches the adjacent controls. */
+.jeongV2 .taskBoardTopToolbar{
+  min-height:44px!important;
+  padding:8px 16px!important;
+  margin-bottom:0!important;
+}
+.jeongV2 .taskBoardTopToolbar>[role="group"]{
+  margin:0!important;
+  padding:0!important;
+}
+.jeongV2 .taskBoardCard>.taskTabs{padding:9px 16px!important}
+
+/* =========================================================
+   JEONG refinement R27 · timeline inset trim
+   The year row should sit close to the timeline card's left/right edges.
+   ========================================================= */
+.jeongV2 .groupedTimelineList{
+  padding:10px 6px!important;
+}
+
+
+/* =========================================================
+   JEONG refinement R29 · connected morning/review cleanup
+   - Morning "즐길 것" uses the same full width as "오늘 목표".
+   - Review removes the nested form scrollbar; the page owns scrolling.
+   - Review top fields use goal / enjoyment / result only (reason removed in JSX).
+   ========================================================= */
+.jeongV2 .morningCard>label{
+  grid-column:1/-1!important;
+  width:100%!important;
+  min-width:0!important;
+}
+.jeongV2 .morningCard>label textarea{
+  box-sizing:border-box!important;
+  width:100%!important;
+  min-width:0!important;
+}
+.jeongV2 .reviewForm{
+  max-height:none!important;
+  height:auto!important;
+  overflow:visible!important;
+  scrollbar-gutter:auto!important;
+}
+.jeongV2 .reviewSummaryPrimary{
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(150px,.52fr)!important;
+  align-items:end!important;
+}
+@media(max-width:900px){
+  .jeongV2 .reviewSummaryPrimary{grid-template-columns:1fr 1fr!important}
+  .jeongV2 .reviewSummaryPrimary .reviewStatusField{grid-column:1/-1!important}
+}
+@media(max-width:760px){
+  .jeongV2 .reviewSummaryPrimary{grid-template-columns:1fr!important}
+  .jeongV2 .reviewSummaryPrimary .reviewStatusField{grid-column:auto!important}
+}
+
+/* =========================================================
+   JEONG refinement R30 · Review result width
+   Keep Goal / Enjoyment dominant; result is a compact decision field.
+   ========================================================= */
+.jeongV2 .reviewSummaryPrimary{
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(125px,.40fr)!important;
+}
+@media(max-width:900px){
+  .jeongV2 .reviewSummaryPrimary{grid-template-columns:1fr 1fr!important}
+  .jeongV2 .reviewSummaryPrimary .reviewStatusField{grid-column:1/-1!important}
+}
+@media(max-width:760px){
+  .jeongV2 .reviewSummaryPrimary{grid-template-columns:1fr!important}
+  .jeongV2 .reviewSummaryPrimary .reviewStatusField{grid-column:auto!important}
+}
+
+
+/* =========================================================
+   JEONG refinement R31 · review rhythm + modal background lock support
+   ========================================================= */
+.jeongV2 .reviewSummaryPrimary{
+  margin-top:14px!important;
+}
+.jeongV2 .overlay{
+  overscroll-behavior:contain!important;
+  touch-action:none;
+}
+.jeongV2 .overlay>*,
+.jeongV2 .overlay form,
+.jeongV2 .overlay section{
+  touch-action:auto;
+}

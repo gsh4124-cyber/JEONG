@@ -70,7 +70,7 @@
 
 .activityComposer {
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  align-items: end;
+  align-items: flex-end;
 }
 
 .activityComposer label {
@@ -192,7 +192,7 @@
 .chapterComposer {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) auto;
-  align-items: end;
+  align-items: flex-end;
   gap: 12px;
 }
 
@@ -445,12 +445,11 @@
 
 
 /* v5.4 ChatGPT Bridge */
-.aiBridgeHero{display:flex;justify-content:space-between;align-items:center;gap:24px;margin-bottom:14px;background:linear-gradient(135deg,var(--surface),var(--goldSoft))}
 .aiBridgeHero>div{min-width:0}.aiBridgeHero>div>span{color:var(--gold);font-size:.74rem;font-weight:800}.aiBridgeHero h2{margin:6px 0 8px}.aiBridgeHero p{margin:0;color:var(--muted);line-height:1.65}
 .aiBridgePanel{display:grid;gap:16px}.aiTypeGrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}.aiTypeGrid button{min-width:0;padding:13px;border:1px solid var(--border);border-radius:11px;background:var(--surface2);color:var(--text);text-align:left}.aiTypeGrid button.active,.aiTypeGrid button:hover{border-color:var(--gold);background:var(--goldSoft)}.aiTypeGrid strong,.aiTypeGrid span{display:block}.aiTypeGrid span{margin-top:4px;color:var(--muted);font-size:.72rem;line-height:1.45}
-.aiPrivacyCheck{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:.8rem}.aiPrivacyCheck input{width:auto}.aiPreview{display:grid;gap:7px;color:var(--muted);font-size:.78rem}.aiPreview>span{font-weight:700;color:var(--text)}.aiPreview textarea{width:100%;min-height:430px;padding:14px;border:1px solid var(--border);border-radius:11px;background:var(--surface2);color:var(--text);line-height:1.55;resize:vertical}.aiActions{display:flex;justify-content:flex-end;gap:9px}.aiActions button{padding:10px 14px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text)}.aiHint{margin:0;color:var(--muted);font-size:.76rem;line-height:1.55}
+.aiPrivacyCheck{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:.8rem}.aiPrivacyCheck input{width:auto}.aiPreview>span{font-weight:700;color:var(--text)}.aiPreview textarea{width:100%;min-height:430px;padding:14px;border:1px solid var(--border);border-radius:11px;background:var(--surface2);color:var(--text);line-height:1.55;resize:vertical}.aiActions button{padding:10px 14px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text)}.aiHint{margin:0;color:var(--muted);font-size:.76rem;line-height:1.55}
 @media(max-width:1100px){.aiTypeGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:720px){.aiBridgeHero{align-items:flex-start;flex-direction:column}.aiTypeGrid{grid-template-columns:1fr 1fr}.aiActions{align-items:stretch;flex-direction:column}.aiActions button{width:100%}.aiPreview textarea{min-height:350px}}
+@media(max-width:720px){.aiTypeGrid{grid-template-columns:1fr 1fr}.aiActions button{width:100%}.aiPreview textarea{min-height:350px}}
 @media(max-width:430px){.aiTypeGrid{grid-template-columns:1fr}}
 
 
@@ -502,7 +501,7 @@
 @media(max-width:1100px){.dayMainGrid{grid-template-columns:1fr}.dayRightColumn{grid-template-columns:1fr 1fr}.dayScheduleCard{grid-row:span 2}}
 @media(max-width:760px){.dayHero,.dayPriority{align-items:flex-start;flex-direction:column}.dayDateControl{width:100%}.dayRightColumn,.directionRows,.dayRecordSplit{grid-template-columns:1fr}.scheduleRow{grid-template-columns:62px minmax(0,1fr)}.scheduleRow b{display:none}}
 
-.calendarWorkspace{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:14px;align-items:start}.calendarPage{min-width:0}.calendarError{padding:10px;border-radius:8px;background:#fff0ef;color:#a33}.monthGrid>button.todayCell>b{display:inline-flex;align-items:center;justify-content:center;width:25px;height:25px;border-radius:50%;background:var(--gold);color:#fff}.selectedDayPanel{position:sticky;top:14px;padding:17px;min-width:0}.selectedDayHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:12px;border-bottom:1px solid var(--border)}.selectedDayHead span{font-size:.7rem;color:var(--gold);font-weight:800}.selectedDayHead h2{margin:4px 0 0;font-size:1.1rem}.selectedDayHead button{padding:8px 11px;border:1px solid var(--gold);border-radius:8px;background:var(--goldSoft);color:var(--gold)}.selectedDayList{display:grid;gap:8px;margin-top:12px;max-height:65vh;overflow:auto}.selectedDayList article{display:grid;grid-template-columns:68px minmax(0,1fr) auto;gap:8px;align-items:center;padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--surface2);cursor:pointer}.selectedDayList time{color:var(--gold);font-weight:800}.selectedDayList strong,.selectedDayList small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.selectedDayList small{margin-top:3px;color:var(--muted)}.selectedDayList>article>span{font-size:.65rem;color:var(--muted)}.emptyDayEvent{width:100%;padding:24px 12px;border:1px dashed var(--border);border-radius:9px;background:transparent;color:var(--muted)}.emptyDayEvent b{display:block;margin-top:6px;color:var(--gold)}.advancedEventModal{width:min(760px,calc(100% - 28px));max-height:calc(100dvh - 30px);overflow:auto}.advancedEventModal .modalHead span{font-size:.7rem;color:var(--gold);font-weight:800}.advancedEventModal .modalHead h2{margin:3px 0 0}.eventOptionSection{margin-top:14px;padding:14px;border:1px solid var(--border);border-radius:11px;background:var(--surface2)}.eventOptionSection h3{margin:0 0 11px;font-size:.9rem}.eventOptionSection>label{display:grid;gap:6px;margin-top:10px;color:var(--muted);font-size:.76rem}.sectionTitleRow{display:flex;align-items:center;justify-content:space-between;gap:10px}.sectionTitleRow h3{margin:0}.sectionTitleRow button{padding:7px 9px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text)}.weekdayPicker{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}.weekdayPicker label{display:flex;align-items:center;gap:4px;padding:7px 9px;border:1px solid var(--border);border-radius:999px;background:var(--surface)}.weekdayPicker input{width:auto}.reminderList{display:grid;gap:7px}.reminderList>div{display:grid;grid-template-columns:minmax(0,1fr) 85px auto;gap:8px;align-items:center}.reminderList span{font-size:.72rem;color:var(--muted)}.reminderList button{padding:8px;border:0;background:transparent;color:#c55}.optionHint{margin:9px 0 0;color:var(--muted);font-size:.7rem}.aiEngineSettings{margin-top:14px;padding:18px}.aiEngineSettings>label{display:grid;grid-template-columns:170px minmax(0,1fr);align-items:center;gap:12px;margin-top:12px}.aiEngineSettings select,.aiEngineSettings input{padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--surface2);color:var(--text)}.aiEngineSettings>p{color:var(--muted);font-size:.8rem}.aiStatus{display:block;margin-top:10px;color:var(--gold)}@media(max-width:1150px){.calendarWorkspace{grid-template-columns:1fr}.selectedDayPanel{position:static}.selectedDayList{max-height:none;grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:720px){.selectedDayList{grid-template-columns:1fr}.reminderList>div{grid-template-columns:1fr auto}.reminderList span{display:none}.aiEngineSettings>label{grid-template-columns:1fr}}
+.calendarWorkspace{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:14px;align-items:start}.calendarPage{min-width:0}.calendarError{padding:10px;border-radius:8px;background:#fff0ef;color:#a33}.monthGrid>button.todayCell>b{display:inline-flex;align-items:center;justify-content:center;width:25px;height:25px;border-radius:50%;background:var(--gold);color:#fff}.selectedDayPanel{position:sticky;top:14px;padding:17px;min-width:0}.selectedDayHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:12px;border-bottom:1px solid var(--border)}.selectedDayHead span{font-size:.7rem;color:var(--gold);font-weight:800}.selectedDayHead h2{margin:4px 0 0;font-size:1.1rem}.selectedDayHead button{padding:8px 11px;border:1px solid var(--gold);border-radius:8px;background:var(--goldSoft);color:var(--gold)}.selectedDayList{display:grid;gap:8px;margin-top:12px;max-height:65vh;overflow:auto}.selectedDayList article{display:grid;grid-template-columns:68px minmax(0,1fr) auto;gap:8px;align-items:center;padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--surface2);cursor:pointer}.selectedDayList time{color:var(--gold);font-weight:800}.selectedDayList strong,.selectedDayList small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.selectedDayList small{margin-top:3px;color:var(--muted)}.selectedDayList>article>span{font-size:.65rem;color:var(--muted)}.emptyDayEvent{width:100%;padding:24px 12px;border:1px dashed var(--border);border-radius:9px;background:transparent;color:var(--muted)}.emptyDayEvent b{display:block;margin-top:6px;color:var(--gold)}.advancedEventModal{width:min(760px,calc(100% - 28px));max-height:calc(100dvh - 30px);overflow:auto}.advancedEventModal .modalHead span{font-size:.7rem;color:var(--gold);font-weight:800}.advancedEventModal .modalHead h2{margin:3px 0 0}.eventOptionSection{margin-top:14px;padding:14px;border:1px solid var(--border);border-radius:11px;background:var(--surface2)}.eventOptionSection h3{margin:0 0 11px;font-size:.9rem}.eventOptionSection>label{display:grid;gap:6px;margin-top:10px;color:var(--muted);font-size:.76rem}.sectionTitleRow{display:flex;align-items:center;justify-content:space-between;gap:10px}.sectionTitleRow h3{margin:0}.sectionTitleRow button{padding:7px 9px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text)}.weekdayPicker{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}.weekdayPicker label{display:flex;align-items:center;gap:4px;padding:7px 9px;border:1px solid var(--border);border-radius:999px;background:var(--surface)}.weekdayPicker input{width:auto}.reminderList{display:grid;gap:7px}.reminderList>div{display:grid;grid-template-columns:minmax(0,1fr) 85px auto;gap:8px;align-items:center}.reminderList span{font-size:.72rem;color:var(--muted)}.reminderList button{padding:8px;border:0;background:transparent;color:#c55}.optionHint{margin:9px 0 0;color:var(--muted);font-size:.7rem}.aiEngineSettings>label{display:grid;grid-template-columns:170px minmax(0,1fr);align-items:center;gap:12px;margin-top:12px}.aiEngineSettings select,.aiEngineSettings input{padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--surface2);color:var(--text)}.aiEngineSettings>p{color:var(--muted);font-size:.8rem}@media(max-width:1150px){.calendarWorkspace{grid-template-columns:1fr}.selectedDayPanel{position:static}.selectedDayList{max-height:none;grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:720px){.selectedDayList{grid-template-columns:1fr}.reminderList>div{grid-template-columns:1fr auto}.reminderList span{display:none}.aiEngineSettings>label{grid-template-columns:1fr}}
 
 
 /* v5.7 — spacing, recurring deletion, AI setup guidance */
@@ -523,12 +522,6 @@
   padding: 0 4px;
 }
 
-.aiPreview {
-  display: grid;
-  gap: 9px;
-  padding: 4px;
-}
-
 .aiPreview > span {
   padding-left: 3px;
   font-weight: 800;
@@ -546,10 +539,6 @@
   line-height: 1.65;
   resize: vertical;
   box-sizing: border-box;
-}
-
-.aiActions {
-  padding: 0 4px 3px;
 }
 
 .eventModalActions {
@@ -574,38 +563,11 @@
   color: #c96a64;
 }
 
-.aiEngineSettings {
-  display: grid;
-  gap: 18px;
-}
-
-.aiEnginePicker {
-  display: grid;
-  grid-template-columns: repeat(2,minmax(0,1fr));
-  gap: 12px;
-}
-
 .aiEnginePicker label {
   display: grid;
   gap: 7px;
   color: var(--muted);
   font-size: .78rem;
-}
-
-.aiSetupGuide {
-  padding: 18px;
-  border: 1px solid var(--border);
-  border-radius: 13px;
-  background: var(--surface2);
-}
-
-.aiGuideHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--border);
 }
 
 .aiGuideHeader span {
@@ -709,17 +671,8 @@
   color: var(--gold);
 }
 
-.aiSetupActions {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  flex-wrap: wrap;
-}
-
 @media(max-width:760px){
   .aiBridgeHero,.aiBridgePanel{padding:17px}
-  .aiEnginePicker{grid-template-columns:1fr}
-  .aiGuideHeader{flex-direction:column}
   .envExample{grid-template-columns:1fr}
   .eventModalActions{align-items:stretch;flex-direction:column}
   .deleteActionGroup{width:100%}
@@ -1219,10 +1172,6 @@ html[data-theme="dark"] .advancedEventModal input[type="time"] {
   min-height:75px;
 }
 
-.aiActions {
-  padding-top:2px;
-}
-
 /* Smaller screens */
 @media(max-width:760px) {
   .advancedEventModal {
@@ -1280,6 +1229,78 @@ html[data-theme="dark"] .advancedEventModal input[type="time"] {
  --shadow-soft:0 10px 28px rgba(35,31,24,.07);
  --shadow-lift:0 16px 38px rgba(35,31,24,.11);
 }
+
+/* Phase 1 — shared rhythm. These variables deliberately refine the existing system instead of replacing it. */
+:root{--space-page:24px;--space-section:20px;--space-card:18px;--space-item:12px;--control-height:42px}
+.contentArea{padding:var(--space-page) 32px 40px!important}
+input,select{min-height:var(--control-height)}
+.morningGrid{gap:var(--space-item) 20px!important;align-items:start}
+.morningGrid textarea{min-height:72px!important;height:72px!important;line-height:1.45!important}
+.morningGrid label{gap:6px!important;line-height:1.35}
+.gratitudeList{gap:6px!important}
+.operationPanel{padding:var(--space-card)!important}
+.rows{gap:10px!important;padding:16px!important}
+.rows article{gap:14px!important;padding:15px 16px!important;line-height:1.45!important}
+.rows article strong{line-height:1.4!important}.rows article small{margin-top:5px!important;line-height:1.45!important}
+.taskRowActions{gap:10px!important}
+.calendarAdvanced{margin-top:12px;border-top:1px solid var(--border);padding-top:10px}
+.calendarAdvanced summary{cursor:pointer;color:var(--muted);font-size:.82rem;font-weight:700}.calendarAdvanced label{margin-top:10px}
+.projectPeriod{display:block;margin-top:6px;color:var(--muted);font-size:.78rem}
+.projectHero .softBtn{margin-left:auto}
+.projectReadSummary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:18px 0}
+.projectReadSummary>div{min-height:92px;padding:14px;border:1px solid var(--border);border-radius:12px;background:var(--surface2)}
+.projectReadSummary span{display:block;margin-bottom:8px;color:var(--muted);font-size:.72rem;font-weight:800}.projectReadSummary p{margin:0;line-height:1.5}.nextActionRead{border-color:color-mix(in srgb,var(--gold) 45%,var(--border))!important}.nextActionRead strong{line-height:1.5}
+.projectIntelligence{margin:18px 0;padding:16px;border:1px solid color-mix(in srgb,var(--gold) 28%,var(--border));border-radius:14px;background:color-mix(in srgb,var(--surface2) 82%,transparent)}
+.projectIntelligenceHead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:13px}.projectIntelligenceHead span{display:block;color:var(--gold);font-size:.66rem;font-weight:800;letter-spacing:.08em}.projectIntelligenceHead h3{margin:3px 0 0;font-size:1rem}.projectHealth{padding:5px 9px;border-radius:999px;font-size:.72rem}.projectHealth.healthy{background:rgba(67,142,94,.13);color:#34744d}.projectHealth.attention{background:rgba(196,133,34,.16);color:#95631a}.projectHealth.atRisk{background:rgba(183,70,63,.13);color:#ab3f38}
+.projectIntelligenceGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.projectIntelligenceGrid>div{min-height:84px;padding:12px;border:1px solid var(--border);border-radius:11px;background:var(--surface2)}.projectIntelligenceGrid span{display:block;margin-bottom:6px;color:var(--muted);font-size:.7rem;font-weight:800}.projectIntelligenceGrid strong{display:block;line-height:1.45}.projectIntelligenceGrid small{display:block;margin-top:5px;color:var(--muted);line-height:1.35}.projectIntelligenceNext{border-color:color-mix(in srgb,var(--gold) 40%,var(--border))!important}.projectRisks{margin:11px 0 0;color:#a16b1b;font-size:.8rem;line-height:1.5}@media(max-width:760px){.projectIntelligenceGrid{grid-template-columns:1fr}}
+@media(max-width:760px){.contentArea{padding:18px 12px 36px!important}.morningGrid,.projectReadSummary{grid-template-columns:1fr!important}.morningGrid textarea{height:68px!important}.projectHero{flex-wrap:wrap}.projectHero .softBtn{margin-left:0}}
+
+@media(min-width:761px){.morningCard{width:min(860px,calc(100vw - 40px))!important;max-height:none!important;overflow:visible!important;padding:20px 22px!important;display:grid;grid-template-columns:1fr 1fr;column-gap:16px;row-gap:10px}.morningCard .modalHead,.morningCard .morningPlanReference,.morningCard>label:first-of-type,.morningCard>.goldBtn{grid-column:1/-1}.morningCard>label{margin-top:0!important;gap:5px!important}.morningCard textarea{min-height:62px!important;height:62px!important;resize:none!important}.morningCard fieldset{grid-column:2;grid-row:4;margin:0!important;gap:5px!important}.morningCard fieldset input{min-height:30px!important;padding:5px 8px!important}.morningCard>.goldBtn{justify-self:end;min-height:40px!important}.morningCard .modalHead{margin-bottom:0!important}}
+
+/* The decorative non-Home mark has a stronger legacy selector; Home is the only celestial scene. */
+.greetingMark.themeCelestial.celestialMoon{display:none!important}
+
+/* Correction pass: only Home may render celestial artwork. Keep every other page header compact. */
+.topHeader .themeCelestial{display:none!important}
+.topHeader{min-height:116px!important;height:auto!important;padding-top:18px!important;padding-bottom:18px!important}
+@media(max-width:820px){.topHeader{min-height:104px!important;padding-top:14px!important;padding-bottom:14px!important}}
+
+/* Calendar list/detail views and task occurrences share the same live data without duplicating records. */
+.monthSelectedEvents{margin-top:16px;padding:16px 18px;border:1px solid var(--jeong-line);border-radius:16px;background:color-mix(in srgb,var(--jeong-surface-strong) 56%,transparent)}
+.monthSelectedEvents>header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}.monthSelectedEvents header div{display:grid;gap:3px}.monthSelectedEvents header span{color:var(--jeong-gold);font-size:.72rem;font-weight:750}.monthSelectedEvents header strong{font-size:.95rem}.monthSelectedEvents header button{min-height:34px;padding:0 10px;border:1px solid var(--jeong-line);border-radius:10px;background:var(--jeong-surface);color:var(--jeong-text)}
+.monthSelectedEvents>div{display:grid;gap:7px}.monthSelectedEvents article{display:grid;grid-template-columns:minmax(100px,auto) minmax(0,1fr);align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--jeong-line);border-radius:11px;cursor:pointer}.monthSelectedEvents article time{color:var(--jeong-gold);font-size:.76rem;font-weight:750;white-space:nowrap}.monthSelectedEvents article small{grid-column:2;color:var(--jeong-muted);font-size:.72rem}.monthSelectedEvents p{margin:0;padding:13px 2px;color:var(--jeong-muted);font-size:.86rem}
+.selectedDayPanel>.selectedDayList{display:grid;gap:10px;margin-top:14px;max-height:none;overflow:visible}
+.selectedDayPanel>.selectedDayList>header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:8px;border-bottom:1px solid var(--jeong-line)}
+.selectedDayPanel>.selectedDayList>header span{color:var(--jeong-gold);font-size:.72rem;font-weight:800}.selectedDayPanel>.selectedDayList>header b{font-size:.76rem}
+.selectedDayPanel>.selectedDayList>div{display:grid;gap:7px}.selectedDayPanel>.selectedDayList article{grid-template-columns:58px minmax(0,1fr);padding:10px 11px}.selectedDayPanel>.selectedDayList article small{white-space:normal}
+.weekListView .monthListTools{justify-content:flex-start}.weekListView .monthAgendaList article time{min-width:112px}
+.recurringOccurrenceRows{margin:8px 0 0}.recurringOccurrenceRows article{border-color:color-mix(in srgb,var(--jeong-gold) 38%,var(--jeong-line))!important}.recurringOccurrenceRows article small{color:var(--jeong-gold)!important}
+
+/* Protect Korean page titles and calendar controls from character-by-character wrapping. */
+.topHeader .headerIdentity,.topHeader .titleCopy{min-width:0}.topHeader .titleCopy h1{white-space:nowrap;word-break:keep-all;overflow-wrap:normal}.calendarToolbar{flex-wrap:wrap}.calendarToolbar>div{min-width:0}.calendarPrimaryControls strong{white-space:nowrap}
+@media(max-width:1100px){.calendarWorkspace{grid-template-columns:minmax(0,1fr)!important}.selectedDayPanel{max-height:none!important}.monthCalendar{overflow-x:auto}.weekAgenda{min-width:720px}.monthSelectedEvents article{grid-template-columns:1fr}.monthSelectedEvents article small{grid-column:auto}}
+@media(max-width:760px){.monthSelectedEvents{padding:14px}.monthSelectedEvents>header{align-items:flex-start;flex-direction:column}.calendarPrimaryControls{flex-wrap:wrap}.calendarSecondaryControls{width:100%;justify-content:space-between}.calendarCenterControls{order:3;width:100%;justify-content:flex-start}.monthDisplayTabs{width:auto}.weekListView .monthAgendaList article{grid-template-columns:1fr}.weekListView .monthAgendaList article time{min-width:0}.topHeader .headerRight{min-width:0}.topHeader .titleCopy h1{font-size:clamp(1.45rem,7.5vw,2rem)!important}}
+
+/* One shared checkbox surface: Todo and AI must render with the same crisp edge. */
+html[data-theme="light"] input[type="checkbox"],html[data-theme="dark"] input[type="checkbox"]{appearance:none!important;-webkit-appearance:none!important;box-sizing:border-box!important;width:16px!important;height:16px!important;min-width:16px!important;min-height:16px!important;margin:0!important;padding:0!important;border:1.5px solid var(--jeong-gold)!important;border-radius:4px!important;background:var(--jeong-surface-strong)!important;box-shadow:none!important;opacity:1!important;transform:none!important;vertical-align:middle!important}
+html[data-theme="light"] input[type="checkbox"]:checked,html[data-theme="dark"] input[type="checkbox"]:checked{background:var(--jeong-gold)!important;box-shadow:inset 0 0 0 3px var(--jeong-surface-strong)!important}
+
+/* Todo composer: generous controls arranged as two readable desktop rows. */
+@media(min-width:761px){.taskComposer{grid-template-columns:minmax(180px,1.6fr) minmax(118px,.65fr) minmax(176px,1fr) minmax(88px,.45fr)!important}.taskComposer>:nth-child(5){grid-column:1}.taskComposer>:nth-child(6),.taskComposer>:nth-child(7),.taskComposer>:nth-child(8){grid-column:auto}.taskComposer input,.taskComposer select,.taskComposer button{min-height:44px!important;padding:10px 15px!important}.taskComposer label{min-height:44px!important;padding-inline:14px!important}.taskComposer label input{min-height:auto!important;padding:0!important}}
+.taskComposer .goldBtn,.jeong-theme_themeScope__RyCUy .taskComposer .goldBtn{min-height:44px!important;padding:10px 15px!important}
+.rows{gap:12px!important;padding:16px!important}.rows article{gap:14px!important;padding:15px 16px!important}.rows article>div strong{line-height:1.45}.taskTabs{gap:8px!important;padding:14px 16px!important}.taskTabs button{min-height:42px!important;padding:10px 15px!important}
+
+/* Project context is intentionally not a UI dimension; give the purpose-oriented list enough room instead. */
+@media(min-width:1051px){.projectWorkspace{grid-template-columns:minmax(285px,330px) minmax(0,1fr)!important}.projectList{max-height:calc(100vh - 126px)!important}.projectList::-webkit-scrollbar{width:6px}.projectList::-webkit-scrollbar-thumb{border-radius:999px;background:color-mix(in srgb,var(--jeong-gold) 35%,transparent)}.projectListMeta{align-items:flex-start!important;flex-direction:column}.projectListMeta small:last-child{white-space:nowrap;font-size:.68rem}}
+
+.selectedDayRangeTabs{display:flex;gap:6px}.selectedDayRangeTabs button{min-height:36px;padding:8px 12px;border:1px solid var(--jeong-line);border-radius:10px;background:var(--jeong-field);color:var(--jeong-text);font-size:.72rem;font-weight:700}@media(max-width:640px){.selectedDayRangeTabs{width:100%}.selectedDayRangeTabs button{flex:1;min-height:44px}}
+
+/* Preserve the Home Context control as one compact segmented row at every width. */
+[aria-label="Context 필터"]{display:flex!important;flex-wrap:nowrap!important;gap:4px!important;max-width:100%!important}
+[aria-label="Context 필터"]>button{flex:0 0 auto!important;width:auto!important;min-width:0!important;padding:5px 8px!important;font-size:11px!important;white-space:nowrap!important}
+
+/* Beat the legacy theme-scope selector without affecting the Home-only hero. */
+html body .contentArea .topHeader .themeCelestial{display:none!important}
 button,input,select,textarea{font-family:inherit}
 button{transition:transform .14s ease,box-shadow .14s ease,border-color .14s ease,background .14s ease}
 button:not(:disabled):active{transform:translateY(1px)}
@@ -1446,7 +1467,7 @@ button:disabled{cursor:wait;opacity:.68}
 .accordionChevron{font-size:1.15rem;color:var(--muted);transition:transform .16s ease}
 .milestoneAccordion details[open] .accordionChevron{transform:rotate(180deg)}
 .milestoneBody{
- display:grid;grid-template-columns:minmax(0,1fr) 190px auto;gap:12px;align-items:end;
+ display:grid;grid-template-columns:minmax(0,1fr) 190px auto;gap:12px;align-items:flex-end;
  padding:14px;border-top:1px solid var(--border);background:var(--surface)
 }
 .milestoneBody label{display:grid;gap:6px}
@@ -2421,11 +2442,6 @@ html[data-theme="dark"] .visibleIconBtn{
 }
 
 /* AI page button hierarchy and contrast */
-.aiActions{
- display:flex!important;
- justify-content:flex-end!important;
- gap:10px!important;
-}
 .aiActions button{
  min-height:44px!important;
  padding:0 16px!important;
@@ -2631,22 +2647,6 @@ html[data-theme="dark"] .visibleIconBtn{
 }
 
 /* AI cards and buttons — explicit, readable and stable */
-.aiBridgeHero{
- align-items:center!important;
-}
-.aiLoadButton{
- display:inline-flex!important;
- align-items:center!important;
- justify-content:center!important;
- flex:0 0 auto!important;
- min-width:190px!important;
- min-height:52px!important;
- padding:0 18px!important;
- color:#fff!important;
- white-space:nowrap!important;
- font-size:.8rem!important;
- line-height:1.2!important;
-}
 .aiTypeGrid button{
  display:grid!important;
  align-content:center!important;
@@ -2675,13 +2675,6 @@ html[data-theme="dark"] .visibleIconBtn{
 .aiTypeGrid button.active strong{color:#2e2a25!important}
 .aiTypeGrid button.active span{color:#7a6750!important}
 
-.aiActions{
- display:flex!important;
- align-items:center!important;
- justify-content:flex-end!important;
- gap:10px!important;
- margin-top:2px!important;
-}
 .aiActions button{
  display:inline-flex!important;
  align-items:center!important;
@@ -2697,12 +2690,6 @@ html[data-theme="dark"] .visibleIconBtn{
  opacity:1!important;
  visibility:visible!important;
  text-indent:0!important;
-}
-.aiSecondaryButton{
- border:1px solid var(--line)!important;
- background:#fffdf9!important;
- color:#38332d!important;
- box-shadow:none!important;
 }
 .aiSecondaryButton:hover{
  border-color:#cda457!important;
@@ -2767,10 +2754,6 @@ select:focus-visible{
  .subpageHeader{
   align-items:flex-start;
   flex-direction:column;
- }
- .aiActions{
-  align-items:stretch!important;
-  flex-direction:column!important;
  }
  .aiActions button,
  .aiPrimaryButton{
@@ -3543,18 +3526,6 @@ html[data-theme="light"] .aiTypeGrid button.active{
 }
 
 /* AI primary action: compact and aligned */
-.aiBridgeHero{
- gap:24px!important;
-}
-.aiLoadButton{
- min-width:160px!important;
- min-height:46px!important;
- padding:0 20px!important;
-}
-.aiActions{
- margin-top:16px!important;
-}
-
 /* Shared card geometry and spacing */
 .premiumCard{
  border-radius:var(--radius-lg)!important;
@@ -4099,6 +4070,8 @@ html[data-theme="dark"] .waitingBadge{background:#382e20;color:#d8ad68}
 
 /* 1. Checkboxes must never inherit input height */
 input[type="checkbox"]{
+ appearance:none!important;
+ -webkit-appearance:none!important;
  width:16px!important;
  min-width:16px!important;
  max-width:16px!important;
@@ -4107,11 +4080,16 @@ input[type="checkbox"]{
  max-height:16px!important;
  padding:0!important;
  margin:0!important;
+ box-sizing:border-box!important;
+ display:grid!important;
+ place-content:center!important;
+ border:1.5px solid var(--gold)!important;
  border-radius:4px!important;
+ background:var(--surface)!important;
  flex:0 0 16px!important;
- accent-color:var(--gold)!important;
  vertical-align:middle!important;
 }
+input[type="checkbox"]:checked{background:var(--gold)!important;box-shadow:inset 0 0 0 3px var(--surface)!important}
 .jeongDialog input[type="checkbox"],
 .recurrenceBlock input[type="checkbox"],
 .eventForm input[type="checkbox"],
@@ -4417,6 +4395,7 @@ html[data-theme="light"] .taskCheck.checked{color:#fff!important}
 }
 .dayTaskToggle:hover{background:var(--goldsoft)!important;transform:translateY(-1px)}
 .dayTaskToggle.checked{background:linear-gradient(145deg,#e1b45a,#ad7725)!important;box-shadow:0 4px 12px rgba(174,116,29,.22)!important}
+.assistantChat{display:grid;gap:12px;width:min(100%,1240px);margin:0 auto 12px;padding:18px}.assistantChat header span{color:var(--jeong-gold);font-size:.72rem;font-weight:800}.assistantChat h2{margin:4px 0 0;font-size:1rem}.assistantSuggestions{display:flex;flex-wrap:wrap;gap:7px}.assistantSuggestions button{min-height:34px;padding:6px 10px;border:1px solid var(--jeong-line);border-radius:999px;background:var(--jeong-field);color:var(--jeong-text);font-size:.75rem}.assistantMessages{display:grid;gap:8px;max-height:300px;overflow:auto}.assistantMessages p{display:grid;gap:4px;margin:0;padding:10px 12px;border:1px solid var(--jeong-line);border-radius:12px;background:var(--jeong-field);font-size:.8rem;line-height:1.5}.assistantMessages p.user{justify-self:end;background:var(--jeong-gold-soft)}.assistantMessages b{font-size:.66rem;color:var(--jeong-gold)}.assistantComposer{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}.assistantComposer input{min-height:42px;padding:8px 12px}.planningProposalCard{display:grid;gap:11px;padding:14px;border:1px solid color-mix(in srgb,var(--jeong-gold) 42%,var(--jeong-line));border-radius:15px;background:color-mix(in srgb,var(--jeong-gold) 7%,var(--jeong-surface-strong))}.planningProposalCard header{display:flex;justify-content:space-between;gap:14px}.planningProposalCard header div{display:grid;gap:3px}.planningProposalCard header strong{color:var(--jeong-text)}.planningProposalCard header small{max-width:260px;color:var(--jeong-muted);font-size:.7rem;text-align:right}.planningProposalRows{display:grid;gap:6px}.planningProposalRows p{display:grid;grid-template-columns:82px minmax(0,1fr);gap:9px;margin:0;color:var(--jeong-text);font-size:.77rem;line-height:1.45}.planningProposalRows b{color:var(--jeong-gold)}.planningProposalRows span{overflow-wrap:anywhere}.planningProposalRows .planningWarning{display:block;padding:7px 9px;border-radius:9px;background:var(--jeong-field);color:var(--jeong-muted)}.planningProposalActions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px}.planningProposalActions button{min-height:38px}.homeOperatingAction{display:grid;gap:8px}.homeOperatingAction>div{display:flex;flex-wrap:wrap;gap:7px}.homeOperatingAction .softBtn{min-height:34px;padding:6px 10px}@media(max-width:520px){.assistantComposer{grid-template-columns:1fr}.assistantComposer button{width:100%}.planningProposalCard header{display:grid}.planningProposalCard header small{text-align:left}.planningProposalRows p{grid-template-columns:1fr}.planningProposalActions button{flex:1 1 auto}}
 .dayTaskEditArea{
  display:grid!important;
  grid-template-columns:minmax(0,1fr) auto!important;
@@ -4523,13 +4502,13 @@ html[data-theme="light"] .taskCheck.checked{color:#fff!important}
 .calendarPage .monthGrid{
  width:100%!important;max-width:100%!important;display:grid!important;
  grid-template-columns:repeat(7,minmax(0,1fr))!important;
- grid-template-rows:repeat(6,minmax(118px,auto))!important;
- grid-auto-rows:minmax(118px,auto)!important;
- gap:8px!important;height:auto!important;min-height:748px!important;max-height:none!important;
+ grid-template-rows:repeat(6,minmax(clamp(82px,9.2vh,112px),auto))!important;
+ grid-auto-rows:minmax(clamp(82px,9.2vh,112px),auto)!important;
+ gap:clamp(4px,.55vw,8px)!important;height:auto!important;min-height:0!important;max-height:none!important;
  overflow:visible!important;box-sizing:border-box!important;
 }
 .calendarPage .monthGrid>button{
- min-width:0!important;width:100%!important;height:100%!important;min-height:118px!important;
+ min-width:0!important;width:100%!important;height:100%!important;min-height:clamp(82px,9.2vh,112px)!important;
  max-height:none!important;overflow:hidden!important;box-sizing:border-box!important;
  align-content:start!important;padding:10px!important;
 }
@@ -4558,12 +4537,13 @@ html[data-theme="light"] .taskCheck.checked{color:#fff!important}
 .calendarPage .weekDayColumn.today .weekDayHead::after{content:"오늘";font-size:.68rem;font-weight:800;color:var(--gold)!important}
 
 @media(max-width:1180px){
- .calendarPage .monthGrid{grid-template-rows:repeat(6,minmax(108px,auto))!important;grid-auto-rows:minmax(108px,auto)!important;min-height:688px!important}
- .calendarPage .monthGrid>button{min-height:108px!important}
+ .calendarPage .monthGrid{grid-template-rows:repeat(6,minmax(86px,auto))!important;grid-auto-rows:minmax(86px,auto)!important;min-height:0!important}
+ .calendarPage .monthGrid>button{min-height:86px!important}
 }
 @media(max-width:820px){
- .calendarPage .monthCalendar{overflow-x:auto!important;padding-inline:8px!important}
- .calendarPage .monthGrid{min-width:760px!important}
+ .calendarPage .monthCalendar{overflow:visible!important;padding-inline:8px!important}
+ .calendarPage .monthGrid{min-width:0!important;gap:3px!important;grid-template-rows:repeat(6,minmax(74px,auto))!important;grid-auto-rows:minmax(74px,auto)!important}
+ .calendarPage .monthGrid>button{min-height:74px!important;padding:6px!important}
  .calendarPage .monthListView{height:70vh!important;min-height:520px!important}
 }
 
@@ -5648,3 +5628,919 @@ html[data-theme="dark"] input,html[data-theme="dark"] textarea,html[data-theme="
 .aiBridgeHero,.aiBridgePanel{padding:24px!important}.aiTypeGrid{gap:12px!important}.aiTypeGrid button{min-height:92px!important;border:1px solid var(--jeong-line)!important;border-radius:16px!important;background:color-mix(in srgb,var(--jeong-surface-strong) 52%,transparent)!important}.aiTypeGrid button.active{border-color:color-mix(in srgb,var(--jeong-gold) 52%,var(--jeong-line))!important;background:color-mix(in srgb,var(--jeong-gold) 10%,var(--jeong-surface-strong))!important}
 @media(max-width:820px){.contentArea{padding:14px 14px 92px!important}.premiumCard{border-radius:18px!important}.statGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 @media(max-width:520px){.statGrid{grid-template-columns:1fr!important}.subpageHeader{align-items:flex-start!important}.contentArea{padding-inline:12px!important}}
+
+/* UX correction final cascade: celestial artwork belongs exclusively to Home. */
+.topHeader .themeCelestial{display:none!important}
+.topHeader{min-height:116px!important;height:auto!important;padding-top:18px!important;padding-bottom:18px!important}
+@media(max-width:820px){.topHeader{min-height:104px!important;padding-top:14px!important;padding-bottom:14px!important}}
+
+/* ============================================================
+   JEONG v12.3 — Layout Stabilization Layer
+   Final authority for shell sizing, overflow and recovery UI.
+   ============================================================ */
+html,body{max-width:100%;overflow-x:hidden}
+body{min-height:100dvh}
+.lifeShell{width:100%;min-width:0;min-height:100dvh}
+.contentArea{min-width:0;max-width:100%;overflow-x:clip}
+.contentArea>*,.premiumCard,.subpageHeader,.calendarWorkspace,.projectWorkspace,.reviewWorkspace{min-width:0;max-width:100%}
+img,svg,canvas{max-width:100%}
+input,textarea,select,button{max-width:100%}
+textarea{overflow-wrap:anywhere;word-break:break-word}
+
+/* Stable desktop: sidebar + one fluid workspace. */
+@media(min-width:1180px){
+ .lifeShell{display:grid!important;grid-template-columns:clamp(196px,14.5vw,220px) minmax(0,1fr)!important;padding-bottom:0!important}
+ .contentArea{width:100%!important;padding:24px clamp(22px,2.1vw,32px) 54px!important}
+}
+
+/* Tablet: preserve a real two-area layout instead of shrinking desktop blindly. */
+@media(min-width:761px) and (max-width:1179px){
+ .lifeShell{display:grid!important;grid-template-columns:184px minmax(0,1fr)!important;padding-bottom:0!important}
+ .contentArea{width:100%!important;padding:20px 18px 48px!important}
+ .calendarWorkspace,.projectWorkspace,.reviewWorkspace{grid-template-columns:1fr!important}
+ .selectedDayPanel{position:static!important;max-height:none!important}
+}
+
+/* Mobile: single column + bottom navigation. No forced desktop widths. */
+@media(max-width:760px){
+ .lifeShell{display:block!important;width:100%!important;min-width:0!important;padding-bottom:82px!important}
+ .premiumSidebar{display:none!important}
+ .contentArea{width:100%!important;min-width:0!important;padding:14px 12px 96px!important;overflow-x:clip!important}
+ .topHeader{width:100%!important;min-width:0!important}
+ .premiumCard,.subpageHeader,.dashboardSection,.settingsPanel,.reviewForm,.reviewHistory{width:100%!important;min-width:0!important}
+ .morningGrid,.reviewSummary,.reviewGrid,.projectFields,.projectWorkspace,.reviewWorkspace,.dayMainGrid,.directionRows,.dayRecordSplit,.peopleGrid,.activityCards,.noteGrid,.chapterGrid,.statGrid,.activityStats{grid-template-columns:1fr!important}
+ .twoFields,.recurrenceTopGrid,.recurrenceEndGrid{grid-template-columns:1fr!important}
+ .calendarWorkspace{display:block!important;width:100%!important}
+ .monthCalendar{width:100%!important;max-width:100%!important;overflow:hidden!important}
+ .weekHeader,.monthGrid{width:100%!important;min-width:0!important;grid-template-columns:repeat(7,minmax(0,1fr))!important}
+ .monthGrid{gap:3px!important;padding:6px!important}
+ .monthGrid>button{min-width:0!important;min-height:68px!important;padding:5px 4px!important;border-radius:8px!important}
+ .monthGrid>button>b{font-size:.72rem!important}
+ .monthGrid>button>span{padding:2px 3px!important;font-size:.52rem!important}
+ .calendarToolbar.compactToolbar{display:grid!important;grid-template-columns:1fr!important;gap:9px!important}
+ .calendarPrimaryControls,.calendarCenterControls,.calendarSecondaryControls{grid-column:1!important;width:100%!important;min-width:0!important;justify-self:stretch!important}
+ .calendarPrimaryControls{grid-row:1!important;display:flex!important;flex-wrap:wrap!important}
+ .calendarCenterControls{grid-row:2!important;justify-content:center!important}
+ .calendarSecondaryControls{grid-row:3!important;display:flex!important;justify-content:space-between!important;flex-wrap:wrap!important}
+ .advancedEventModal,.morningCard,.eventModal{width:min(100%,calc(100vw - 20px))!important;max-height:calc(100dvh - 20px)!important;padding:18px!important;border-radius:18px!important}
+ .modalActions,.eventModalActions,.deleteActionGroup{align-items:stretch!important;flex-direction:column!important;gap:8px!important}
+ .modalActions button,.eventModalActions button,.deleteActionGroup button{width:100%!important}
+ .accountMenu{max-width:calc(100vw - 24px)}
+}
+
+@media(max-width:420px){
+ .contentArea{padding-inline:10px!important}
+ .monthGrid{gap:2px!important;padding:4px!important}
+ .monthGrid>button{min-height:62px!important;padding:4px 3px!important}
+ .monthGrid>button>span{font-size:.48rem!important}
+}
+
+/* Recovery / loading states */
+.jeongLoadingPage,.jeongErrorPage{display:grid;place-items:center;min-height:100dvh;padding:24px;background:linear-gradient(145deg,#faf6ed,#f1e8d8);color:#352b1f;text-align:center}
+html[data-theme="dark"] .jeongLoadingPage,html[data-theme="dark"] .jeongErrorPage{background:linear-gradient(145deg,#071321,#050c16);color:#f1eee7}
+.jeongLoadingPage{align-content:center;gap:10px}
+.jeongLoadingPage strong{font-size:1rem}.jeongLoadingPage span{color:#817563;font-size:.82rem}
+.jeongLoadingSeal,.jeongErrorSeal{display:grid;place-items:center;width:56px;height:56px;margin:0 auto 6px;border:1px solid rgba(184,134,45,.25);border-radius:18px;background:linear-gradient(145deg,#fff9ea,#efddb8);color:#a8741d;box-shadow:0 12px 30px rgba(120,79,18,.10);font-weight:800}
+.jeongErrorCard{width:min(520px,100%);padding:28px;border:1px solid rgba(151,111,45,.15);border-radius:24px;background:rgba(255,253,248,.92);box-shadow:0 24px 70px rgba(86,57,17,.10);text-align:left}
+html[data-theme="dark"] .jeongErrorCard{border-color:rgba(157,187,225,.13);background:rgba(11,25,43,.92);box-shadow:0 24px 70px rgba(0,0,0,.34)}
+.jeongErrorCard>span{display:block;margin-top:14px;color:#b47e24;font-size:.68rem;font-weight:800;letter-spacing:.09em}.jeongErrorCard h1{margin:7px 0 10px;font-size:1.5rem}.jeongErrorCard p{margin:0;color:#756957;line-height:1.65}.jeongErrorActions{display:flex;gap:8px;margin-top:20px}.jeongErrorActions button{min-height:44px;padding:10px 14px;border-radius:12px}.secondaryButton{border:1px solid rgba(151,111,45,.18);background:transparent;color:inherit}.jeongErrorCard details{margin-top:16px;color:#817563;font-size:.75rem}.jeongErrorCard code{display:block;margin-top:8px;overflow:auto;padding:10px;border-radius:9px;background:rgba(0,0,0,.04);white-space:pre-wrap;word-break:break-word}
+@media(max-width:520px){.jeongErrorCard{padding:22px}.jeongErrorActions{flex-direction:column}.jeongErrorActions button{width:100%}}
+
+/* Calendar master-detail reset: the month grid is never a host for details. */
+.calendarWorkspace{
+ display:grid!important;
+ grid-template-columns:minmax(0,1fr) minmax(300px,340px)!important;
+ align-items:start!important;
+ gap:18px!important;
+ overflow:visible!important;
+}
+.calendarWorkspace .calendarPage{
+ display:flex!important;
+ flex-direction:column!important;
+ min-width:0!important;
+ height:auto!important;
+ min-height:0!important;
+ max-height:none!important;
+ overflow:clip!important;
+}
+.calendarWorkspace .monthCalendar{
+ width:100%!important;
+ height:auto!important;
+ min-height:0!important;
+ overflow:visible!important;
+}
+.calendarWorkspace .monthGrid{
+ grid-template-rows:repeat(6,minmax(96px,1fr))!important;
+ grid-auto-rows:minmax(96px,1fr)!important;
+ height:auto!important;
+ min-height:0!important;
+ max-height:none!important;
+ overflow:visible!important;
+}
+.calendarWorkspace .monthGrid>button{
+ min-height:96px!important;
+ height:auto!important;
+ overflow:hidden!important;
+}
+.calendarWorkspace .selectedDayPanel{
+ position:sticky!important;
+ top:18px!important;
+ align-self:start!important;
+ width:100%!important;
+ min-width:0!important;
+ height:auto!important;
+ min-height:0!important;
+ max-height:none!important;
+ overflow:visible!important;
+}
+.selectedDayHead{position:static!important}
+.selectedDayPanel>.selectedDayList{max-height:none!important;overflow:visible!important}
+
+@media(max-width:1240px){
+ .calendarWorkspace{grid-template-columns:1fr!important}
+ .calendarWorkspace .selectedDayPanel{position:static!important}
+}
+
+@media(max-width:760px){
+ .calendarWorkspace .monthGrid{grid-template-rows:repeat(6,minmax(68px,1fr))!important;grid-auto-rows:minmax(68px,1fr)!important}
+ .calendarWorkspace .monthGrid>button{min-height:68px!important}
+ .calendarWorkspace .monthGrid>button>span{min-height:5px!important;height:5px!important;padding:0!important;font-size:0!important}
+ .calendarWorkspace .monthGrid>button>small{font-size:.6rem!important}
+ .calendarWorkspace .selectedDayPanel{margin-top:18px!important}
+}
+
+@media(max-width:420px){
+ .calendarWorkspace .monthGrid{grid-template-rows:repeat(6,minmax(62px,1fr))!important;grid-auto-rows:minmax(62px,1fr)!important}
+ .calendarWorkspace .monthGrid>button{min-height:62px!important}
+}
+
+@media(max-width:760px){
+ .topHeader .headerIdentity{grid-template-columns:minmax(0,1fr)!important;justify-items:start!important;text-align:left!important}
+ .topHeader .headerIdentity>div:last-child,.topHeader .headerIdentity h1{width:auto!important;max-width:100%!important;white-space:nowrap!important}
+}
+
+/* =========================================================
+   JEONG final refinement · 2026-08-14
+   Single authority for the last-mile layout fixes.
+   ========================================================= */
+
+/* Todo composer: one useful row on desktop, graceful wrap only when space is genuinely tight. */
+.taskComposer.oneLineTaskComposer{
+ display:grid!important;
+ grid-template-columns:minmax(320px,1fr) 112px minmax(168px,210px) 132px 104px!important;
+ grid-auto-flow:row!important;
+ align-items:center!important;
+ gap:8px!important;
+ width:100%!important;
+ padding:14px 16px!important;
+}
+.taskComposer.oneLineTaskComposer>*{grid-column:auto!important;grid-row:auto!important;min-width:0!important;margin:0!important}
+.taskComposer.oneLineTaskComposer .taskTitleField,
+.taskComposer.oneLineTaskComposer .taskBucketField,
+.taskComposer.oneLineTaskComposer .taskProjectField,
+.taskComposer.oneLineTaskComposer .taskContextField select,
+.taskComposer.oneLineTaskComposer .taskAddBtn{width:100%!important;height:42px!important;min-height:42px!important}
+.taskComposer.oneLineTaskComposer .taskContextField{display:block!important;min-width:0!important}
+.taskComposer.oneLineTaskComposer .taskContextField>label{display:block!important;width:100%!important;margin:0!important;padding:0!important}
+.taskComposer.oneLineTaskComposer .taskContextField>label>span{display:none!important}
+.taskComposer.oneLineTaskComposer .taskAddBtn{white-space:nowrap!important}
+.taskComposer.oneLineTaskComposer .taskRecurringQuick{
+ grid-column:1/-1!important;
+ display:grid!important;
+ grid-template-columns:150px 190px minmax(220px,1fr)!important;
+ align-items:flex-end!important;
+ gap:8px 12px!important;
+ width:min(100%,760px)!important;
+ margin-top:2px!important;
+ padding-top:10px!important;
+ border-top:1px solid var(--border)!important;
+}
+@media(max-width:1080px) and (min-width:821px){
+ .taskComposer.oneLineTaskComposer{grid-template-columns:minmax(230px,1fr) 104px minmax(150px,180px) 118px 92px!important;gap:7px!important;padding-inline:12px!important}
+}
+@media(max-width:820px){
+ .taskComposer.oneLineTaskComposer{grid-template-columns:1fr 1fr!important;align-items:flex-end!important}
+ .taskComposer.oneLineTaskComposer .taskTitleField{grid-column:1/-1!important}
+ .taskComposer.oneLineTaskComposer .taskProjectField{grid-column:1/-1!important}
+ .taskComposer.oneLineTaskComposer .taskAddBtn{grid-column:1/-1!important}
+ .taskComposer.oneLineTaskComposer .taskRecurringQuick{grid-column:1/-1!important;grid-template-columns:1fr 1fr!important;width:100%!important}
+ .taskComposer.oneLineTaskComposer .taskRecurringQuick small{grid-column:1/-1!important}
+}
+@media(max-width:560px){
+ .taskComposer.oneLineTaskComposer{grid-template-columns:1fr!important;padding:12px!important}
+ .taskComposer.oneLineTaskComposer>*{grid-column:1!important}
+ .taskComposer.oneLineTaskComposer .taskRecurringQuick{grid-template-columns:1fr!important}
+ .taskComposer.oneLineTaskComposer .taskRecurringQuick small{grid-column:1!important}
+}
+
+/* Calendar: rounded workspace and horizontally aligned recurrence rules. */
+.calendarWorkspace .calendarPage{overflow:hidden!important;border-radius:17px!important}
+.calendarWorkspace .calendarCompactHeader{border-radius:16px 16px 0 0!important}
+.eventModal.compactEventModal{width:min(760px,calc(100vw - 32px))!important;max-height:calc(100dvh - 28px)!important;padding:18px 20px 14px!important;overflow:auto!important;border-radius:20px!important;background-clip:padding-box!important}
+.eventModal.compactEventModal .eventModalHead{top:-18px!important;margin:-18px -20px 12px!important;padding:17px 20px 13px!important;border-radius:20px 20px 0 0!important;overflow:hidden!important}
+.eventModal.compactEventModal .eventCoreStack{display:grid!important;gap:9px!important}
+.eventModal.compactEventModal .eventCoreOptionsTriple{display:grid!important;grid-template-columns:minmax(0,1.05fr) minmax(0,.88fr) minmax(0,1.05fr)!important;gap:10px!important;align-items:flex-end!important}
+.eventModal.compactEventModal .eventReminderInline{display:grid!important;grid-template-rows:auto 42px!important;gap:5px!important;min-width:0!important}
+.eventModal.compactEventModal .eventReminderInline>div{display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;align-items:center!important;gap:7px!important;height:42px!important}
+.eventModal.compactEventModal .eventReminderToggle{display:flex!important;align-items:center!important;gap:5px!important;margin:0!important;white-space:nowrap!important}
+.eventModal.compactEventModal .eventReminderToggle input{width:16px!important;height:16px!important;min-height:16px!important;padding:0!important}
+.eventModal.compactEventModal .eventCollapsible{overflow:hidden!important;border:1px solid var(--border)!important;border-radius:13px!important}
+.eventModal.compactEventModal .eventCollapsibleBody{display:grid!important;gap:10px!important;padding:11px 12px 12px!important}
+.eventModal.compactEventModal .recurrenceRuleRow{display:grid!important;grid-template-columns:minmax(0,.9fr) minmax(0,1.25fr)!important;align-items:flex-end!important;gap:12px!important}
+.eventModal.compactEventModal .recurrenceTopGrid{display:grid!important;grid-template-columns:1fr!important;gap:8px!important}
+.eventModal.compactEventModal .recurrenceTopGrid>label{display:grid!important;grid-template-columns:82px minmax(0,1fr)!important;align-items:center!important;gap:9px!important}
+.eventModal.compactEventModal .intervalInput{display:flex!important;align-items:center!important;gap:7px!important;min-width:0!important;white-space:nowrap!important}
+.eventModal.compactEventModal .intervalInput input{flex:0 0 72px!important;width:72px!important;min-width:72px!important}
+.eventModal.compactEventModal .intervalInput span,.eventModal.compactEventModal .intervalInput b{display:inline!important;white-space:nowrap!important;line-height:1.25!important}
+.eventModal.compactEventModal .recurrenceEndGrid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(122px,1fr))!important;align-items:flex-end!important;gap:8px!important}
+.eventModal.compactEventModal .recurrenceEndGrid>label{display:grid!important;grid-template-rows:auto 42px!important;gap:5px!important;min-width:0!important}
+.eventModal.compactEventModal .recurrenceEndGrid select,.eventModal.compactEventModal .recurrenceEndGrid input{width:100%!important;height:42px!important;min-height:42px!important}
+.eventModal.compactEventModal .exceptionOptions{align-items:center!important;gap:8px!important}
+.eventModal.compactEventModal .eventMemoField{display:grid!important;gap:5px!important;margin-top:9px!important}
+.eventModal.compactEventModal .eventMemoField textarea{height:66px!important;min-height:66px!important;max-height:110px!important}
+.eventModal.compactEventModal .compactEventActions{border-radius:0 0 18px 18px!important}
+@media(max-width:720px){
+ .eventModal.compactEventModal .eventCoreOptionsTriple,.eventModal.compactEventModal .recurrenceRuleRow{grid-template-columns:1fr!important}
+ .eventModal.compactEventModal .recurrenceTopGrid>label{grid-template-columns:1fr!important}
+ .eventModal.compactEventModal .recurrenceEndGrid{grid-template-columns:1fr!important}
+}
+
+/* Project status and progress hierarchy. */
+.projectListStatusProgress{display:inline-flex!important;align-items:center!important;gap:8px!important;flex:none!important;min-height:24px!important}
+.projectListStatusProgress .statusBadge{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:22px!important;padding:4px 8px!important;font-size:.62rem!important;line-height:1!important;white-space:nowrap!important}
+.projectListStatusProgress>b{display:inline-flex!important;align-items:center!important;color:var(--gold)!important;font-size:.82rem!important;line-height:1!important;white-space:nowrap!important}
+.projectListMeta{justify-content:flex-start!important;margin-top:6px!important}.projectListMeta small{line-height:1.4!important}
+.projectIdentityTitleRow{display:flex!important;align-items:center!important;gap:10px!important;min-width:0!important}
+.projectIdentityTitleRow h2{margin:0!important;min-width:0!important}
+.projectIdentityTitleRow .statusBadge{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 auto!important;min-height:23px!important;padding:4px 8px!important;font-size:.65rem!important;line-height:1!important}
+.projectStatusInlineSelect{width:auto!important;min-width:106px!important;height:36px!important;min-height:36px!important;padding:5px 30px 5px 10px!important}
+.projectProgressSummary>b{color:var(--gold)!important;font-size:2rem!important;line-height:1!important}
+
+/* Records are accumulated history. Completed tasks remain in timeline data. */
+.recordSummaryGrid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:14px!important}
+@media(max-width:900px){.recordSummaryGrid{gap:10px!important}}
+@media(max-width:680px){.recordSummaryGrid{grid-template-columns:1fr!important}}
+
+
+/* JEONG VNext 5 · Project-linked routines are managed in Project detail. */
+.projectRoutineComposer{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 92px 52px;
+  gap:7px;
+  align-items:center;
+  width:100%;
+  margin:2px 0 10px;
+}
+.projectRoutineComposer input,.projectRoutineComposer select{
+  min-width:0;
+  height:36px;
+  padding:0 10px;
+  border:1px solid var(--border);
+  border-radius:9px;
+  background:var(--surface);
+  color:var(--text);
+  font:inherit;
+}
+.projectRoutineComposer button{
+  height:36px;
+  border:1px solid color-mix(in srgb,var(--gold) 45%,var(--border));
+  border-radius:9px;
+  background:color-mix(in srgb,var(--gold) 10%,var(--surface));
+  color:var(--gold);
+  font-weight:800;
+  cursor:pointer;
+}
+.projectRoutineAccordion article.paused{opacity:.62}
+.projectRoutineAccordion article>span{
+  display:grid;
+  gap:2px;
+  min-width:0;
+}
+.projectRoutineAccordion article>span strong{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.projectRoutineAccordion article>span small{
+  color:var(--muted);
+  font-size:.68rem;
+}
+.linkedRoutineActions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:5px;
+}
+.linkedRoutineActions button{
+  min-height:28px;
+  padding:4px 8px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:transparent;
+  color:var(--muted);
+  font-size:.68rem;
+  font-weight:700;
+  cursor:pointer;
+}
+.linkedRoutineActions button:hover{
+  border-color:color-mix(in srgb,var(--gold) 42%,var(--border));
+  color:var(--gold);
+}
+@media(max-width:720px){
+  .projectRoutineComposer{grid-template-columns:1fr 88px}
+  .projectRoutineComposer button{grid-column:1/-1}
+  .linkedRoutineActions{flex-wrap:wrap}
+}
+
+
+/* JEONG VNext 6 · project routine is a recurring definition, not a one-time checkbox. */
+.projectRoutineAccordion>div>article{
+  grid-template-columns:minmax(0,1fr) auto!important;
+  align-items:center!important;
+}
+.projectRoutinePeriodNote{
+  margin:0 0 10px!important;
+  color:var(--muted)!important;
+  font-size:.7rem!important;
+  line-height:1.45!important;
+}
+
+
+/* JEONG VNext 7 · non-computable progress is not shown as a false 0%. */
+.projectListStatusProgress>b{max-width:72px;overflow:hidden;text-overflow:ellipsis}
+
+
+/* JEONG VNext 8 · Project/Record continuity. */
+.recordProjectTag{
+  display:inline-flex;
+  align-items:center;
+  min-height:18px;
+  margin-left:7px;
+  padding:1px 7px;
+  border:1px solid color-mix(in srgb,var(--gold) 24%,var(--border));
+  border-radius:999px;
+  background:color-mix(in srgb,var(--gold) 7%,transparent);
+  color:var(--gold);
+  font-size:.62rem;
+  font-style:normal;
+  font-weight:750;
+  line-height:1.2;
+  vertical-align:middle;
+}
+.standaloneProjectTag{
+  width:max-content;
+  margin:7px 0 0;
+}
+.linkedEntityAddRow{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:3px 0 9px;
+}
+.linkedEntityAddRow>span{
+  color:var(--muted);
+  font-size:.72rem;
+  line-height:1.4;
+}
+.linkedEntityAddRow>button{
+  flex:none;
+  min-height:30px;
+  padding:5px 9px;
+  border:1px solid color-mix(in srgb,var(--gold) 36%,var(--border));
+  border-radius:8px;
+  background:color-mix(in srgb,var(--gold) 7%,var(--surface));
+  color:var(--gold);
+  font-size:.68rem;
+  font-weight:800;
+  cursor:pointer;
+}
+.projectRecentActivity{
+  display:grid;
+  gap:6px;
+  margin-top:10px;
+  padding-top:10px;
+  border-top:1px solid var(--border);
+}
+.projectRecentActivity>span{
+  color:var(--muted);
+  font-size:.68rem;
+  font-weight:800;
+}
+.projectRecentActivity>div{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:7px;
+}
+.projectRecentActivity article{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  align-items:center;
+  gap:3px 7px;
+  min-width:0;
+  padding:8px 9px;
+  border:1px solid var(--border);
+  border-radius:9px;
+  background:var(--surface);
+}
+.projectRecentActivity time{
+  grid-row:1/3;
+  color:var(--gold);
+  font-size:.62rem;
+  font-weight:750;
+}
+.projectRecentActivity strong{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:.72rem;
+}
+.projectRecentActivity small{
+  color:var(--muted);
+  font-size:.6rem;
+}
+@media(max-width:820px){
+  .projectRecentActivity>div{grid-template-columns:1fr}
+  .linkedEntityAddRow{align-items:flex-start;flex-direction:column}
+}
+
+
+/* JEONG VNext 9 · a Project routine may support a specific Milestone. */
+.projectRoutineComposerWithMilestone{
+  grid-template-columns:minmax(0,1fr) minmax(130px,180px) 92px 52px!important;
+}
+.projectRoutineActions select{
+  max-width:160px;
+  height:28px;
+  padding:0 7px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:var(--surface);
+  color:var(--text);
+  font-size:.66rem;
+}
+.milestoneLinkedRoutines{
+  grid-column:1/-1;
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:6px;
+  width:100%;
+  margin-top:4px;
+  padding:8px 0 2px;
+  border-top:1px dashed var(--border);
+}
+.milestoneLinkedRoutines>span{
+  color:var(--muted);
+  font-size:.65rem;
+  font-weight:800;
+}
+.milestoneLinkedRoutines>button{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-height:27px;
+  padding:4px 8px;
+  border:1px solid color-mix(in srgb,var(--gold) 26%,var(--border));
+  border-radius:999px;
+  background:color-mix(in srgb,var(--gold) 6%,var(--surface));
+  color:var(--text);
+  font-size:.67rem;
+  font-weight:750;
+  cursor:pointer;
+}
+.milestoneLinkedRoutines>button small{
+  color:var(--gold);
+  font-size:.58rem;
+  font-weight:800;
+}
+.milestoneNoRoutine{
+  color:var(--muted);
+  font-size:.64rem;
+}
+@media(max-width:900px){
+  .projectRoutineComposerWithMilestone{
+    grid-template-columns:minmax(0,1fr) minmax(120px,160px)!important;
+  }
+  .projectRoutineActions select{max-width:120px}
+}
+
+
+/* JEONG VNext 10 · Milestone and Project routine alignment. */
+.projectCompactPanel>summary{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+}
+.projectCompactPanel>summary>div{
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  min-width:0!important;
+}
+.projectCompactPanel>summary h3,
+.projectCompactPanel>summary small{
+  margin:0!important;
+  line-height:1.25!important;
+  white-space:nowrap!important;
+}
+
+.projectRoutineAccordion>div>article{
+  grid-template-columns:minmax(0,1fr) minmax(300px,max-content)!important;
+}
+.projectRoutineActions{
+  display:grid!important;
+  grid-template-columns:minmax(130px,160px) repeat(3,minmax(48px,max-content))!important;
+  align-items:center!important;
+  gap:5px!important;
+  min-width:300px!important;
+}
+.projectRoutineActions select{
+  width:100%!important;
+  max-width:none!important;
+  min-width:0!important;
+}
+.projectRoutineActions button,
+.linkedRoutineActions button{
+  min-width:48px!important;
+  width:auto!important;
+  white-space:nowrap!important;
+  writing-mode:horizontal-tb!important;
+  word-break:keep-all!important;
+  flex-shrink:0!important;
+}
+
+.milestoneRoutinePicker{
+  display:grid;
+  gap:9px;
+  margin-top:14px;
+  padding-top:14px;
+  border-top:1px solid var(--border);
+}
+.milestoneRoutinePicker>div:first-child{
+  display:flex;
+  align-items:baseline;
+  gap:9px;
+}
+.milestoneRoutinePicker>div:first-child>span{font-weight:800}
+.milestoneRoutinePicker>div:first-child>small{color:var(--muted);font-size:.68rem}
+.milestoneRoutinePicker>div:last-child{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:7px;
+}
+.milestoneRoutinePicker label,
+.milestoneLinkedRoutines>div>label{
+  display:grid;
+  grid-template-columns:18px minmax(0,1fr) auto;
+  align-items:center;
+  gap:7px;
+  min-width:0;
+  padding:7px 9px;
+  border:1px solid var(--border);
+  border-radius:9px;
+  background:var(--surface2);
+}
+.milestoneRoutinePicker label>input,
+.milestoneLinkedRoutines label>input{width:16px;height:16px}
+.milestoneRoutinePicker label>span,
+.milestoneLinkedRoutines label>span{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:.7rem;
+  font-weight:750;
+}
+.milestoneRoutinePicker label>small,
+.milestoneLinkedRoutines label>small{color:var(--gold);font-size:.6rem}
+.milestoneLinkedRoutines{
+  display:grid!important;
+  grid-template-columns:auto minmax(0,1fr)!important;
+  align-items:start!important;
+}
+.milestoneLinkedRoutines>div{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:6px;
+}
+.milestoneLinkedRoutines>div>label.linked{
+  border-color:color-mix(in srgb,var(--gold) 42%,var(--border));
+  background:color-mix(in srgb,var(--gold) 7%,var(--surface));
+}
+
+.lifeFlowPanel{display:grid;gap:14px}
+.lifeFlowMetrics{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:9px;
+}
+.lifeFlowMetrics article{
+  display:grid;
+  gap:3px;
+  min-width:0;
+  padding:12px 13px;
+  border:1px solid var(--border);
+  border-radius:11px;
+  background:var(--surface2);
+}
+.lifeFlowMetrics span{color:var(--muted);font-size:.68rem;font-weight:750}
+.lifeFlowMetrics strong{font-size:1.15rem}
+.lifeFlowMetrics small{color:var(--muted);font-size:.66rem}
+.lifeFlowSignals{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+}
+.lifeFlowSignals>span{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 9px;
+  border:1px solid var(--border);
+  border-radius:999px;
+  color:var(--muted);
+  font-size:.67rem;
+}
+.lifeFlowSignals b{color:var(--text)}
+.monthlyFlowStrip{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+  gap:7px;
+}
+.monthlyFlowStrip article{
+  display:grid;
+  gap:2px;
+  padding:9px 10px;
+  border:1px solid var(--border);
+  border-radius:9px;
+  background:var(--surface2);
+}
+.monthlyFlowStrip span,.monthlyFlowStrip small{color:var(--muted);font-size:.62rem}
+.monthlyFlowStrip strong{font-size:.86rem}
+
+@media(max-width:900px){
+  .projectRoutineAccordion>div>article{grid-template-columns:1fr!important}
+  .projectRoutineActions{min-width:0!important;grid-template-columns:minmax(110px,1fr) repeat(3,max-content)!important}
+  .milestoneRoutinePicker>div:last-child,
+  .milestoneLinkedRoutines>div{grid-template-columns:1fr}
+  .lifeFlowMetrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+
+/* JEONG VNext 11 · Milestone dates inherit Project dates until explicitly overridden. */
+.milestoneBody label>span{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.milestoneBody label>span>small{
+  color:var(--gold);
+  font-size:.59rem;
+  font-weight:750;
+  white-space:nowrap;
+}
+.milestoneInheritedDateHint{
+  margin:10px 0 0;
+  color:var(--muted);
+  font-size:.68rem;
+  line-height:1.45;
+}
+
+/* JEONG VNext 12 · Project period keeps dates and D-day in separate zones. */
+.projectPeriod{
+  display:grid!important;
+  grid-template-columns:auto minmax(0,1fr) auto!important;
+  align-items:center!important;
+  column-gap:12px!important;
+  min-width:0!important;
+}
+.projectPeriodLabel{
+  flex:none!important;
+  white-space:nowrap!important;
+}
+.projectPeriodDates{
+  display:flex!important;
+  align-items:center!important;
+  gap:18px!important;
+  min-width:0!important;
+  overflow:hidden!important;
+}
+.projectPeriodDates>strong{
+  flex:none!important;
+  white-space:nowrap!important;
+  overflow:visible!important;
+}
+.projectDdayBadge{
+  position:static!important;
+  flex:none!important;
+  justify-self:end!important;
+  min-width:max-content!important;
+  margin:0!important;
+  white-space:nowrap!important;
+  z-index:auto!important;
+}
+.projectPeriod.editing .projectPeriodDates{
+  overflow:visible!important;
+}
+@media(max-width:900px){
+  .milestoneDialogMeta{
+    grid-template-columns:1fr 1fr!important;
+  }
+  .milestoneDialogMeta>label:last-child{
+    grid-column:1/-1;
+  }
+  .projectPeriod{
+    grid-template-columns:auto 1fr!important;
+  }
+  .projectDdayBadge{
+    grid-column:2;
+    justify-self:start!important;
+  }
+}
+
+/* JEONG VNext 13 · more air between milestone name and meta row. */
+.jeongDialog>label + .milestoneDialogMeta{
+  margin-top:16px!important;
+}
+.milestoneDialogMeta{
+  row-gap:8px!important;
+}
+
+/* =========================================================
+   JEONG FINAL · Project period + Milestone dialog alignment
+   ========================================================= */
+.milestoneDialogMeta{
+  display:grid!important;
+  grid-template-columns:1fr 1fr .9fr!important;
+  gap:14px!important;
+  align-items:end!important;
+  margin-top:18px!important;
+}
+.milestoneDialogMeta>label{
+  display:grid!important;
+  grid-template-rows:22px 46px!important;
+  gap:5px!important;
+  margin:0!important;
+  min-width:0!important;
+}
+.milestoneDialogMeta>label>span{
+  display:flex!important;
+  align-items:center!important;
+  min-height:22px!important;
+  margin:0!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+}
+.milestoneDialogMeta>label>input,
+.milestoneDialogMeta .dialogUnitInput{
+  height:46px!important;
+  min-height:46px!important;
+  margin:0!important;
+}
+.milestoneDialogMeta>label>small{display:none!important}
+
+.projectPeriod{
+  display:grid!important;
+  grid-template-columns:auto minmax(0,max-content) minmax(92px,1fr)!important;
+  align-items:center!important;
+  column-gap:16px!important;
+  width:100%!important;
+  min-width:0!important;
+}
+.projectPeriodLabel{
+  white-space:nowrap!important;
+}
+.projectPeriodDates{
+  display:flex!important;
+  align-items:center!important;
+  gap:24px!important;
+  min-width:max-content!important;
+  overflow:visible!important;
+}
+.projectPeriodDates>strong{
+  white-space:nowrap!important;
+  overflow:visible!important;
+}
+.projectDdayBadge{
+  position:static!important;
+  justify-self:start!important;
+  margin-left:20px!important;
+  min-width:max-content!important;
+  white-space:nowrap!important;
+}
+@media(max-width:900px){
+  .milestoneDialogMeta{
+    grid-template-columns:1fr 1fr!important;
+  }
+  .milestoneDialogMeta>label:last-child{grid-column:1/-1}
+  .projectPeriod{
+    grid-template-columns:auto 1fr!important;
+  }
+  .projectPeriodDates{
+    flex-wrap:wrap!important;
+    gap:8px 16px!important;
+  }
+  .projectDdayBadge{
+    grid-column:2!important;
+    margin-left:0!important;
+  }
+}
+
+
+
+/* JEONG VNext 18 · direct ChatGPT bridge. */
+.aiBridgeSimple{
+  display:grid;
+  gap:18px;
+  max-width:980px;
+  margin:0 auto;
+}
+.aiBridgeSimple .aiTypeGrid{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:9px;
+}
+.aiBridgeSimple .aiTypeGrid button{
+  min-height:82px;
+}
+.aiDirectStartButton{
+  width:100%;
+  min-height:48px;
+  font-size:.84rem;
+}
+.aiBridgeSimple .aiHint{
+  margin:0;
+  text-align:center;
+}
+@media(max-width:980px){
+  .aiBridgeSimple .aiTypeGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:560px){
+  .aiBridgeSimple .aiTypeGrid{grid-template-columns:1fr}
+}
+
+/* JEONG R30 · routine history replaces the old dedicated management entry point. */
+.routineBlockEditor{display:grid;gap:7px;grid-column:1/-1}.routineBlockEditor>span{font-size:.72rem;font-weight:800}.routineBlockEditor>div{display:grid;grid-template-columns:82px 14px 82px 64px 20px 34px;align-items:center;gap:6px}.routineBlockEditor select,.routineBlockEditor input{min-height:34px;padding:5px 7px}.routineBlockEditor b,.routineBlockEditor em{text-align:center;font-size:.72rem;font-style:normal}.routineBlockEditor>button{justify-self:start;min-height:32px;padding:5px 9px;border:1px solid var(--border);border-radius:8px;background:var(--surface)}.routineBlockEditor small{color:var(--muted);font-size:.68rem}
+
+
+/* JEONG R31 · Past-date operation lives in the Day view, not a separate modal. */
+.dayEmptyText{margin:0;padding:12px;border:1px dashed var(--border);border-radius:9px;color:var(--muted);font-size:.78rem;line-height:1.5}
+.dayRoutineList{display:grid;gap:7px}
+.dayRoutineRow{display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;gap:9px;width:100%;min-height:44px;padding:9px 10px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text);text-align:left}
+.dayRoutineRow>i{display:grid;place-items:center;width:19px;height:19px;border:1px solid var(--gold);border-radius:5px;color:var(--gold);font-size:.68rem;font-style:normal;font-weight:850}
+.dayRoutineRow>span{display:grid;min-width:0;gap:2px}.dayRoutineRow>span>strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.82rem}.dayRoutineRow>span>small{color:var(--muted);font-size:.66rem}.dayRoutineRow>em{color:var(--muted);font-size:.68rem;font-style:normal;white-space:nowrap}
+.dayRoutineRow.done{opacity:.65}.dayRoutineRow.done>i{background:var(--gold);color:#fff}.dayRoutineRow.done>span>strong{text-decoration:line-through}
+.dayRoutineCard .dayCardHead>small{color:var(--muted);font-size:.7rem;font-weight:700}
+@media(min-width:1101px){.dayRightColumn{position:sticky;top:14px}}
+@media(max-width:1100px){.dayRightColumn{grid-template-columns:1fr!important}.dayScheduleCard{grid-row:auto!important}}
+
+
+/* JEONG R32 · Day history uses one execution card + equal-height schedule column. */
+.dayMainGrid{align-items:stretch!important}
+.dayLeftColumn{display:grid!important;grid-template-rows:auto auto minmax(0,1fr)!important;gap:14px!important;min-width:0!important}
+.dayRightColumn{display:block!important;position:static!important;min-width:0!important;height:100%!important}
+.dayScheduleCard{display:flex!important;flex-direction:column!important;height:100%!important;min-height:100%!important;max-height:100%!important;overflow:hidden!important}
+.dayScheduleCard .scheduleTimeline{flex:1 1 0!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;scrollbar-gutter:stable!important;overscroll-behavior:contain!important}
+.dayExecutionCard{display:flex!important;flex-direction:column!important;min-height:0!important}
+.dayExecutionHead>small{color:var(--muted)!important;font-size:.7rem!important;font-weight:750!important;white-space:nowrap!important}
+.dayExecutionTabs{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important;margin:0 0 9px!important;padding:4px!important;border:1px solid var(--border)!important;border-radius:10px!important;background:var(--surface2)!important}
+.dayExecutionTabs button{display:flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;min-height:32px!important;border:0!important;border-radius:7px!important;background:transparent!important;color:var(--muted)!important;font-size:.72rem!important;font-weight:760!important;cursor:pointer!important}
+.dayExecutionTabs button span{font-size:.62rem!important;font-weight:800!important;opacity:.72!important}
+.dayExecutionTabs button.active{background:var(--surface)!important;color:var(--gold)!important;box-shadow:0 1px 8px rgba(70,47,18,.08)!important}
+.dayExecutionContext{margin-bottom:9px!important;padding-bottom:9px!important;border-bottom:1px solid var(--border)!important}
+.dayExecutionContext [role="group"]{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px!important}
+.dayExecutionContext button{width:100%!important;min-width:0!important;min-height:31px!important;padding:5px 4px!important;font-size:.68rem!important;white-space:nowrap!important}
+.dayExecutionList{display:grid!important;align-content:start!important;gap:7px!important;height:299px!important;min-height:299px!important;max-height:299px!important;overflow-y:auto!important;overflow-x:hidden!important;padding-right:3px!important;scrollbar-gutter:stable!important;overscroll-behavior:contain!important}
+.dayExecutionRow{min-width:0!important}
+.dayExecutionToggle{display:grid!important;grid-template-columns:19px minmax(0,1fr) auto!important;align-items:center!important;gap:8px!important;width:100%!important;min-width:0!important;min-height:44px!important;padding:8px 9px!important;border:1px solid var(--border)!important;border-radius:9px!important;background:var(--surface2)!important;color:var(--text)!important;text-align:left!important}
+.dayExecutionToggle>i{display:grid!important;place-items:center!important;width:18px!important;height:18px!important;border:1px solid var(--gold)!important;border-radius:5px!important;color:var(--gold)!important;font-size:.64rem!important;font-style:normal!important;font-weight:850!important}
+.dayExecutionToggle>span{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:.8rem!important;font-weight:700!important}
+.dayExecutionToggle>small{color:var(--muted)!important;font-size:.65rem!important;font-weight:700!important;white-space:nowrap!important}
+.dayExecutionRow.done .dayExecutionToggle,.dayExecutionToggle.done{opacity:.62!important}
+.dayExecutionRow.done .dayExecutionToggle>span,.dayExecutionToggle.done>span{text-decoration:line-through!important}
+.dayExecutionRow.done .dayExecutionToggle>i,.dayExecutionToggle.done>i{background:var(--gold)!important;color:#fff!important}
+@media(max-width:1100px){
+ .dayMainGrid{align-items:start!important}
+ .dayLeftColumn{grid-template-rows:auto auto auto!important}
+ .dayRightColumn{height:auto!important}
+ .dayScheduleCard{height:auto!important;min-height:0!important;max-height:none!important}
+ .dayScheduleCard .scheduleTimeline{max-height:420px!important}
+}
+@media(max-width:620px){
+ .dayExecutionContext [role="group"]{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+
+
+/* JEONG R33 · Day execution card always reserves six checklist rows. */
+.dayExecutionCard{
+  min-height:0!important;
+}
+.dayExecutionCard .dayExecutionList{
+  flex:0 0 299px!important;
+  height:299px!important;
+  min-height:299px!important;
+  max-height:299px!important;
+}

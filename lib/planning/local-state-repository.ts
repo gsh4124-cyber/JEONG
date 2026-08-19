@@ -1,4 +1,5 @@
 import type { LocalState, NoteType, Review } from "./types";
+import { normalizeProject } from "./projects";
 
 export const LOCAL_STATE_SCHEMA_VERSION = 3;
 export const LOCAL_STATE_KEY = "jeong_lifeos_v5";
@@ -11,8 +12,7 @@ export const LEGACY_LOCAL_STATE_KEYS = [
 const DAILY_CONTENT_DATE_KEY = "jeong_daily_content_date";
 const DAILY_RESET_MIGRATION_KEY = "jeong_daily_reset_migrated_v935";
 const DONE_AT_MIGRATION_KEY = "jeong_doneat_migrated_v934";
-const PHASE3_VALIDATION_CLEANUP_KEY = "jeong_phase3_validation_cleanup_v1";
-const PHASE3_VALIDATION_TITLES = new Set(["P3 매일 검증 (삭제 예정)", "P3 Calendar 검증 수정 (삭제 예정)"]);
+const CORRUPT_STATE_BACKUP_KEY = "jeong_lifeos_recovery_backup";
 
 type UnknownState = Partial<LocalState> & Record<string, unknown>;
 type NormalizeOptions = {
@@ -82,9 +82,9 @@ export function normalizeLocalState(value: unknown, options: NormalizeOptions): 
     };
   });
 
-  const projects = (Array.isArray(source.projects) && source.projects.length ? source.projects : defaults.projects).map((raw) => {
+  const projects = (Array.isArray(source.projects) ? source.projects : defaults.projects).map((raw) => {
     const project = raw && typeof raw === "object" ? raw as Record<string, unknown> : {};
-    return {
+    return normalizeProject({
       id: String(project.id ?? uid()),
       name: String(project.name ?? "프로젝트"),
       goal: String(project.goal ?? ""),
@@ -93,7 +93,10 @@ export function normalizeLocalState(value: unknown, options: NormalizeOptions): 
       milestones: Array.isArray(project.milestones) ? project.milestones as LocalState["projects"][number]["milestones"] : [],
       note: String(project.note ?? ""),
       ...(typeof project.contextId === "string" ? { contextId: project.contextId } : {}),
-    };
+      ...(typeof project.startDate === "string" ? { startDate: project.startDate } : {}),
+      ...(typeof project.dueDate === "string" ? { dueDate: project.dueDate } : typeof project.targetEndDate === "string" ? { dueDate: project.targetEndDate } : {}),
+      ...(typeof project.completedAt === "string" ? { completedAt: project.completedAt } : {}),
+    });
   });
 
   const legacyMemory = source.memory && typeof source.memory === "object" ? source.memory as Record<string, unknown> : {};
@@ -161,14 +164,8 @@ export function normalizeLocalState(value: unknown, options: NormalizeOptions): 
   localStorage.setItem(DAILY_CONTENT_DATE_KEY, today);
   localStorage.setItem("jeong_last_active_date", today);
 
-  let recurringTasks = Array.isArray(source.recurringTasks) ? source.recurringTasks as LocalState["recurringTasks"] : [];
-  let recurringTaskCompletions = Array.isArray(source.recurringTaskCompletions) ? source.recurringTaskCompletions as LocalState["recurringTaskCompletions"] : [];
-  if (!localStorage.getItem(PHASE3_VALIDATION_CLEANUP_KEY)) {
-    const validationIds = new Set(recurringTasks.filter(task => PHASE3_VALIDATION_TITLES.has(task.title)).map(task => task.id));
-    recurringTasks = recurringTasks.filter(task => !validationIds.has(task.id));
-    recurringTaskCompletions = recurringTaskCompletions.filter(completion => !validationIds.has(completion.recurringTaskId));
-    localStorage.setItem(PHASE3_VALIDATION_CLEANUP_KEY, "1");
-  }
+  const recurringTasks = Array.isArray(source.recurringTasks) ? source.recurringTasks as LocalState["recurringTasks"] : [];
+  const recurringTaskCompletions = Array.isArray(source.recurringTaskCompletions) ? source.recurringTaskCompletions as LocalState["recurringTaskCompletions"] : [];
   const plans = (Array.isArray(source.plans) ? source.plans : []).filter(item=>item&&typeof item==="object").map(item=>item as LocalState["plans"][number]);
   const goals = (Array.isArray(source.goals) ? source.goals : []).filter(item=>item&&typeof item==="object").map(item=>item as LocalState["goals"][number]);
   return {
@@ -198,24 +195,48 @@ export function normalizeLocalState(value: unknown, options: NormalizeOptions): 
     contextCalendarPreferences: Array.isArray(source.contextCalendarPreferences)
       ? source.contextCalendarPreferences as LocalState["contextCalendarPreferences"]
       : [],
+    calendarEventContextOverrides: Array.isArray(source.calendarEventContextOverrides)
+      ? source.calendarEventContextOverrides as LocalState["calendarEventContextOverrides"]
+      : [],
     recurringTasks,
     recurringTaskCompletions,
     plans,
     goals,
+    personalInsightPreferences: Array.isArray(source.personalInsightPreferences)
+      ? source.personalInsightPreferences as LocalState["personalInsightPreferences"]
+      : [],
+    operatingReminderPreferences: Array.isArray(source.operatingReminderPreferences)
+      ? source.operatingReminderPreferences as LocalState["operatingReminderPreferences"]
+      : [],
   };
 }
 
 export function loadLocalState(options: NormalizeOptions): LocalState {
   if (typeof window === "undefined") return options.defaultState;
-  const raw = localStorage.getItem(LOCAL_STATE_KEY)
-    ?? LEGACY_LOCAL_STATE_KEYS.map((key) => localStorage.getItem(key)).find(Boolean)
-    ?? null;
-  if (!raw) return normalizeLocalState(options.defaultState, options);
-  try {
-    return normalizeLocalState(JSON.parse(raw), options);
-  } catch {
-    return normalizeLocalState(options.defaultState, options);
+  const candidates = [
+    { key: LOCAL_STATE_KEY, raw: localStorage.getItem(LOCAL_STATE_KEY) },
+    ...LEGACY_LOCAL_STATE_KEYS.map((key) => ({ key, raw: localStorage.getItem(key) })),
+  ].filter((candidate): candidate is { key: string; raw: string } => Boolean(candidate.raw));
+
+  if (!candidates.length) return normalizeLocalState(options.defaultState, options);
+
+  for (const candidate of candidates) {
+    try {
+      return normalizeLocalState(JSON.parse(candidate.raw), options);
+    } catch {
+      // Never discard an unreadable user state. Preserve the exact raw payload for recovery,
+      // then try an older valid state before falling back to an empty initial state.
+      if (!localStorage.getItem(CORRUPT_STATE_BACKUP_KEY)) {
+        localStorage.setItem(CORRUPT_STATE_BACKUP_KEY, JSON.stringify({
+          sourceKey: candidate.key,
+          capturedAt: new Date().toISOString(),
+          raw: candidate.raw,
+        }));
+      }
+    }
   }
+
+  return normalizeLocalState(options.defaultState, options);
 }
 
 export function saveLocalState(state: LocalState): void {

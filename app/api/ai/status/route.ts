@@ -1,2 +1,0 @@
-import { NextRequest,NextResponse } from "next/server";
-export async function GET(req:NextRequest){if(req.nextUrl.searchParams.get("engine")!=="ollama")return NextResponse.json({ok:false});try{const r=await fetch("http://127.0.0.1:11434/api/tags",{cache:"no-store",signal:AbortSignal.timeout(2500)});if(!r.ok)return NextResponse.json({ok:false});const data=await r.json();return NextResponse.json({ok:true,models:data.models??[]})}catch{return NextResponse.json({ok:false})}}
