@@ -5,6 +5,7 @@ import type { JWT } from "next-auth/jwt";
 declare module "next-auth" {
   interface Session {
     accessToken?: string;
+    googleIdToken?: string;
     error?: "RefreshTokenError";
   }
 }
@@ -14,6 +15,7 @@ declare module "next-auth/jwt" {
     accessToken?: string;
     expiresAt?: number;
     refreshToken?: string;
+    googleIdToken?: string;
     error?: "RefreshTokenError";
   }
 }
@@ -47,6 +49,7 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
       accessToken: refreshed.access_token,
       expiresAt: Math.floor(Date.now() / 1000 + refreshed.expires_in),
       refreshToken: refreshed.refresh_token ?? token.refreshToken,
+      googleIdToken: refreshed.id_token ?? token.googleIdToken,
       error: undefined
     };
   } catch (error) {
@@ -82,7 +85,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           ...token,
           accessToken: account.access_token,
           expiresAt: account.expires_at,
-          refreshToken: account.refresh_token
+          refreshToken: account.refresh_token,
+          googleIdToken: account.id_token
         };
       }
 
@@ -94,6 +98,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     async session({ session, token }) {
       session.accessToken = token.accessToken;
+      session.googleIdToken = token.googleIdToken;
       session.error = token.error;
       return session;
     }

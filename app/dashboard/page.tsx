@@ -1,5 +1,6 @@
 import { auth, signIn, signOut } from "@/auth";
-import { Dashboard } from "@/components/dashboard";
+import { SupabaseStateGate } from "@/components/supabase-state-gate";
+import { SupabaseAuthBridge } from "@/components/supabase-auth-bridge";
 import shellStyles from "@/components/jeong-shell.module.css";
 
 export default async function DashboardPage() {
@@ -7,6 +8,8 @@ export default async function DashboardPage() {
 
   if (!session) {
     return (
+      <>
+      <SupabaseAuthBridge signedOut />
       <main className="landing">
         <section className="landingCard">
           <div className="landingSeal" aria-hidden="true">整</div>
@@ -33,11 +36,13 @@ export default async function DashboardPage() {
           <p className="landingPrivacy">계정 연결 정보는 일정과 기록을 불러오는 용도로만 사용됩니다.</p>
         </section>
       </main>
+      </>
     );
   }
 
   return (
     <>
+      <SupabaseAuthBridge googleIdToken={session.googleIdToken} googleAccessToken={session.accessToken} expectedEmail={session.user?.email ?? undefined} />
       <details className={`accountMenu sidebarAccountMenu ${shellStyles.accountOverlay}`}>
         <summary aria-label="계정 메뉴">
           {session.user?.image
@@ -60,7 +65,7 @@ export default async function DashboardPage() {
           </form>
         </div>
       </details>
-      <Dashboard user={{ name: session.user?.name, email: session.user?.email, image: session.user?.image }} />
+      <SupabaseStateGate user={{ name: session.user?.name, email: session.user?.email, image: session.user?.image }} />
     </>
   );
 }
