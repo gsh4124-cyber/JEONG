@@ -4,7 +4,13 @@ on:
   push:
     branches:
       - global-shorts-render-lab
+    paths:
+      - ".github/workflows/global-shorts-blender-probe.yml"
+      - "global_shorts_render_lab/PROBE_TRIGGER.txt"
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   blender-probe:
@@ -22,7 +28,7 @@ jobs:
 
       - name: Download Blender 5.2.2 LTS
         run: |
-          wget -q --show-progress https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
+          wget -q https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
           tar -xf blender-5.2.2-linux-x64.tar.xz
           ./blender-5.2.2-linux-x64/blender --version
 
@@ -34,53 +40,56 @@ jobs:
           bpy.ops.object.select_all(action='SELECT')
           bpy.ops.object.delete(use_global=False)
 
-          bpy.ops.mesh.primitive_cube_add(location=(0, 0, 0))
-          cube = bpy.context.object
-          cube.scale = (1.2, 1.2, 1.2)
-          bevel = cube.modifiers.new(name='Bevel', type='BEVEL')
-          bevel.width = 0.15
-          bevel.segments = 4
+          bpy.ops.mesh.primitive_uv_sphere_add(segments=64, ring_count=32, location=(0, 0, 0))
+          sphere = bpy.context.object
+          mat = bpy.data.materials.new('SphereMat')
+          mat.diffuse_color = (0.08, 0.35, 0.95, 1.0)
+          mat.metallic = 0.85
+          mat.roughness = 0.18
+          sphere.data.materials.append(mat)
 
-          mat = bpy.data.materials.new('CubeMat')
-          mat.diffuse_color = (0.12, 0.42, 0.85, 1.0)
-          cube.data.materials.append(mat)
-
-          bpy.ops.mesh.primitive_plane_add(size=12, location=(0, 0, -1.25))
+          bpy.ops.mesh.primitive_plane_add(size=12, location=(0, 0, -1.02))
           plane = bpy.context.object
           pmat = bpy.data.materials.new('Ground')
-          pmat.diffuse_color = (0.07, 0.07, 0.08, 1.0)
+          pmat.diffuse_color = (0.025, 0.03, 0.045, 1.0)
+          pmat.roughness = 0.35
           plane.data.materials.append(pmat)
 
-          bpy.ops.object.light_add(type='AREA', location=(4, -4, 6))
+          bpy.ops.object.light_add(type='AREA', location=(3.8, -4.0, 5.5))
           key = bpy.context.object
-          key.data.energy = 900
+          key.data.energy = 1100
           key.data.shape = 'DISK'
-          key.data.size = 5
+          key.data.size = 4.0
 
-          bpy.ops.object.light_add(type='AREA', location=(-4, 2, 3))
+          bpy.ops.object.light_add(type='AREA', location=(-3.5, 1.5, 3.2))
           fill = bpy.context.object
           fill.data.energy = 500
-          fill.data.size = 4
+          fill.data.size = 3.5
 
-          bpy.ops.object.camera_add(location=(4.5, -5.5, 3.8))
+          bpy.ops.object.light_add(type='AREA', location=(0.0, 3.5, 4.5))
+          rim = bpy.context.object
+          rim.data.energy = 800
+          rim.data.size = 3.0
+
+          bpy.ops.object.camera_add(location=(4.8, -6.0, 3.6))
           cam = bpy.context.object
           bpy.context.scene.camera = cam
 
-          def look_at(obj, target=(0, 0, 0)):
+          def look_at(obj, target=(0,0,0)):
               import mathutils
               direction = mathutils.Vector(target) - obj.location
               obj.rotation_euler = direction.to_track_quat('-Z', 'Y').to_euler()
 
-          look_at(cam)
+          look_at(cam, (0, 0, -0.1))
 
           scene = bpy.context.scene
           scene.render.engine = 'BLENDER_EEVEE'
-          scene.render.resolution_x = 64
-          scene.render.resolution_y = 64
+          scene.render.resolution_x = 256
+          scene.render.resolution_y = 256
           scene.render.resolution_percentage = 100
           scene.render.image_settings.file_format = 'PNG'
           scene.render.filepath = os.path.join(os.environ['GITHUB_WORKSPACE'], 'probe.png')
-          scene.world.color = (0.015, 0.015, 0.02)
+          scene.world.color = (0.008, 0.010, 0.018)
 
           bpy.ops.render.render(write_still=True)
           PY
@@ -91,8 +100,12 @@ jobs:
           test -s probe.png
           file probe.png
 
-      - name: Upload probe artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: blender-probe
-          path: probe.png
+      - name: Commit probe result
+        run: |
+          mkdir -p global_shorts_render_lab/output
+          cp probe.png global_shorts_render_lab/output/probe.png
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add global_shorts_render_lab/output/probe.png
+          git commit -m "render: Blender probe [skip ci]"
+          git push origin HEAD:global-shorts-render-lab
