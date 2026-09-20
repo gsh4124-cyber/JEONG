@@ -1,0 +1,14 @@
+{
+  "lane": "Motion Logic Lab",
+  "stage": "LOW_RES_PHYSICS_PROXY",
+  "engine": "BLENDER_WORKBENCH",
+  "resolution": [
+    180,
+    320
+  ],
+  "fps": 18,
+  "frame_start": 1,
+  "frame_end": 45,
+  "mechanism": "gravity ramp -> marble -> domino chain -> goal",
+  "direct_cost_usd": 0
+}
