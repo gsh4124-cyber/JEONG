@@ -29,7 +29,7 @@ jobs:
       - name: Create probe scene
         run: |
           cat > probe.py <<'PY'
-          import bpy, math, os
+          import bpy, os
 
           bpy.ops.object.select_all(action='SELECT')
           bpy.ops.object.delete(use_global=False)
@@ -66,15 +66,15 @@ jobs:
           cam = bpy.context.object
           bpy.context.scene.camera = cam
 
-          def look_at(obj, target=(0,0,0)):
+          def look_at(obj, target=(0, 0, 0)):
               import mathutils
               direction = mathutils.Vector(target) - obj.location
               obj.rotation_euler = direction.to_track_quat('-Z', 'Y').to_euler()
 
-          look_at(cam, (0,0,0))
+          look_at(cam)
 
           scene = bpy.context.scene
-          scene.render.engine = 'BLENDER_EEVEE_NEXT'
+          scene.render.engine = 'BLENDER_EEVEE'
           scene.render.resolution_x = 64
           scene.render.resolution_y = 64
           scene.render.resolution_percentage = 100
