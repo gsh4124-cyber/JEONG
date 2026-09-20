@@ -1,0 +1,68 @@
+name: Motion Logic Physics Proxy
+
+on:
+  push:
+    branches:
+      - global-shorts-render-lab
+    paths:
+      - ".github/workflows/global-shorts-motion-proxy.yml"
+      - "global_shorts_render_lab/motion_logic_proxy.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  motion-proxy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends wget xz-utils ffmpeg \
+            libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libegl1 libxkbcommon0 libsm6
+
+      - name: Download Blender
+        run: |
+          wget -q https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
+          tar -xf blender-5.2.2-linux-x64.tar.xz
+          ./blender-5.2.2-linux-x64/blender --version | head -1
+
+      - name: Render physics proxy
+        run: |
+          rm -rf global_shorts_render_lab/output/motion_logic_proxy_work
+          mkdir -p global_shorts_render_lab/output/motion_logic_proxy_work
+          /usr/bin/time -f "%e" -o global_shorts_render_lab/output/motion_logic_proxy_work/render_seconds.txt \
+            ./blender-5.2.2-linux-x64/blender --background \
+            --python global_shorts_render_lab/motion_logic_proxy.py -- \
+            global_shorts_render_lab/output/motion_logic_proxy_work
+
+      - name: Encode preview
+        run: |
+          cd global_shorts_render_lab/output/motion_logic_proxy_work
+          ffmpeg -y -hide_banner -loglevel error -framerate 18 -i frame_%04d.png \
+            -c:v libx264 -preset veryfast -crf 22 -pix_fmt yuv420p motion_logic_proxy.mp4
+          cp frame_0001.png first.png
+          cp frame_0016.png mid1.png
+          cp frame_0030.png mid2.png
+          cp frame_0045.png final.png
+          file motion_logic_proxy.mp4
+          du -h motion_logic_proxy.mp4
+          cat render_seconds.txt
+
+      - name: Persist results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin global-shorts-render-lab
+          git rebase origin/global-shorts-render-lab
+          rm -rf global_shorts_render_lab/output/motion_logic_proxy
+          mkdir -p global_shorts_render_lab/output/motion_logic_proxy
+          cp global_shorts_render_lab/output/motion_logic_proxy_work/motion_logic_proxy.mp4 global_shorts_render_lab/output/motion_logic_proxy/
+          cp global_shorts_render_lab/output/motion_logic_proxy_work/{first.png,mid1.png,mid2.png,final.png,metadata.json,render_seconds.txt,motion_logic_proxy.blend} global_shorts_render_lab/output/motion_logic_proxy/
+          git add global_shorts_render_lab/output/motion_logic_proxy
+          git commit -m "render: Motion Logic physics proxy [skip ci]"
+          git push origin HEAD:global-shorts-render-lab
