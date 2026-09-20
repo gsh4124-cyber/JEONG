@@ -108,4 +108,6 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add global_shorts_render_lab/output/probe.png
           git commit -m "render: Blender probe [skip ci]"
+          git fetch origin global-shorts-render-lab
+          git rebase origin/global-shorts-render-lab
           git push origin HEAD:global-shorts-render-lab
