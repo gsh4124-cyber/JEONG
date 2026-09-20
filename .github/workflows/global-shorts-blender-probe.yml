@@ -1,0 +1,98 @@
+name: Global Shorts Blender Probe
+
+on:
+  push:
+    branches:
+      - global-shorts-render-lab
+  workflow_dispatch:
+
+jobs:
+  blender-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Blender runtime libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            wget xz-utils libxi6 libxxf86vm1 libxfixes3 libxrender1 \
+            libgl1 libegl1 libxkbcommon0 libsm6
+
+      - name: Download Blender 5.2.2 LTS
+        run: |
+          wget -q --show-progress https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
+          tar -xf blender-5.2.2-linux-x64.tar.xz
+          ./blender-5.2.2-linux-x64/blender --version
+
+      - name: Create probe scene
+        run: |
+          cat > probe.py <<'PY'
+          import bpy, math, os
+
+          bpy.ops.object.select_all(action='SELECT')
+          bpy.ops.object.delete(use_global=False)
+
+          bpy.ops.mesh.primitive_cube_add(location=(0, 0, 0))
+          cube = bpy.context.object
+          cube.scale = (1.2, 1.2, 1.2)
+          bevel = cube.modifiers.new(name='Bevel', type='BEVEL')
+          bevel.width = 0.15
+          bevel.segments = 4
+
+          mat = bpy.data.materials.new('CubeMat')
+          mat.diffuse_color = (0.12, 0.42, 0.85, 1.0)
+          cube.data.materials.append(mat)
+
+          bpy.ops.mesh.primitive_plane_add(size=12, location=(0, 0, -1.25))
+          plane = bpy.context.object
+          pmat = bpy.data.materials.new('Ground')
+          pmat.diffuse_color = (0.07, 0.07, 0.08, 1.0)
+          plane.data.materials.append(pmat)
+
+          bpy.ops.object.light_add(type='AREA', location=(4, -4, 6))
+          key = bpy.context.object
+          key.data.energy = 900
+          key.data.shape = 'DISK'
+          key.data.size = 5
+
+          bpy.ops.object.light_add(type='AREA', location=(-4, 2, 3))
+          fill = bpy.context.object
+          fill.data.energy = 500
+          fill.data.size = 4
+
+          bpy.ops.object.camera_add(location=(4.5, -5.5, 3.8))
+          cam = bpy.context.object
+          bpy.context.scene.camera = cam
+
+          def look_at(obj, target=(0,0,0)):
+              import mathutils
+              direction = mathutils.Vector(target) - obj.location
+              obj.rotation_euler = direction.to_track_quat('-Z', 'Y').to_euler()
+
+          look_at(cam, (0,0,0))
+
+          scene = bpy.context.scene
+          scene.render.engine = 'BLENDER_EEVEE_NEXT'
+          scene.render.resolution_x = 64
+          scene.render.resolution_y = 64
+          scene.render.resolution_percentage = 100
+          scene.render.image_settings.file_format = 'PNG'
+          scene.render.filepath = os.path.join(os.environ['GITHUB_WORKSPACE'], 'probe.png')
+          scene.world.color = (0.015, 0.015, 0.02)
+
+          bpy.ops.render.render(write_still=True)
+          PY
+
+      - name: Render probe
+        run: |
+          ./blender-5.2.2-linux-x64/blender --background --python probe.py
+          test -s probe.png
+          file probe.png
+
+      - name: Upload probe artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: blender-probe
+          path: probe.png
