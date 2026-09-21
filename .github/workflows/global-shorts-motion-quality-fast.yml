@@ -1,0 +1,51 @@
+name: Motion Logic Fast Quality Preview
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/global-shorts-motion-quality-fast.yml"
+      - "global_shorts_render_lab/motion_logic_quality_fast.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fast-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends wget xz-utils \
+            libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libegl1 libxkbcommon0 libsm6
+      - name: Download Blender
+        run: |
+          wget -q https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
+          tar -xf blender-5.2.2-linux-x64.tar.xz
+      - name: Render fast quality preview
+        run: |
+          rm -rf global_shorts_render_lab/output/motion_logic_quality_fast_work
+          mkdir -p global_shorts_render_lab/output/motion_logic_quality_fast_work
+          /usr/bin/time -f "%e" -o global_shorts_render_lab/output/motion_logic_quality_fast_work/render_seconds.txt \
+            ./blender-5.2.2-linux-x64/blender \
+            global_shorts_render_lab/output/motion_logic_proxy/motion_logic_proxy.blend \
+            --background \
+            --python global_shorts_render_lab/motion_logic_quality_fast.py -- \
+            global_shorts_render_lab/output/motion_logic_quality_fast_work
+      - name: Persist
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin global-shorts-render-lab
+          git rebase origin/global-shorts-render-lab
+          rm -rf global_shorts_render_lab/output/motion_logic_quality_fast
+          mkdir -p global_shorts_render_lab/output/motion_logic_quality_fast
+          cp global_shorts_render_lab/output/motion_logic_quality_fast_work/{quality_fast_60.png,render_seconds.txt} \
+             global_shorts_render_lab/output/motion_logic_quality_fast/
+          git add global_shorts_render_lab/output/motion_logic_quality_fast
+          git commit -m "render: fast Motion Logic quality preview [skip ci]"
+          git push origin HEAD:global-shorts-render-lab
