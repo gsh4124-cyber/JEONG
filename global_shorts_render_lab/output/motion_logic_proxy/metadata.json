@@ -11,5 +11,8 @@
   "frame_end": 90,
   "mechanism": "gravity ramp -> marble -> domino chain -> goal",
   "composition_revision": "portrait path rotated into screen vertical; full ball-to-goal chain visible",
-  "direct_cost_usd": 0
+  "direct_cost_usd": 0,
+  "rigid_body_bake": [
+    "FINISHED"
+  ]
 }
