@@ -1,0 +1,76 @@
+name: Motion Logic External Benchmark Direct Frames
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/global-shorts-motion-external-benchmark.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+          fetch-depth: 0
+      - name: Install tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg python3-pip
+          python -m pip install -q --break-system-packages yt-dlp
+      - name: Download current public benchmark samples
+        run: |
+          mkdir -p bench
+          # Current simple action→impact peer with exact public Short URL.
+          yt-dlp --no-playlist --quiet --merge-output-format mp4 \
+            -f "bv*[height<=720]+ba/b[height<=720]" \
+            -o "bench/cancrush.%(ext)s" "https://www.youtube.com/watch?v=5zFgNARFB2o"
+          # Current viewer-facing 3D marble/physics peer discovered from public 2026 search results.
+          yt-dlp --no-playlist --quiet --merge-output-format mp4 \
+            -f "bv*[height<=720]+ba/b[height<=720]" \
+            -o "bench/marble.%(ext)s" \
+            "ytsearch1:Satisfying Marble Run Physics shorts animation Rigid Body World"
+          python - <<'PY'
+          import subprocess,json,glob,os
+          meta={}
+          for key in ("cancrush","marble"):
+              files=[x for x in glob.glob(f"bench/{key}.*") if not x.endswith(".part")]
+              if not files: raise SystemExit(f"missing {key}")
+              path=files[0]
+              p=subprocess.run(["ffprobe","-v","error","-show_entries","format=filename,duration,size:stream=index,codec_type,codec_name,width,height,r_frame_rate","-of","json",path],capture_output=True,text=True,check=True)
+              meta[key]=json.loads(p.stdout)
+              meta[key]["local_path"]=path
+          with open("bench/metadata.json","w") as f: json.dump(meta,f,indent=2)
+          print(json.dumps(meta,indent=2))
+          PY
+      - name: Build direct visual review sheets
+        run: |
+          # First 3 seconds at 4 fps: first-moment and camera/readability.
+          for key in cancrush marble; do
+            file=$(find bench -maxdepth 1 -type f -name "$key.*" | head -1)
+            ffmpeg -y -hide_banner -loglevel error -ss 0 -t 3 -i "$file" \
+              -vf "fps=4,scale=90:160,tile=6x2" -frames:v 1 -q:v 24 "bench/${key}_first3s.jpg"
+            # First 12 seconds at 1 fps: action→impact→payoff sequence.
+            ffmpeg -y -hide_banner -loglevel error -ss 0 -t 12 -i "$file" \
+              -vf "fps=1,scale=90:160,tile=6x2" -frames:v 1 -q:v 24 "bench/${key}_sequence12s.jpg"
+            # Audio waveform image for impact density/timing shape.
+            ffmpeg -y -hide_banner -loglevel error -i "$file" \
+              -filter_complex "showwavespic=s=720x180:colors=white" -frames:v 1 "bench/${key}_wave.png"
+          done
+      - name: Persist internal benchmark evidence
+        run: |
+          OUT=global_shorts_render_lab/output/external_benchmark_direct_20260921
+          rm -rf "$OUT"; mkdir -p "$OUT"
+          cp bench/metadata.json bench/*_first3s.jpg bench/*_sequence12s.jpg bench/*_wave.png "$OUT"/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$OUT"
+          git commit -m "qa: capture current external benchmark direct frames [skip ci]"
+          git pull --rebase origin global-shorts-render-lab
+          git push origin HEAD:global-shorts-render-lab
