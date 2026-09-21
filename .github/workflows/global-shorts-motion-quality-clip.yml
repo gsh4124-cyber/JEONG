@@ -1,0 +1,130 @@
+name: Motion Logic Motion Proof Clip
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/global-shorts-motion-quality-clip.yml"
+      - "global_shorts_render_lab/motion_logic_quality_clip.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  render:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {start: 24, end: 34, events: 1, part: "a"}
+          - {start: 35, end: 45, events: 0, part: "b"}
+          - {start: 46, end: 56, events: 0, part: "c"}
+          - {start: 57, end: 67, events: 0, part: "d"}
+          - {start: 68, end: 78, events: 0, part: "e"}
+          - {start: 79, end: 90, events: 0, part: "f"}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends wget xz-utils \
+            libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libegl1 libxkbcommon0 libsm6
+      - name: Download Blender
+        run: |
+          wget -q https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
+          tar -xf blender-5.2.2-linux-x64.tar.xz
+      - name: Render chunk
+        run: |
+          mkdir -p chunk
+          ./blender-5.2.2-linux-x64/blender \
+            global_shorts_render_lab/output/motion_logic_proxy/motion_logic_proxy.blend \
+            --background \
+            --python global_shorts_render_lab/motion_logic_quality_clip.py -- \
+            chunk ${{ matrix.start }} ${{ matrix.end }} ${{ matrix.events }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: motion-part-${{ matrix.part }}
+          path: chunk/*
+          retention-days: 1
+
+  assemble:
+    needs: render
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: motion-part-*
+          path: frames
+          merge-multiple: true
+      - name: Build synced procedural audio
+        run: |
+          python - <<'PY'
+          import json, math, wave, struct, os
+          fps=18
+          start=24
+          end=90
+          dur=(end-start+1)/fps
+          sr=48000
+          n=int(dur*sr)
+          buf=[0.0]*n
+          events={"domino_frames":[50,53,56,59,62],"gate_frame":72}
+          if os.path.exists("frames/events.json"):
+              with open("frames/events.json") as f:
+                  got=json.load(f)
+              if got.get("domino_frames"): events["domino_frames"]=got["domino_frames"]
+              if got.get("gate_frame"): events["gate_frame"]=got["gate_frame"]
+          def add_tone(t,freq,amp,length,decay=16):
+              s0=max(0,int(t*sr)); ln=min(int(length*sr), n-s0)
+              for i in range(ln):
+                  x=i/sr
+                  buf[s0+i]+=amp*math.sin(2*math.pi*freq*x)*math.exp(-decay*x)
+          for i,fr in enumerate(events["domino_frames"][:5]):
+              t=(fr-start)/fps
+              add_tone(t,230+35*i,0.30,0.09,28)
+          gf=events.get("gate_frame") or 72
+          t=(gf-start)/fps
+          add_tone(t,660,0.38,0.42,8)
+          add_tone(t+0.03,990,0.24,0.38,9)
+          mx=max(1.0,max(abs(x) for x in buf))
+          with wave.open("motion.wav","w") as w:
+              w.setnchannels(1); w.setsampwidth(2); w.setframerate(sr)
+              for x in buf:
+                  v=int(max(-1,min(1,x/mx))*32767)
+                  w.writeframesraw(struct.pack("<h",v))
+          print(events)
+          PY
+      - name: Encode clip
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          ffmpeg -y -hide_banner -loglevel error \
+            -start_number 24 -framerate 18 -i frames/frame_%04d.png \
+            -i motion.wav -shortest \
+            -c:v libx264 -pix_fmt yuv420p -crf 20 -preset medium \
+            -c:a aac -b:a 128k \
+            motion_logic_motion_proof.mp4
+          ffmpeg -y -hide_banner -loglevel error -i motion_logic_motion_proof.mp4 \
+            -vf "select='eq(n,0)+eq(n,22)+eq(n,44)+eq(n,66)',scale=90:160,tile=4x1" \
+            -frames:v 1 -q:v 25 motion_logic_motion_proof_contact.jpg
+          base64 -w0 motion_logic_motion_proof_contact.jpg > motion_logic_motion_proof_contact.b64.txt
+      - name: Persist final proof
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin global-shorts-render-lab
+          git rebase origin/global-shorts-render-lab
+          rm -rf global_shorts_render_lab/output/motion_logic_motion_proof
+          mkdir -p global_shorts_render_lab/output/motion_logic_motion_proof
+          cp motion_logic_motion_proof.mp4 \
+             motion_logic_motion_proof_contact.jpg \
+             motion_logic_motion_proof_contact.b64.txt \
+             frames/events.json \
+             global_shorts_render_lab/output/motion_logic_motion_proof/
+          git add global_shorts_render_lab/output/motion_logic_motion_proof
+          git commit -m "render: Motion Logic motion proof clip [skip ci]"
+          git push origin HEAD:global-shorts-render-lab
