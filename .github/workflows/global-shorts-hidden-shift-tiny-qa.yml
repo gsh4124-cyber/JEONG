@@ -1,0 +1,38 @@
+name: Hidden Shift Tiny Visual QA
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/global-shorts-hidden-shift-tiny-qa.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  tiny:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+          fetch-depth: 0
+      - name: Build tiny QA
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          OUT=global_shorts_render_lab/output/hidden_shift_poc
+          ffmpeg -y -hide_banner -loglevel error -i "$OUT/contact.jpg" -vf scale=162:96 -q:v 31 "$OUT/contact_tiny.jpg"
+          ffmpeg -y -hide_banner -loglevel error -i "$OUT/difference.png" -vf scale=54:96 -q:v 31 "$OUT/difference_tiny.jpg"
+          base64 -w0 "$OUT/contact_tiny.jpg" > "$OUT/contact_tiny.b64.txt"
+          base64 -w0 "$OUT/difference_tiny.jpg" > "$OUT/difference_tiny.b64.txt"
+      - name: Persist
+        run: |
+          OUT=global_shorts_render_lab/output/hidden_shift_poc
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$OUT"
+          git commit -m "qa: add Hidden Shift tiny visual QA [skip ci]"
+          git pull --rebase origin global-shorts-render-lab
+          git push origin HEAD:global-shorts-render-lab
