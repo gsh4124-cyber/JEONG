@@ -1,0 +1,84 @@
+name: Hidden Shift POC V1 Preview
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/hidden-shift-poc-v1.yml"
+      - "global_shorts_render_lab/hidden_shift_poc_v1.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  render:
+    strategy:
+      fail-fast: false
+      matrix:
+        frame: [1, 72, 73, 132, 162]
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+          fetch-depth: 0
+      - name: Install runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends wget xz-utils libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libegl1 libxkbcommon0 libsm6
+          wget -q https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
+          tar -xf blender-5.2.2-linux-x64.tar.xz
+      - name: Render keyframe
+        run: |
+          mkdir -p out
+          ./blender-5.2.2-linux-x64/blender --background \
+            --python global_shorts_render_lab/hidden_shift_poc_v1.py -- \
+            out ${{ matrix.frame }}
+      - name: Persist keyframe
+        run: |
+          OUT=global_shorts_render_lab/output/hidden_shift_poc_v1
+          mkdir -p "$OUT"
+          cp out/* "$OUT"/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$OUT"
+          git commit -m "render: Hidden Shift POC v1 frame ${{ matrix.frame }} [skip ci]"
+          for n in 1 2 3 4 5; do
+            git fetch origin global-shorts-render-lab
+            git rebase origin/global-shorts-render-lab
+            if git push origin HEAD:global-shorts-render-lab; then exit 0; fi
+            git rebase --abort || true
+            sleep 3
+          done
+          exit 1
+
+  contact:
+    needs: render
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+          fetch-depth: 0
+      - name: Build QA contact
+        run: |
+          git pull --rebase origin global-shorts-render-lab
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          cd global_shorts_render_lab/output/hidden_shift_poc_v1
+          ffmpeg -y -hide_banner -loglevel error \
+            -i hidden_shift_0001.png -i hidden_shift_0072.png -i hidden_shift_0073.png -i hidden_shift_0132.png -i hidden_shift_0162.png \
+            -filter_complex "[0:v]scale=90:160[a];[1:v]scale=90:160[b];[2:v]scale=90:160[c];[3:v]scale=90:160[d];[4:v]scale=90:160[e];[a][b][c][d][e]hstack=inputs=5[out]" \
+            -map "[out]" -q:v 26 hidden_shift_contact.jpg
+          ffmpeg -y -hide_banner -loglevel error -i hidden_shift_contact.jpg -vf scale=225:80 -q:v 31 hidden_shift_contact_tiny.jpg
+          base64 -w0 hidden_shift_contact_tiny.jpg > hidden_shift_contact_tiny.b64.txt
+      - name: Persist contact
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add global_shorts_render_lab/output/hidden_shift_poc_v1
+          git commit -m "render: Hidden Shift POC v1 contact [skip ci]"
+          git pull --rebase origin global-shorts-render-lab
+          git push origin HEAD:global-shorts-render-lab
