@@ -1,0 +1,1 @@
+V4_PERSPECTIVE_MACHINE 270x480 frames 60,90 five-paddle
