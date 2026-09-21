@@ -5,7 +5,7 @@ on:
     branches: [global-shorts-render-lab]
     paths:
       - ".github/workflows/global-shorts-motion-hybrid-camera-v4.yml"
-      - "global_shorts_render_lab/motion_logic_kinematic_hybrid_camera_v4.py"
+      - "global_shorts_render_lab/motion_logic_hybrid_camera_v4.py"
   workflow_dispatch:
 
 permissions:
@@ -41,7 +41,7 @@ jobs:
       - name: Render
         run: |
           mkdir -p chunk
-          ./blender-5.2.2-linux-x64/blender --background --python global_shorts_render_lab/motion_logic_kinematic_hybrid_camera_v4.py -- chunk ${{ matrix.start }} ${{ matrix.end }} 2
+          ./blender-5.2.2-linux-x64/blender --background --python global_shorts_render_lab/motion_logic_hybrid_camera_v4.py -- chunk ${{ matrix.start }} ${{ matrix.end }} 2
       - name: Persist
         run: |
           OUT="global_shorts_render_lab/output/motion_logic_hybrid_camera_v4_parts/${{ matrix.part }}"
