@@ -92,6 +92,10 @@ for y in (-0.82, 0.82):
     rail = add_cube("Rail", (-2.9,y,0.93), (2.2,0.08,0.22), MAT_RAMP, rot=(0, math.radians(9), 0), bevel=0.03)
     add_passive(rail, 0.10)
 
+# Raised bridge keeps the marble above domino center-of-mass until impact.
+bridge = add_cube("ImpactBridge", (-0.75, 0, 0.17), (0.18, 0.58, 0.08), MAT_RAMP, bevel=0.025)
+add_passive(bridge, 0.08)
+
 # Marble
 bpy.ops.mesh.primitive_uv_sphere_add(segments=24, ring_count=16, radius=0.55, location=(-4.20, 0, 1.90))
 ball = bpy.context.object
