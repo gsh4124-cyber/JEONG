@@ -54,7 +54,7 @@ jobs:
             chunk ${{ matrix.start }} ${{ matrix.end }} ${{ matrix.events }}
       - name: Persist chunk to branch
         run: |
-          OUT="global_shorts_render_lab/output/motion_logic_motion_proof_parts/${{ matrix.part }}"
+          OUT="global_shorts_render_lab/output/motion_logic_motion_proof_parts_v2/${{ matrix.part }}"
           rm -rf "$OUT"
           mkdir -p "$OUT"
           cp chunk/* "$OUT"/
@@ -95,7 +95,7 @@ jobs:
             i=$((i+1))
           done < <(find global_shorts_render_lab/output/motion_logic_motion_proof_parts -name 'frame_*.png' | sort)
           test "$i" -ge 20
-          cp global_shorts_render_lab/output/motion_logic_motion_proof_parts/a/events.json events.json
+          cp global_shorts_render_lab/output/motion_logic_motion_proof_parts_v2/a/events.json events.json
           python - <<'PY'
           import json, math, wave, struct
           fps_source=18
