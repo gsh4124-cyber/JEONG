@@ -5,8 +5,8 @@ outdir = args[0] if args else "."
 os.makedirs(outdir, exist_ok=True)
 scene=bpy.context.scene
 scene.render.engine='BLENDER_EEVEE'
-scene.render.resolution_x=270
-scene.render.resolution_y=480
+scene.render.resolution_x=180
+scene.render.resolution_y=320
 scene.render.resolution_percentage=100
 scene.render.image_settings.file_format='PNG'
 scene.world.color=(0.006,0.008,0.015)
@@ -46,6 +46,7 @@ if scene.camera:
     scene.camera.data.type='ORTHO'
     scene.camera.data.ortho_scale=9.2
 
-scene.frame_set(60)
-scene.render.filepath=os.path.join(outdir,'quality_fast_60.png')
-bpy.ops.render.render(write_still=True)
+for fno,name in [(60,'quality_fast_60.png'),(90,'quality_fast_90.png')]:
+    scene.frame_set(fno)
+    scene.render.filepath=os.path.join(outdir,name)
+    bpy.ops.render.render(write_still=True)
