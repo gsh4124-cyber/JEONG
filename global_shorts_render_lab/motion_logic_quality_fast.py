@@ -9,7 +9,7 @@ scene.render.resolution_x=180
 scene.render.resolution_y=320
 scene.render.resolution_percentage=100
 scene.render.image_settings.file_format='PNG'
-scene.world.color=(0.006,0.008,0.015)
+scene.world.color=(0.018,0.022,0.035)
 
 def principled(mat, base, metallic, rough, emission=None, estr=0.0):
     mat.use_nodes=True
@@ -22,6 +22,23 @@ def principled(mat, base, metallic, rough, emission=None, estr=0.0):
     if emission and "Emission Color" in bsdf.inputs:
         bsdf.inputs["Emission Color"].default_value=emission
         bsdf.inputs["Emission Strength"].default_value=estr
+
+# Visual cleanup: keep collision helpers but remove them from camera.
+for o in bpy.data.objects:
+    if o.name.startswith("Rail") or o.name.startswith("ImpactBridge"):
+        o.hide_render = True
+
+# Reframe visual payoff objects without changing the baked physics.
+goal_obj = bpy.data.objects.get("GoalBell")
+goal_ring = bpy.data.objects.get("GoalRing")
+goal_base = bpy.data.objects.get("Cylinder")
+gate = bpy.data.objects.get("SuccessGate")
+if goal_obj:
+    goal_obj.scale *= 0.82
+if goal_ring:
+    goal_ring.scale *= 0.78
+if goal_base:
+    goal_base.scale *= 0.82
 
 for m in bpy.data.materials:
     n=m.name.lower()
@@ -44,9 +61,18 @@ area((4.0,-1.0,3.5),800,4.0,(0.55,0.72,1.0))
 area((1.0,4.0,5.0),1000,3.0,(0.55,0.70,1.0))
 if scene.camera:
     scene.camera.data.type='ORTHO'
-    scene.camera.data.ortho_scale=9.2
+    scene.camera.data.ortho_scale=8.4
 
+goal_mat = bpy.data.materials.get("Goal")
 for fno,name in [(60,'quality_fast_60.png'),(90,'quality_fast_90.png')]:
     scene.frame_set(fno)
+    if goal_mat and goal_mat.use_nodes:
+        bsdf = goal_mat.node_tree.nodes.get("Principled BSDF")
+        if bsdf and "Emission Strength" in bsdf.inputs:
+            bsdf.inputs["Emission Strength"].default_value = 0.5 if fno == 60 else 5.0
+    if goal_ring:
+        goal_ring.scale = (0.78,0.78,0.78) if fno == 60 else (1.05,1.05,1.05)
+    if goal_obj:
+        goal_obj.scale = (0.82,0.82,0.451) if fno == 60 else (1.00,1.00,0.55)
     scene.render.filepath=os.path.join(outdir,name)
     bpy.ops.render.render(write_still=True)
