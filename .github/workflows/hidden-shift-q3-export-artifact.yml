@@ -1,0 +1,25 @@
+name: Hidden Shift Q3 Export Artifact
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/hidden-shift-q3-export-artifact.yml"
+  workflow_dispatch:
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hidden-shift-workbench-q3-review
+          path: |
+            global_shorts_render_lab/output/hidden_shift_workbench_q3_final/hidden_shift_workbench_q3_final.mp4
+            global_shorts_render_lab/output/hidden_shift_workbench_q3_final/q3_review_contact_compact.jpg
+            global_shorts_render_lab/output/hidden_shift_workbench_q3_final/final_qa.json
+          if-no-files-found: error
+          retention-days: 7
