@@ -1,5 +1,5 @@
 import bpy, math, os, sys, json
-from mathutils import Vector
+from mathutils import Vector, Quaternion
 
 args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 outdir = args[0] if args else os.path.join(os.getcwd(), "global_shorts_render_lab", "motion_logic_proxy")
@@ -87,7 +87,7 @@ for y in (-0.82, 0.82):
     add_passive(rail, 0.5)
 
 # Marble
-bpy.ops.mesh.primitive_uv_sphere_add(segments=24, ring_count=16, radius=0.34, location=(-4.25, 0, 1.68))
+bpy.ops.mesh.primitive_uv_sphere_add(segments=24, ring_count=16, radius=0.42, location=(-4.20, 0, 1.72))
 ball = bpy.context.object
 ball.name = "BlueMarble"
 ball.data.materials.append(MAT_BALL)
@@ -114,17 +114,21 @@ bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
 goal.data.materials.append(MAT_GOAL)
 add_passive(goal, 0.6)
 
-# Camera
-bpy.ops.object.camera_add(location=(7.4,-10.8,7.1))
+# Camera — portrait composition: map the long X-axis path onto screen vertical
+bpy.ops.object.camera_add(location=(0.0, -10.5, 7.0))
 cam = bpy.context.object
 scene.camera = cam
-cam.data.lens = 58
+cam.data.type = 'ORTHO'
+cam.data.ortho_scale = 11.6
 
-def look_at(obj, target):
+def look_at_with_roll(obj, target, roll_deg=90):
     direction = Vector(target) - obj.location
-    obj.rotation_euler = direction.to_track_quat('-Z', 'Y').to_euler()
+    base = direction.to_track_quat('-Z', 'Y')
+    roll = Quaternion((0, 0, 1), math.radians(roll_deg))
+    obj.rotation_mode = 'QUATERNION'
+    obj.rotation_quaternion = base @ roll
 
-look_at(cam, (-0.1,0,0.55))
+look_at_with_roll(cam, (-0.15, 0, 0.62), 90)
 
 # Add simple area-like sun for preview depth
 bpy.ops.object.light_add(type='SUN', location=(0,-4,8))
@@ -155,6 +159,7 @@ meta = {
     "frame_start": scene.frame_start,
     "frame_end": scene.frame_end,
     "mechanism": "gravity ramp -> marble -> domino chain -> goal",
+    "composition_revision": "portrait path rotated into screen vertical; full ball-to-goal chain visible",
     "direct_cost_usd": 0
 }
 with open(os.path.join(outdir, "metadata.json"), "w", encoding="utf-8") as f:
