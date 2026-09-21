@@ -1,0 +1,33 @@
+{
+  "asset_id": "hidden_shift_workbench_001",
+  "family": "Family E / Hidden Shift",
+  "channel": "Motion Logic Lab",
+  "status": "SUBMISSION_CANDIDATE_INTERNAL_PASS",
+  "video_file": "HiddenShift_Workbench_001_1080x1920.mp4",
+  "thumbnail_file": "HiddenShift_Workbench_001_thumbnail.jpg",
+  "sha256": "baff8a7f6f27e7fbc7727b80027a3e6c0e27fefb8faa69e6620c73e68648caf3",
+  "size_bytes": 1096964,
+  "resolution": "1080x1920",
+  "duration_seconds": 9.0,
+  "video_codec": "h264",
+  "audio_codec": "aac",
+  "title_candidate": "Spot the Change 👀 #shorts",
+  "description_candidate": "Only one thing changed. Did you catch it? 👀",
+  "hashtags": ["#shorts", "#spotthechange", "#puzzle", "#brainchallenge"],
+  "category_candidate": "Entertainment",
+  "made_for_kids_candidate": false,
+  "rights": {
+    "visuals": "original procedural 3D scene",
+    "audio": "original procedural sound effects",
+    "third_party_media": false
+  },
+  "qa": {
+    "technical": "PASS",
+    "encoded_av_sync": "PASS",
+    "single_change_structure": "PASS",
+    "transfer_repeatability": "PASS",
+    "ai_preview": "PASS",
+    "external_direct_peer_benchmark": "BLOCKED_UNVERIFIED"
+  },
+  "publish_gate": "EMPEROR_APPROVAL_REQUIRED"
+}
