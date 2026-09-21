@@ -72,10 +72,10 @@ add_area("Rim", (1.0,4.5,5.5), 1200, 3.6, (0.55,0.70,1.0))
 cam = scene.camera
 if cam:
     cam.data.type = 'ORTHO'
-    cam.data.ortho_scale = 10.6
+    cam.data.ortho_scale = 9.2
 
 # Add subtle floor accent behind goal for payoff read.
-bpy.ops.mesh.primitive_torus_add(major_radius=0.72, minor_radius=0.035, location=(3.10,0,0.08), rotation=(0,0,0))
+bpy.ops.mesh.primitive_torus_add(major_radius=0.88, minor_radius=0.045, location=(2.95,0,0.18), rotation=(0,0,0))
 ring = bpy.context.object
 ring.name = "GoalAccent"
 gmat = bpy.data.materials.get("Goal")
