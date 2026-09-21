@@ -1,0 +1,3 @@
+engine=BLENDER_EEVEE
+resolution=540x960
+frames=1,60,90
