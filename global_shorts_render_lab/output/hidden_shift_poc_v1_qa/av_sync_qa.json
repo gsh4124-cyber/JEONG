@@ -1,0 +1,19 @@
+{
+  "onsets": [
+    3.995,
+    6.995
+  ],
+  "matches": [
+    {
+      "expected": 4.0,
+      "actual": 3.995,
+      "delta_ms": -5.0
+    },
+    {
+      "expected": 7.0,
+      "actual": 6.995,
+      "delta_ms": -5.0
+    }
+  ],
+  "pass_1frame_18fps": true
+}
