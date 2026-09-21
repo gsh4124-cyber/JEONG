@@ -1,4 +1,5 @@
 name: Hidden Shift POC V1 QA and Clip
+# rerun after deterministic-state fix
 
 on:
   push:
