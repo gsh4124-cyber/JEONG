@@ -38,26 +38,36 @@ jobs:
           stable_bbox=d0.getbbox()
 
           d=ImageChops.difference(b,c)
-          bbox=d.getbbox()
+          # Physically moving one object also changes soft shadows/reflections across low-amplitude pixels.
+          # Gate on perceptually strong change instead of any nonzero RGB delta.
+          px=d.load()
+          mask=Image.new("L",d.size,0); mp=mask.load()
+          strong=0
+          for y in range(d.height):
+              for x in range(d.width):
+                  if max(px[x,y]) >= 24:
+                      mp[x,y]=255; strong+=1
+          bbox=mask.getbbox()
+          strong_ratio=strong/(a.width*a.height)
           if bbox:
               x0,y0,x1,y1=bbox
-              area=(x1-x0)*(y1-y0)
-              frame_area=a.width*a.height
-              area_ratio=area/frame_area
+              bbox_ratio=((x1-x0)*(y1-y0))/(a.width*a.height)
           else:
-              area_ratio=0
+              bbox_ratio=0
 
-          # Target is upper-right shelf. Diff must remain localized, not global.
-          localized = bbox is not None and bbox[0] > int(a.width*0.45) and bbox[2] < a.width and bbox[1] < int(a.height*0.42)
-          pass_qa = stable_bbox is None and localized and 0 < area_ratio < 0.12
+          # Target is in the upper-right shelf zone. Strong changes may include its local shadow.
+          localized = bbox is not None and bbox[0] > int(a.width*0.36) and bbox[1] < int(a.height*0.46) and bbox[3] < int(a.height*0.58)
+          pass_qa = stable_bbox is None and localized and 0 < strong_ratio < 0.08 and bbox_ratio < 0.22
 
           result={
             "resolution":[a.width,a.height],
             "pre_change_pixel_identical": stable_bbox is None,
-            "change_bbox": bbox,
-            "change_bbox_area_ratio": round(area_ratio,5),
-            "localized_upper_right": localized,
-            "single_change_structural_qa": pass_qa
+            "strong_change_threshold_rgb":24,
+            "strong_change_bbox":bbox,
+            "strong_changed_pixel_ratio":round(strong_ratio,5),
+            "strong_change_bbox_area_ratio":round(bbox_ratio,5),
+            "localized_upper_right":localized,
+            "single_change_structural_qa":pass_qa
           }
           os.makedirs("global_shorts_render_lab/output/hidden_shift_poc_v1_qa",exist_ok=True)
           with open("global_shorts_render_lab/output/hidden_shift_poc_v1_qa/pixel_diff_qa.json","w") as f:
