@@ -1,0 +1,38 @@
+name: Motion Logic Proof Tiny
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/global-shorts-motion-proof-tiny.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  tiny:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+      - name: Make tiny proof
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          IN=global_shorts_render_lab/output/motion_logic_motion_proof/motion_logic_motion_proof.mp4
+          OUT=global_shorts_render_lab/output/motion_logic_motion_proof/motion_logic_motion_proof_tiny.mp4
+          ffmpeg -y -hide_banner -loglevel error -i "$IN" \
+            -vf "scale=90:160,fps=9" -an -c:v libx264 -preset veryfast -crf 35 -pix_fmt yuv420p "$OUT"
+          base64 -w0 "$OUT" > global_shorts_render_lab/output/motion_logic_motion_proof/motion_logic_motion_proof_tiny.b64.txt
+          ls -lh "$OUT" global_shorts_render_lab/output/motion_logic_motion_proof/motion_logic_motion_proof_tiny.b64.txt
+      - name: Persist
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add global_shorts_render_lab/output/motion_logic_motion_proof/motion_logic_motion_proof_tiny.mp4 \
+                  global_shorts_render_lab/output/motion_logic_motion_proof/motion_logic_motion_proof_tiny.b64.txt
+          git commit -m "render: add tiny Motion Logic proof [skip ci]"
+          git pull --rebase origin global-shorts-render-lab
+          git push origin HEAD:global-shorts-render-lab
