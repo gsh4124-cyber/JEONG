@@ -1,0 +1,58 @@
+name: Motion Logic Quality V3
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/global-shorts-motion-quality-v3.yml"
+      - "global_shorts_render_lab/motion_logic_quality_v3.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  v3:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends wget xz-utils ffmpeg \
+            libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libegl1 libxkbcommon0 libsm6
+      - name: Download Blender
+        run: |
+          wget -q https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
+          tar -xf blender-5.2.2-linux-x64.tar.xz
+      - name: Render v3
+        run: |
+          rm -rf global_shorts_render_lab/output/motion_logic_quality_v3_work
+          mkdir -p global_shorts_render_lab/output/motion_logic_quality_v3_work
+          /usr/bin/time -f "%e" -o global_shorts_render_lab/output/motion_logic_quality_v3_work/render_seconds.txt \
+            ./blender-5.2.2-linux-x64/blender \
+            global_shorts_render_lab/output/motion_logic_proxy/motion_logic_proxy.blend \
+            --background \
+            --python global_shorts_render_lab/motion_logic_quality_v3.py -- \
+            global_shorts_render_lab/output/motion_logic_quality_v3_work
+      - name: Build QA contact
+        run: |
+          cd global_shorts_render_lab/output/motion_logic_quality_v3_work
+          ffmpeg -y -hide_banner -loglevel error \
+            -i v3_action.png -i v3_payoff.png \
+            -filter_complex "[0:v]scale=108:192[a];[1:v]scale=108:192[b];[a][b]hstack=inputs=2[out]" \
+            -map "[out]" -q:v 30 v3_contact_tiny.jpg
+      - name: Persist
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin global-shorts-render-lab
+          git rebase origin/global-shorts-render-lab
+          rm -rf global_shorts_render_lab/output/motion_logic_quality_v3
+          mkdir -p global_shorts_render_lab/output/motion_logic_quality_v3
+          cp global_shorts_render_lab/output/motion_logic_quality_v3_work/{v3_action.png,v3_payoff.png,v3_contact_tiny.jpg,v3_meta.txt,render_seconds.txt} \
+             global_shorts_render_lab/output/motion_logic_quality_v3/
+          git add global_shorts_render_lab/output/motion_logic_quality_v3
+          git commit -m "render: Motion Logic perspective machine v3 [skip ci]"
+          git push origin HEAD:global-shorts-render-lab
