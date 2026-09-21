@@ -1,0 +1,58 @@
+name: Motion Logic Quality V4
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/global-shorts-motion-quality-v4.yml"
+      - "global_shorts_render_lab/motion_logic_quality_v4.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  v4:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends wget xz-utils ffmpeg \
+            libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libegl1 libxkbcommon0 libsm6
+      - name: Download Blender
+        run: |
+          wget -q https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
+          tar -xf blender-5.2.2-linux-x64.tar.xz
+      - name: Render v4
+        run: |
+          rm -rf global_shorts_render_lab/output/motion_logic_quality_v4_work
+          mkdir -p global_shorts_render_lab/output/motion_logic_quality_v4_work
+          /usr/bin/time -f "%e" -o global_shorts_render_lab/output/motion_logic_quality_v4_work/render_seconds.txt \
+            ./blender-5.2.2-linux-x64/blender \
+            global_shorts_render_lab/output/motion_logic_proxy/motion_logic_proxy.blend \
+            --background \
+            --python global_shorts_render_lab/motion_logic_quality_v4.py -- \
+            global_shorts_render_lab/output/motion_logic_quality_v4_work
+      - name: Build QA contact
+        run: |
+          cd global_shorts_render_lab/output/motion_logic_quality_v4_work
+          ffmpeg -y -hide_banner -loglevel error \
+            -i v4_action.png -i v4_payoff.png \
+            -filter_complex "[0:v]scale=108:192[a];[1:v]scale=108:192[b];[a][b]hstack=inputs=2[out]" \
+            -map "[out]" -q:v 30 v4_contact_tiny.jpg
+      - name: Persist
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin global-shorts-render-lab
+          git rebase origin/global-shorts-render-lab
+          rm -rf global_shorts_render_lab/output/motion_logic_quality_v4
+          mkdir -p global_shorts_render_lab/output/motion_logic_quality_v4
+          cp global_shorts_render_lab/output/motion_logic_quality_v4_work/{v4_action.png,v4_payoff.png,v4_contact_tiny.jpg,v4_meta.txt,render_seconds.txt} \
+             global_shorts_render_lab/output/motion_logic_quality_v4/
+          git add global_shorts_render_lab/output/motion_logic_quality_v4
+          git commit -m "render: Motion Logic payoff portal v4 [skip ci]"
+          git push origin HEAD:global-shorts-render-lab
