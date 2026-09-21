@@ -1,4 +1,5 @@
 name: Hidden Shift Tiny Visual QA
+# refresh after target readability revision
 
 on:
   push:
