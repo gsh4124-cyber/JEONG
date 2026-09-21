@@ -40,9 +40,9 @@ for f in (1,24):
     if 'Coat Weight' in b.inputs: b.inputs['Coat Weight'].keyframe_insert('default_value',frame=f)
 
 # liquid chrome state
-b.inputs['Base Color'].default_value=(0.14,0.18,0.24,1)
+b.inputs['Base Color'].default_value=(0.42,0.48,0.58,1)
 b.inputs['Metallic'].default_value=1.0
-b.inputs['Roughness'].default_value=0.07
+b.inputs['Roughness'].default_value=0.13
 if 'Coat Weight' in b.inputs: b.inputs['Coat Weight'].default_value=0.45
 for f in (54,78):
     b.inputs['Base Color'].keyframe_insert('default_value',frame=f)
@@ -51,14 +51,16 @@ for f in (54,78):
     if 'Coat Weight' in b.inputs: b.inputs['Coat Weight'].keyframe_insert('default_value',frame=f)
 
 # crystalline glossy state
-b.inputs['Base Color'].default_value=(0.035,0.30,0.82,1)
-b.inputs['Metallic'].default_value=0.16
-b.inputs['Roughness'].default_value=0.05
+b.inputs['Base Color'].default_value=(0.08,0.48,0.95,1)
+b.inputs['Metallic'].default_value=0.03
+b.inputs['Roughness'].default_value=0.035
 if 'Coat Weight' in b.inputs: b.inputs['Coat Weight'].default_value=0.70
+if 'IOR' in b.inputs:
+    b.inputs['IOR'].default_value=1.46
 if 'Transmission Weight' in b.inputs:
     b.inputs['Transmission Weight'].default_value=0.0
     b.inputs['Transmission Weight'].keyframe_insert('default_value',frame=78)
-    b.inputs['Transmission Weight'].default_value=0.62
+    b.inputs['Transmission Weight'].default_value=0.82
     b.inputs['Transmission Weight'].keyframe_insert('default_value',frame=112)
     b.inputs['Transmission Weight'].keyframe_insert('default_value',frame=144)
 for f in (112,144):
@@ -152,6 +154,27 @@ halo.scale=(1.0,1.0,1.0); halo.keyframe_insert('scale',frame=116)
 halo.scale=(1.10,1.10,1.10); halo.keyframe_insert('scale',frame=126)
 halo.scale=(1.0,1.0,1.0); halo.keyframe_insert('scale',frame=144)
 
+# studio reflection cards: invisible-as-objects outside main framing but visible in metallic/glass response
+WHITEGLOW=mat('WhiteGlow',(0.95,0.98,1.0,1),0,.12,(1.0,1.0,1.0,1),5.0)
+CYANGLOW=mat('CyanGlow',(0.05,0.55,1.0,1),0,.10,(0.05,0.55,1.0,1),3.0)
+
+cube('ReflectCardL',(-3.15,.55,.75),(.18,.06,2.65),WHITEGLOW,.02)
+cube('ReflectCardR',(3.15,.50,.55),(.16,.06,2.45),WHITEGLOW,.02)
+cube('ReflectCardTop',(0,.65,3.20),(2.15,.05,.14),CYANGLOW,.02)
+
+# crystal-state facet accents appear only near final phase; preserve same coin identity.
+facet_mat=mat('Facet',(0.70,0.92,1.0,1),.02,.04,(0.10,0.45,1.0,1),1.2)
+if frame >= 104:
+    for i,ang in enumerate((0,45,90,135)):
+        a=math.radians(ang)
+        bar=cube(f'Facet{i}',(0,-.50,.30),(.035,.025,.78),facet_mat,.012)
+        bar.rotation_euler.y=a
+        bar.rotation_euler.z=a*.25
+        # keep accents thin and front-facing
+    bpy.ops.mesh.primitive_torus_add(major_radius=.86,minor_radius=.025,major_segments=64,minor_segments=12,
+                                    location=(0,-.50,.30),rotation=(math.pi/2,0,0))
+    fr=bpy.context.object; fr.name='FacetRing'; fr.data.materials.append(facet_mat)
+
 # lighting
 for o in list(bpy.data.objects):
     if o.type=='LIGHT': bpy.data.objects.remove(o,do_unlink=True)
@@ -161,9 +184,11 @@ def area(name,loc,energy,size,color,target):
     l=bpy.context.object; l.name=name; l.data.energy=energy; l.data.size=size; l.data.color=color
     l.rotation_euler=(Vector(target)-l.location).to_track_quat('-Z','Y').to_euler()
 
-area('WarmKey',(-4.0,-5.0,5.8),1500,4.5,(1.0,.66,.45),(0,0,.2))
-area('CoolFill',(4.2,-3.2,1.4),1100,3.8,(.25,.48,1.0),(0,0,.3))
-area('TopRim',(0,2.4,5.5),1200,3.2,(.55,.75,1.0),(0,0,.6))
+area('WarmKey',(-4.0,-5.0,5.8),1850,4.5,(1.0,.72,.52),(0,0,.2))
+area('CoolFill',(4.2,-3.2,1.4),1650,3.8,(.42,.62,1.0),(0,0,.3))
+area('TopRim',(0,2.4,5.5),1550,3.2,(.72,.86,1.0),(0,0,.6))
+area('ChromeStripL',(-3.2,-2.0,1.0),1350,1.2,(1.0,1.0,1.0),(0,0,.4))
+area('ChromeStripR',(3.2,-1.7,.4),1250,1.0,(.72,.88,1.0),(0,0,.2))
 
 # camera
 bpy.ops.object.camera_add(location=(2.25,-13.5,1.15))
