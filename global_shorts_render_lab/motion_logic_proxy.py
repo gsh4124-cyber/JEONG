@@ -78,12 +78,12 @@ floor = add_cube("Ground", (0,0,-0.18), (5.8,2.3,0.18), MAT_FLOOR, bevel=0.06)
 add_passive(floor, 0.7)
 
 # Inclined start ramp descending toward +X
-ramp = add_cube("Ramp", (-2.9,0,0.68), (2.15,0.72,0.12), MAT_RAMP, rot=(0, math.radians(-9), 0), bevel=0.05)
+ramp = add_cube("Ramp", (-2.9,0,0.68), (2.15,0.72,0.12), MAT_RAMP, rot=(0, math.radians(9), 0), bevel=0.05)
 add_passive(ramp, 0.55)
 
 # Low rails to keep marble readable/on-path
 for y in (-0.82, 0.82):
-    rail = add_cube("Rail", (-2.9,y,0.93), (2.2,0.08,0.22), MAT_RAMP, rot=(0, math.radians(-9), 0), bevel=0.03)
+    rail = add_cube("Rail", (-2.9,y,0.93), (2.2,0.08,0.22), MAT_RAMP, rot=(0, math.radians(9), 0), bevel=0.03)
     add_passive(rail, 0.5)
 
 # Marble
