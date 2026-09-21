@@ -15,19 +15,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build tiny QA image
+      - name: Build tiny QA contact
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg
           cd global_shorts_render_lab/output/motion_logic_quality_fast
-          ffmpeg -y -hide_banner -loglevel error -i quality_fast_60.png -vf scale=108:192 -q:v 31 quality_fast_tiny.jpg
-          ls -lh quality_fast_tiny.jpg
+          ffmpeg -y -hide_banner -loglevel error \
+            -i quality_fast_60.png -i quality_fast_90.png \
+            -filter_complex "[0:v]scale=90:160[a];[1:v]scale=90:160[b];[a][b]hstack=inputs=2[out]" \
+            -map "[out]" -q:v 28 quality_fast_tiny_contact.jpg
+          base64 -w0 quality_fast_tiny_contact.jpg > quality_fast_tiny_contact.b64.txt
+          ls -lh quality_fast_tiny_contact.jpg quality_fast_tiny_contact.b64.txt
       - name: Persist
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add global_shorts_render_lab/output/motion_logic_quality_fast/quality_fast_tiny.jpg
-          git commit -m "render: add fast Motion Logic QA tiny [skip ci]"
+          git add global_shorts_render_lab/output/motion_logic_quality_fast/quality_fast_tiny_contact.jpg \
+                  global_shorts_render_lab/output/motion_logic_quality_fast/quality_fast_tiny_contact.b64.txt
+          git commit -m "render: refresh fast Motion Logic tiny contact [skip ci]"
           git fetch origin global-shorts-render-lab
           git rebase origin/global-shorts-render-lab
           git push origin HEAD:global-shorts-render-lab
