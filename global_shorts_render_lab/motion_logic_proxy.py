@@ -93,7 +93,7 @@ for y in (-0.82, 0.82):
     add_passive(rail, 0.10)
 
 # Marble
-bpy.ops.mesh.primitive_uv_sphere_add(segments=24, ring_count=16, radius=0.42, location=(-4.20, 0, 1.72))
+bpy.ops.mesh.primitive_uv_sphere_add(segments=24, ring_count=16, radius=0.55, location=(-4.20, 0, 1.90))
 ball = bpy.context.object
 ball.name = "BlueMarble"
 ball.data.materials.append(MAT_BALL)
@@ -101,20 +101,20 @@ bpy.ops.object.shade_smooth()
 add_active(ball, mass=1.2, friction=0.08, restitution=0.06, shape='SPHERE')
 
 # Domino chain
-domino_xs = [-0.45, 0.12, 0.69, 1.26, 1.83, 2.40, 2.97]
+domino_xs = [-0.45, 0.03, 0.51, 0.99, 1.47, 1.95, 2.43]
 dominos = []
 for i, x in enumerate(domino_xs):
-    d = add_cube(f"Domino_{i+1}", (x,0,0.72), (0.12,0.42,0.70), MAT_DOMINO, bevel=0.035)
-    add_active(d, mass=0.34, friction=0.48, restitution=0.02, shape='BOX')
+    d = add_cube(f"Domino_{i+1}", (x,0,0.52), (0.11,0.38,0.50), MAT_DOMINO, bevel=0.035)
+    add_active(d, mass=0.18, friction=0.95, restitution=0.01, shape='BOX')
     dominos.append(d)
 
 # Goal bell/target
-bpy.ops.mesh.primitive_cylinder_add(vertices=32, radius=0.5, depth=0.18, location=(3.75,0,0.05))
+bpy.ops.mesh.primitive_cylinder_add(vertices=32, radius=0.5, depth=0.18, location=(3.10,0,0.05))
 goal_base = bpy.context.object
 goal_base.data.materials.append(MAT_GOAL)
 add_passive(goal_base, 0.7)
 
-bpy.ops.mesh.primitive_uv_sphere_add(segments=24, ring_count=12, radius=0.38, location=(3.75,0,0.48))
+bpy.ops.mesh.primitive_uv_sphere_add(segments=24, ring_count=12, radius=0.38, location=(3.10,0,0.48))
 goal = bpy.context.object
 goal.name = "GoalBell"
 goal.scale.z = 0.55
