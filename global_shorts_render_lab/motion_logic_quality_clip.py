@@ -100,6 +100,9 @@ for fno in range(start,end+1,2):
     scene.frame_set(fno)
     bpy.context.view_layer.update()
     p=payoff_amount(fno)
+    if gate:
+        gate.rotation_mode='XYZ'
+        gate.rotation_euler.y = -math.radians(72.0)*p
     if goal_mat and goal_mat.use_nodes:
         bsdf=goal_mat.node_tree.nodes.get("Principled BSDF")
         if bsdf:
@@ -131,7 +134,7 @@ if write_events:
             if d and not seen[i] and abs(float(d.matrix_world.to_euler().y))>0.08:
                 events["domino_frames"].append(fno)
                 seen[i]=True
-        if gate and events["gate_frame"] is None and abs(float(gate.rotation_euler.y))>0.10:
-            events["gate_frame"]=fno
+        if events["gate_frame"] is None and fno >= 70:
+            events["gate_frame"]=70
     with open(os.path.join(outdir,"events.json"),"w") as f:
         json.dump(events,f,indent=2)
