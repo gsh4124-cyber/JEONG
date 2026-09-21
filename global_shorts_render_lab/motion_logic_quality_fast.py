@@ -1,5 +1,5 @@
 # five-paddle-payoff-fast-preview
-import bpy, os, sys, mathutils
+import bpy, os, sys, math, mathutils
 args = sys.argv[sys.argv.index("--")+1:] if "--" in sys.argv else []
 outdir = args[0] if args else "."
 os.makedirs(outdir, exist_ok=True)
