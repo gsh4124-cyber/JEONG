@@ -146,7 +146,16 @@ if rw:
     rw.point_cache.frame_start = 1
     rw.point_cache.frame_end = 45
 
-# Render animation
+# Headless rigid-body must be baked before render. Save first so cache has a stable mainfile.
+blend_path = os.path.join(outdir, "motion_logic_proxy.blend")
+bpy.ops.wm.save_as_mainfile(filepath=blend_path)
+scene.frame_set(scene.frame_start)
+bpy.ops.ptcache.free_bake_all()
+bake_result = bpy.ops.ptcache.bake_all(bake=True)
+bpy.ops.wm.save_as_mainfile(filepath=blend_path)
+
+# Render baked animation
+scene.frame_set(scene.frame_start)
 bpy.ops.render.render(animation=True)
 
 # Sample actual rigid-body state to separate "rendered" from "mechanism worked".
@@ -163,8 +172,8 @@ for fno in (1, 30, 60, 90):
 with open(os.path.join(outdir, "physics_trace.json"), "w", encoding="utf-8") as f:
     json.dump(trace, f, ensure_ascii=False, indent=2)
 
-# Save deterministic scene for later quality-frame reuse
-bpy.ops.wm.save_as_mainfile(filepath=os.path.join(outdir, "motion_logic_proxy.blend"))
+# Persist baked deterministic scene for later quality-frame reuse
+bpy.ops.wm.save_as_mainfile(filepath=blend_path)
 
 meta = {
     "lane": "Motion Logic Lab",
@@ -176,7 +185,8 @@ meta = {
     "frame_end": scene.frame_end,
     "mechanism": "gravity ramp -> marble -> domino chain -> goal",
     "composition_revision": "portrait path rotated into screen vertical; full ball-to-goal chain visible",
-    "direct_cost_usd": 0
+    "direct_cost_usd": 0,
+    "rigid_body_bake": list(bake_result)
 }
 with open(os.path.join(outdir, "metadata.json"), "w", encoding="utf-8") as f:
     json.dump(meta, f, ensure_ascii=False, indent=2)
