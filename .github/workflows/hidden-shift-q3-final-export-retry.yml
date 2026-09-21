@@ -1,0 +1,28 @@
+name: Hidden Shift Q3 Final Export Retry
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/hidden-shift-q3-final-export-retry.yml"
+  workflow_dispatch:
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+      - name: Verify final identity
+        run: |
+          FILE=global_shorts_render_lab/output/hidden_shift_workbench_q3_final/hidden_shift_workbench_q3_final.mp4
+          test -f "$FILE"
+          echo "size=$(wc -c < "$FILE")"
+          echo "sha256=$(sha256sum "$FILE" | cut -d' ' -f1)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hidden-shift-q3-final-only
+          path: global_shorts_render_lab/output/hidden_shift_workbench_q3_final/hidden_shift_workbench_q3_final.mp4
+          if-no-files-found: error
+          retention-days: 1
