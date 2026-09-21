@@ -1,0 +1,123 @@
+name: Hidden Shift Deterministic POC
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/global-shorts-hidden-shift-poc.yml"
+      - "global_shorts_render_lab/hidden_shift_poc.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hidden-shift-poc-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render:
+    strategy:
+      fail-fast: false
+      matrix:
+        state: ["A","B","R"]
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+          fetch-depth: 0
+      - name: Install runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends wget xz-utils \
+            libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libegl1 libxkbcommon0 libsm6
+          wget -q https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
+          tar -xf blender-5.2.2-linux-x64.tar.xz
+      - name: Render state
+        run: |
+          mkdir -p out
+          ./blender-5.2.2-linux-x64/blender --background \
+            --python global_shorts_render_lab/hidden_shift_poc.py -- \
+            ${{ matrix.state }} out
+      - name: Persist state
+        run: |
+          OUT=global_shorts_render_lab/output/hidden_shift_poc
+          mkdir -p "$OUT"
+          cp out/* "$OUT"/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$OUT"
+          git commit -m "render: Hidden Shift state ${{ matrix.state }} [skip ci]"
+          for n in 1 2 3 4 5; do
+            git fetch origin global-shorts-render-lab
+            git rebase origin/global-shorts-render-lab
+            if git push origin HEAD:global-shorts-render-lab; then exit 0; fi
+            git rebase --abort || true
+            sleep 3
+          done
+          exit 1
+
+  qa:
+    needs: render
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+          fetch-depth: 0
+      - name: Build contact and difference audit
+        run: |
+          git pull --rebase origin global-shorts-render-lab
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg python3-pil
+          OUT=global_shorts_render_lab/output/hidden_shift_poc
+          ffmpeg -y -hide_banner -loglevel error \
+            -i "$OUT/hidden_shift_A.png" -i "$OUT/hidden_shift_B.png" -i "$OUT/hidden_shift_R.png" \
+            -filter_complex "[0:v]scale=135:240[a];[1:v]scale=135:240[b];[2:v]scale=135:240[c];[a][b][c]hstack=inputs=3[out]" \
+            -map "[out]" -q:v 20 "$OUT/contact.jpg"
+          python - <<'PY'
+          from PIL import Image, ImageChops
+          import json, os
+          out="global_shorts_render_lab/output/hidden_shift_poc"
+          a=Image.open(f"{out}/hidden_shift_A.png").convert("RGB")
+          b=Image.open(f"{out}/hidden_shift_B.png").convert("RGB")
+          d=ImageChops.difference(a,b)
+          bbox=d.getbbox()
+          px=d.load(); w,h=d.size
+          changed=0; total=w*h
+          # perceptual-ish threshold to ignore tiny renderer noise
+          minx,miny,wmax,hmax=w,h,-1,-1
+          for y in range(h):
+            for x in range(w):
+              r,g,bb=px[x,y]
+              if max(r,g,bb)>=8:
+                changed+=1
+                minx=min(minx,x); miny=min(miny,y); wmax=max(wmax,x); hmax=max(hmax,y)
+          ratio=changed/total if total else 0
+          meta={
+            "size":[w,h],
+            "raw_bbox":bbox,
+            "threshold_changed_pixels":changed,
+            "threshold_changed_ratio":ratio,
+            "threshold_bbox":None if changed==0 else [minx,miny,wmax+1,hmax+1],
+            "single_change_intent":"rocket orientation only"
+          }
+          with open(f"{out}/difference_audit.json","w") as f: json.dump(meta,f,indent=2)
+          # amplify difference for internal QA
+          dd=d.point(lambda v:min(255,v*4))
+          dd.save(f"{out}/difference.png")
+          print(json.dumps(meta,indent=2))
+          PY
+          base64 -w0 "$OUT/contact.jpg" > "$OUT/contact.b64.txt"
+      - name: Persist QA
+        run: |
+          OUT=global_shorts_render_lab/output/hidden_shift_poc
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$OUT"
+          git commit -m "qa: Hidden Shift deterministic preview [skip ci]"
+          git pull --rebase origin global-shorts-render-lab
+          git push origin HEAD:global-shorts-render-lab
