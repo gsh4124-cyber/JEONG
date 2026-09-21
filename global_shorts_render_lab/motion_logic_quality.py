@@ -1,3 +1,4 @@
+# quality-refresh-after-5-paddle-proxy
 import bpy, os, math, sys
 
 args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
