@@ -64,6 +64,10 @@ def torus(name,loc,major,minor,material,rot=(math.pi/2,0,0)):
     bpy.ops.mesh.primitive_torus_add(major_radius=major,minor_radius=minor,major_segments=56,minor_segments=14,location=loc,rotation=rot)
     o=bpy.context.object; o.name=name; o.data.materials.append(material); return o
 
+def parent_keep(o,p):
+    o.parent=p
+    o.matrix_parent_inverse=p.matrix_world.inverted()
+
 def add_reveal(loc):
     if frame >= 132:
         ring=torus('RevealRing',loc,.62,.055,GLOW)
@@ -133,11 +137,15 @@ elif variant == 'workbench':
     cube('BlueBox',(.35,-.10,-2.55),(.70,.38,.38),BLUE,.08)
     cyl('Can',(1.85,-.12,-2.45),.30,.72,YELLOW)
 
-    # target: yellow screwdriver rotates 90° only after change
-    angle=0 if frame<=72 else math.radians(90)
-    target=cube('TargetScrewdriver',(.35,-.30,2.75),(.10,.08,.78),YELLOW,.05,rot=(0,angle,0))
-    cube('DriverTip',(.35,-.30,1.95),(.055,.07,.20),METAL,.03,rot=(0,angle,0))
-    add_reveal((.35,-.48,2.55))
+    # target: one screwdriver assembly rotates as a single rigid visual object.
+    bpy.ops.object.empty_add(type='PLAIN_AXES',location=(.35,-.30,2.45))
+    pivot=bpy.context.object; pivot.name='TargetScrewdriverPivot'
+    handle=cube('TargetScrewdriverHandle',(.35,-.30,2.75),(.10,.08,.55),YELLOW,.05)
+    tip=cube('TargetScrewdriverTip',(.35,-.30,2.05),(.055,.07,.18),METAL,.03)
+    parent_keep(handle,pivot); parent_keep(tip,pivot)
+    if frame>72:
+        pivot.rotation_euler.y=math.radians(90)
+    add_reveal((.35,-.48,2.45))
 
     add_light('Key',(-3.6,-5.2,5.4),1180,4.7,(1.0,.72,.55),(0,0,.5))
     add_light('Fill',(4.2,-3.2,1.0),760,4.0,(.32,.54,1.0),(0,0,.2))
