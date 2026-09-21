@@ -96,7 +96,7 @@ if goal_obj:
 def payoff_amount(frame):
     return max(0.0, min(1.0, (frame-70)/12.0))
 
-for fno in range(start,end+1):
+for fno in range(start,end+1,2):
     scene.frame_set(fno)
     bpy.context.view_layer.update()
     p=payoff_amount(fno)
