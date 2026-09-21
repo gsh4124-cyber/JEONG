@@ -1,0 +1,15 @@
+{
+  "variant": "kitchen",
+  "pre_change_strong_pixel_ratio": 0.0,
+  "pre_change_perceptually_stable": true,
+  "strong_change_bbox": [
+    74,
+    76,
+    207,
+    281
+  ],
+  "strong_changed_pixel_ratio": 0.01261,
+  "strong_change_bbox_area_ratio": 0.21038,
+  "localized": true,
+  "single_change_structural_qa": true
+}
