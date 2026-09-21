@@ -230,7 +230,7 @@ meta = {
     "frame_start": scene.frame_start,
     "frame_end": scene.frame_end,
     "mechanism": "gravity ramp -> marble -> 5 hinged paddles -> glowing goal + opening gate",
-    "composition_revision": "portrait path rotated into screen vertical; full ball-to-goal chain visible",
+    "composition_revision": "vNext: 5 paddles, tighter portrait framing, enlarged goal, opening gate payoff",
     "direct_cost_usd": 0,
     "rigid_body_bake": list(bake_result)
 }
