@@ -1,0 +1,35 @@
+name: Motion Logic Contact Sheet
+
+on:
+  push:
+    branches:
+      - global-shorts-render-lab
+    paths:
+      - ".github/workflows/global-shorts-motion-contact.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  contact:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build tiny contact sheet
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          cd global_shorts_render_lab/output/motion_logic_proxy
+          ffmpeg -y -hide_banner -loglevel error \
+            -i first.png -i mid1.png -i mid2.png -i final.png \
+            -filter_complex "[0:v]scale=90:160[a];[1:v]scale=90:160[b];[2:v]scale=90:160[c];[3:v]scale=90:160[d];[a][b][c][d]hstack=inputs=4[out]" \
+            -map "[out]" -q:v 18 contact_small.jpg
+          ls -lh contact_small.jpg
+      - name: Persist
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add global_shorts_render_lab/output/motion_logic_proxy/contact_small.jpg
+          git commit -m "render: add Motion Logic contact sheet [skip ci]"
+          git push origin HEAD:global-shorts-render-lab
