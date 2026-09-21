@@ -1,0 +1,92 @@
+name: Prune Global Shorts Render Lab
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/prune-global-shorts-render-lab.yml"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+          fetch-depth: 0
+
+      - name: Prune superseded render outputs and branch caches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          mkdir -p /tmp/prune
+          du -sh global_shorts_render_lab/output/* 2>/dev/null | sort -h > /tmp/prune/before.txt || true
+
+          # Preserve only current/final evidence:
+          # - Hidden Shift Q3 final candidate
+          # - Hidden Shift transfer proof
+          # - Motion Logic current A/V representative + transfer finals
+          # - storage cleanup report
+          KEEP_RE='^(hidden_shift_workbench_q3_final|hidden_shift_transfer_qa|motion_logic_camera_follow_v3_av|motion_logic_transfer_final|storage_cleanup)$'
+
+          for p in global_shorts_render_lab/output/*; do
+            [ -e "$p" ] || continue
+            name="$(basename "$p")"
+            if [[ "$name" =~ $KEEP_RE ]]; then
+              echo "KEEP $name"
+            else
+              git rm -r --ignore-unmatch "$p"
+            fi
+          done
+
+          # Caches are reproducible. Remove only caches attached to this lab branch.
+          gh cache list --limit 100 --json id,key,ref,sizeInBytes,createdAt,lastAccessedAt > /tmp/prune/caches_before.json || echo '[]' > /tmp/prune/caches_before.json
+          python - <<'PY'
+          import json,subprocess
+          data=json.load(open("/tmp/prune/caches_before.json"))
+          deleted=[]
+          for x in data:
+              if x.get("ref")=="refs/heads/global-shorts-render-lab":
+                  subprocess.run(["gh","cache","delete",str(x["id"])],check=True)
+                  deleted.append(x)
+          json.dump(deleted,open("/tmp/prune/caches_deleted.json","w"),indent=2)
+          print({"branch_caches_deleted":len(deleted),"bytes":sum(int(x.get("sizeInBytes",0)) for x in deleted)})
+          PY
+
+          du -sh global_shorts_render_lab/output/* 2>/dev/null | sort -h > /tmp/prune/after.txt || true
+
+          python - <<'PY'
+          import json,pathlib
+          out=pathlib.Path("global_shorts_render_lab/output/storage_cleanup")
+          out.mkdir(parents=True,exist_ok=True)
+          report={
+              "policy":"Keep only current/final evidence in active output tree; superseded outputs remain recoverable in Git history.",
+              "kept":[
+                "hidden_shift_workbench_q3_final",
+                "hidden_shift_transfer_qa",
+                "motion_logic_camera_follow_v3_av",
+                "motion_logic_transfer_final",
+                "storage_cleanup"
+              ],
+              "before":pathlib.Path("/tmp/prune/before.txt").read_text(),
+              "after":pathlib.Path("/tmp/prune/after.txt").read_text(),
+              "deleted_branch_caches":json.load(open("/tmp/prune/caches_deleted.json"))
+          }
+          (out/"active_tree_prune_report.json").write_text(json.dumps(report,indent=2),encoding="utf-8")
+          PY
+
+      - name: Commit cleanup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A global_shorts_render_lab/output
+          git commit -m "ops: prune superseded global shorts render outputs"
+          git pull --rebase origin global-shorts-render-lab
+          git push origin HEAD:global-shorts-render-lab
