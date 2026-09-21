@@ -1,0 +1,33 @@
+name: Motion Logic Fast QA Tiny
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/global-shorts-motion-fast-qa-tiny.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  tiny:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build tiny QA image
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          cd global_shorts_render_lab/output/motion_logic_quality_fast
+          ffmpeg -y -hide_banner -loglevel error -i quality_fast_60.png -vf scale=108:192 -q:v 31 quality_fast_tiny.jpg
+          ls -lh quality_fast_tiny.jpg
+      - name: Persist
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add global_shorts_render_lab/output/motion_logic_quality_fast/quality_fast_tiny.jpg
+          git commit -m "render: add fast Motion Logic QA tiny [skip ci]"
+          git fetch origin global-shorts-render-lab
+          git rebase origin/global-shorts-render-lab
+          git push origin HEAD:global-shorts-render-lab
