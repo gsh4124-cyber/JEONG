@@ -125,7 +125,7 @@ bpy.ops.object.shade_smooth()
 add_active(ball, mass=1.2, friction=0.08, restitution=0.06, shape='SPHERE')
 
 # Domino chain
-domino_xs = [-0.45, 0.03, 0.51, 0.99, 1.47, 1.95, 2.43]
+domino_xs = [-0.35, 0.25, 0.85, 1.45, 2.05]
 dominos = []
 for i, x in enumerate(domino_xs):
     d = add_cube(f"Domino_{i+1}", (x,0,0.52), (0.11,0.38,0.50), MAT_DOMINO, bevel=0.035)
@@ -134,12 +134,12 @@ for i, x in enumerate(domino_xs):
     dominos.append(d)
 
 # Goal bell/target
-bpy.ops.mesh.primitive_cylinder_add(vertices=32, radius=0.5, depth=0.18, location=(3.10,0,0.05))
+bpy.ops.mesh.primitive_cylinder_add(vertices=32, radius=0.68, depth=0.22, location=(2.95,0,0.06))
 goal_base = bpy.context.object
 goal_base.data.materials.append(MAT_GOAL)
 add_passive(goal_base, 0.7)
 
-bpy.ops.mesh.primitive_uv_sphere_add(segments=24, ring_count=12, radius=0.38, location=(3.10,0,0.48))
+bpy.ops.mesh.primitive_uv_sphere_add(segments=24, ring_count=12, radius=0.52, location=(2.95,0,0.60))
 goal = bpy.context.object
 goal.name = "GoalBell"
 goal.scale.z = 0.55
@@ -147,12 +147,25 @@ bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
 goal.data.materials.append(MAT_GOAL)
 add_passive(goal, 0.6)
 
+# Visual payoff system: emissive target ring + gate that opens near the end.
+bpy.ops.mesh.primitive_torus_add(major_radius=0.82, minor_radius=0.055, location=(2.95,0,0.18))
+goal_ring = bpy.context.object
+goal_ring.name = "GoalRing"
+goal_ring.data.materials.append(MAT_GOAL)
+
+gate = add_cube("SuccessGate", (3.72,0,0.68), (0.10,0.75,0.68), MAT_GOAL, bevel=0.05)
+gate.rotation_euler = (0,0,0)
+gate.keyframe_insert(data_path="rotation_euler", frame=1)
+gate.rotation_euler = (0, math.radians(-72), 0)
+gate.keyframe_insert(data_path="rotation_euler", frame=72)
+gate.keyframe_insert(data_path="rotation_euler", frame=90)
+
 # Camera — portrait composition: map the long X-axis path onto screen vertical
 bpy.ops.object.camera_add(location=(0.0, -10.5, 7.0))
 cam = bpy.context.object
 scene.camera = cam
 cam.data.type = 'ORTHO'
-cam.data.ortho_scale = 11.6
+cam.data.ortho_scale = 9.2
 
 def look_at_with_roll(obj, target, roll_deg=90):
     direction = Vector(target) - obj.location
@@ -161,7 +174,7 @@ def look_at_with_roll(obj, target, roll_deg=90):
     obj.rotation_mode = 'QUATERNION'
     obj.rotation_quaternion = base @ roll
 
-look_at_with_roll(cam, (-0.15, 0, 0.62), 90)
+look_at_with_roll(cam, (-0.55, 0, 0.70), 90)
 
 # Add simple area-like sun for preview depth
 bpy.ops.object.light_add(type='SUN', location=(0,-4,8))
@@ -216,7 +229,7 @@ meta = {
     "fps": scene.render.fps,
     "frame_start": scene.frame_start,
     "frame_end": scene.frame_end,
-    "mechanism": "gravity ramp -> marble -> domino chain -> goal",
+    "mechanism": "gravity ramp -> marble -> 5 hinged paddles -> glowing goal + opening gate",
     "composition_revision": "portrait path rotated into screen vertical; full ball-to-goal chain visible",
     "direct_cost_usd": 0,
     "rigid_body_bake": list(bake_result)
