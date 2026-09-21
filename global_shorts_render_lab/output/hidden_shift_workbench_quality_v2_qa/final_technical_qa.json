@@ -1,0 +1,43 @@
+{
+  "ffprobe": {
+    "programs": [],
+    "streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "codec_type": "video",
+        "width": 1080,
+        "height": 1920,
+        "r_frame_rate": "18/1",
+        "start_time": "0.000000",
+        "duration": "8.944444"
+      },
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "codec_type": "audio",
+        "r_frame_rate": "0/0",
+        "start_time": "0.000000",
+        "duration": "9.000000"
+      }
+    ],
+    "format": {
+      "duration": "9.000000",
+      "size": "637802"
+    }
+  },
+  "sync_matches": [
+    {
+      "expected": 4.0,
+      "actual": 3.995,
+      "delta_ms": -5.0
+    },
+    {
+      "expected": 7.0,
+      "actual": 6.995,
+      "delta_ms": -5.0
+    }
+  ],
+  "sha256": "88021fb9c4d13dafda63454816b02631e790b5ac88549d28bb185860a5abce76",
+  "technical_qa": true
+}
