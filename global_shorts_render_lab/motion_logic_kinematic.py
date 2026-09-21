@@ -94,8 +94,6 @@ def kf_rot(obj, f0, f1, degrees):
     obj.rotation_euler.y=math.radians(degrees); obj.keyframe_insert('rotation_euler',frame=f1)
     # settle
     obj.rotation_euler.y=math.radians(degrees); obj.keyframe_insert('rotation_euler',frame=f1+4)
-    for fc in obj.animation_data.action.fcurves:
-        for kp in fc.keyframe_points: kp.interpolation='BEZIER'
 
 kf_rot(g1,10,16,-72)
 kf_rot(g2,22,28,72)
@@ -120,8 +118,6 @@ ball_keys=[
 ]
 for f,loc in ball_keys:
     ball.location=loc; ball.keyframe_insert('location',frame=f)
-for fc in ball.animation_data.action.fcurves:
-    for kp in fc.keyframe_points: kp.interpolation='BEZIER'
 
 # Add subtle ball spin
 ball.rotation_euler=(0,0,0); ball.keyframe_insert('rotation_euler',frame=1)
