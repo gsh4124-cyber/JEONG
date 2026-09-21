@@ -1,0 +1,48 @@
+name: Hidden Shift Q3 Precision Visual QA
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/hidden-shift-q3-precision-visual-qa.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+          fetch-depth: 0
+      - name: Extract precision QA images from exact final MP4
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          IN=global_shorts_render_lab/output/hidden_shift_workbench_q3_final/hidden_shift_workbench_q3_final.mp4
+          OUT=global_shorts_render_lab/output/hidden_shift_workbench_q3_final
+
+          ffmpeg -y -hide_banner -loglevel error -ss 0.50 -i "$IN" -frames:v 1             -vf "crop=1080:300:0:0,scale=360:100" -q:v 29 "$OUT/q3_title_precision.jpg"
+
+          for spec in "before:0.50" "after:4.50" "reveal:7.20"; do
+            n="${spec%%:*}"; t="${spec#*:}"
+            ffmpeg -y -hide_banner -loglevel error -ss "$t" -i "$IN" -frames:v 1               -vf "crop=620:980:230:300,scale=248:392" -q:v 29 "$OUT/q3_${n}_precision.jpg"
+          done
+
+          for f in q3_title_precision q3_before_precision q3_after_precision q3_reveal_precision; do
+            base64 -w0 "$OUT/${f}.jpg" > "$OUT/${f}.b64.txt"
+            echo "$f $(wc -c < "$OUT/${f}.jpg") bytes"
+          done
+          sha256sum "$IN" > "$OUT/q3_precision_source_hash.txt"
+
+      - name: Persist precision QA
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add global_shorts_render_lab/output/hidden_shift_workbench_q3_final
+          git commit -m "qa: add precision visual crops from exact Q3 final [skip ci]"
+          git pull --rebase origin global-shorts-render-lab
+          git push origin HEAD:global-shorts-render-lab
