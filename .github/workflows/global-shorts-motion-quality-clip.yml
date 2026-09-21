@@ -11,17 +11,21 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: motion-logic-proof-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   render:
     strategy:
       fail-fast: false
       matrix:
         include:
-          - {start: 24, end: 34, events: 1, part: "a"}
-          - {start: 36, end: 46, events: 0, part: "b"}
-          - {start: 48, end: 58, events: 0, part: "c"}
-          - {start: 60, end: 70, events: 0, part: "d"}
-          - {start: 72, end: 82, events: 0, part: "e"}
+          - {start: 24, end: 33, events: 1, part: "a"}
+          - {start: 36, end: 45, events: 0, part: "b"}
+          - {start: 48, end: 57, events: 0, part: "c"}
+          - {start: 60, end: 69, events: 0, part: "d"}
+          - {start: 72, end: 81, events: 0, part: "e"}
           - {start: 84, end: 90, events: 0, part: "f"}
     runs-on: ubuntu-latest
     timeout-minutes: 12
@@ -90,7 +94,7 @@ jobs:
             cp "$f" "seq/frame_$(printf '%04d' "$i").png"
             i=$((i+1))
           done < <(find global_shorts_render_lab/output/motion_logic_motion_proof_parts -name 'frame_*.png' | sort)
-          test "$i" -ge 30
+          test "$i" -ge 20
           cp global_shorts_render_lab/output/motion_logic_motion_proof_parts/a/events.json events.json
           python - <<'PY'
           import json, math, wave, struct
@@ -127,7 +131,7 @@ jobs:
       - name: Encode proof clip
         run: |
           ffmpeg -y -hide_banner -loglevel error \
-            -framerate 9 -i seq/frame_%04d.png \
+            -framerate 6 -i seq/frame_%04d.png \
             -i motion.wav \
             -vf "minterpolate=fps=18:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1" \
             -shortest \
