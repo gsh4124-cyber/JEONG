@@ -1,0 +1,27 @@
+name: Hidden Shift QA Handoff
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/global-shorts-hidden-shift-qa-handoff.yml"
+  workflow_dispatch:
+
+jobs:
+  handoff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+      - name: Package QA
+        run: |
+          mkdir -p qa
+          cp global_shorts_render_lab/output/hidden_shift_poc/contact.jpg qa/
+          cp global_shorts_render_lab/output/hidden_shift_poc/difference.png qa/
+          cp global_shorts_render_lab/output/hidden_shift_poc/difference_audit.json qa/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hidden-shift-qa
+          path: qa
+          retention-days: 1
