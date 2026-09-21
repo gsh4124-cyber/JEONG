@@ -11,7 +11,7 @@ bpy.ops.object.delete(use_global=False)
 
 scene = bpy.context.scene
 scene.frame_start = 1
-scene.frame_end = 45
+scene.frame_end = 90
 scene.render.fps = 18
 scene.gravity = (0.0, 0.0, -9.81)
 scene.render.engine = 'BLENDER_WORKBENCH'
@@ -96,9 +96,11 @@ add_active(ball, mass=1.2, friction=0.5, restitution=0.08)
 
 # Domino chain
 domino_xs = [-0.45, 0.12, 0.69, 1.26, 1.83, 2.40, 2.97]
+dominos = []
 for i, x in enumerate(domino_xs):
     d = add_cube(f"Domino_{i+1}", (x,0,0.62), (0.12,0.42,0.70), MAT_DOMINO, bevel=0.035)
     add_active(d, mass=0.38, friction=0.72, restitution=0.02)
+    dominos.append(d)
 
 # Goal bell/target
 bpy.ops.mesh.primitive_cylinder_add(vertices=32, radius=0.5, depth=0.18, location=(3.75,0,0.05))
@@ -146,6 +148,20 @@ if rw:
 
 # Render animation
 bpy.ops.render.render(animation=True)
+
+# Sample actual rigid-body state to separate "rendered" from "mechanism worked".
+trace = []
+for fno in (1, 30, 60, 90):
+    scene.frame_set(fno)
+    bpy.context.view_layer.update()
+    trace.append({
+        "frame": fno,
+        "ball_location": [round(float(v), 4) for v in ball.matrix_world.translation],
+        "domino_rot_y": [round(float(d.rotation_euler.y), 4) for d in dominos],
+        "domino_rot_x": [round(float(d.rotation_euler.x), 4) for d in dominos],
+    })
+with open(os.path.join(outdir, "physics_trace.json"), "w", encoding="utf-8") as f:
+    json.dump(trace, f, ensure_ascii=False, indent=2)
 
 # Save deterministic scene for later quality-frame reuse
 bpy.ops.wm.save_as_mainfile(filepath=os.path.join(outdir, "motion_logic_proxy.blend"))
