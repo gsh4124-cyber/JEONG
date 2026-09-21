@@ -1,0 +1,92 @@
+name: Motion Logic Kinematic Quality V2
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/global-shorts-motion-kinematic-quality-v2.yml"
+      - "global_shorts_render_lab/motion_logic_kinematic_quality_v2.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: motion-logic-kinematic-quality-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render:
+    strategy:
+      fail-fast: false
+      matrix:
+        frame: [1, 25, 46]
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+          fetch-depth: 0
+      - name: Install runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends wget xz-utils \
+            libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libegl1 libxkbcommon0 libsm6
+      - name: Download Blender
+        run: |
+          wget -q https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
+          tar -xf blender-5.2.2-linux-x64.tar.xz
+      - name: Render frame
+        run: |
+          mkdir -p out
+          ./blender-5.2.2-linux-x64/blender --background \
+            --python global_shorts_render_lab/motion_logic_kinematic_quality_v2.py -- \
+            out ${{ matrix.frame }}
+      - name: Persist frame
+        run: |
+          OUT=global_shorts_render_lab/output/motion_logic_kinematic_quality_v2
+          mkdir -p "$OUT"
+          cp out/* "$OUT"/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$OUT"
+          git commit -m "render: Motion Logic quality v2 frame ${{ matrix.frame }} [skip ci]"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin global-shorts-render-lab
+            git rebase origin/global-shorts-render-lab
+            if git push origin HEAD:global-shorts-render-lab; then exit 0; fi
+            git rebase --abort || true
+            sleep 3
+          done
+          exit 1
+
+  contact:
+    needs: render
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+          fetch-depth: 0
+      - name: Refresh branch and build contact
+        run: |
+          git pull --rebase origin global-shorts-render-lab
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          cd global_shorts_render_lab/output/motion_logic_kinematic_quality_v2
+          ffmpeg -y -hide_banner -loglevel error \
+            -i quality_v2_0001.png -i quality_v2_0025.png -i quality_v2_0046.png \
+            -filter_complex "[0:v]scale=135:240[a];[1:v]scale=135:240[b];[2:v]scale=135:240[c];[a][b][c]hstack=inputs=3[out]" \
+            -map "[out]" -q:v 22 quality_v2_contact.jpg
+          ffmpeg -y -hide_banner -loglevel error -i quality_v2_contact.jpg \
+            -vf scale=203:120 -q:v 31 quality_v2_contact_tiny.jpg
+          base64 -w0 quality_v2_contact_tiny.jpg > quality_v2_contact_tiny.b64.txt
+      - name: Persist contact
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add global_shorts_render_lab/output/motion_logic_kinematic_quality_v2
+          git commit -m "render: Motion Logic quality v2 contact [skip ci]"
+          git pull --rebase origin global-shorts-render-lab
+          git push origin HEAD:global-shorts-render-lab
