@@ -140,7 +140,7 @@ jobs:
               "sha256":h,
               "technical_qa":passed
           }
-          with open(f"{OUT}/final_qa.json","w") as f: json.dump(result,f,indent=2)
+          with open("global_shorts_render_lab/output/hidden_shift_workbench_q4_final/final_qa.json","w") as f: json.dump(result,f,indent=2)
           print(json.dumps(result,indent=2))
           if not passed: raise SystemExit("Q4 final technical QA failed")
           PY
