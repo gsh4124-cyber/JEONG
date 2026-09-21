@@ -1,0 +1,98 @@
+name: Motion Logic Transfer Preview
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/global-shorts-motion-transfer-preview.yml"
+      - "global_shorts_render_lab/motion_logic_transfer_preview.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: motion-logic-transfer-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {variant: "bridge", frame: 1}
+          - {variant: "bridge", frame: 24}
+          - {variant: "bridge", frame: 49}
+          - {variant: "counterweight", frame: 1}
+          - {variant: "counterweight", frame: 28}
+          - {variant: "counterweight", frame: 49}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+          fetch-depth: 0
+      - name: Install runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends wget xz-utils libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libegl1 libxkbcommon0 libsm6
+          wget -q https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
+          tar -xf blender-5.2.2-linux-x64.tar.xz
+      - name: Render
+        run: |
+          mkdir -p out
+          ./blender-5.2.2-linux-x64/blender --background \
+            --python global_shorts_render_lab/motion_logic_transfer_preview.py -- \
+            ${{ matrix.variant }} out ${{ matrix.frame }}
+      - name: Persist
+        run: |
+          OUT="global_shorts_render_lab/output/motion_logic_transfer_preview"
+          mkdir -p "$OUT"
+          cp out/* "$OUT"/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$OUT"
+          git commit -m "render: Motion Logic transfer ${{ matrix.variant }} ${{ matrix.frame }} [skip ci]"
+          for n in 1 2 3 4 5; do
+            git fetch origin global-shorts-render-lab
+            git rebase origin/global-shorts-render-lab
+            if git push origin HEAD:global-shorts-render-lab; then exit 0; fi
+            git rebase --abort || true
+            sleep 3
+          done
+          exit 1
+
+  contacts:
+    needs: render
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+          fetch-depth: 0
+      - name: Build contacts
+        run: |
+          git pull --rebase origin global-shorts-render-lab
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          cd global_shorts_render_lab/output/motion_logic_transfer_preview
+          ffmpeg -y -hide_banner -loglevel error \
+            -i bridge_0001.png -i bridge_0024.png -i bridge_0049.png \
+            -filter_complex "[0:v]scale=90:160[a];[1:v]scale=90:160[b];[2:v]scale=90:160[c];[a][b][c]hstack=inputs=3[out]" \
+            -map "[out]" -q:v 28 bridge_contact.jpg
+          ffmpeg -y -hide_banner -loglevel error \
+            -i counterweight_0001.png -i counterweight_0028.png -i counterweight_0049.png \
+            -filter_complex "[0:v]scale=90:160[a];[1:v]scale=90:160[b];[2:v]scale=90:160[c];[a][b][c]hstack=inputs=3[out]" \
+            -map "[out]" -q:v 28 counterweight_contact.jpg
+          base64 -w0 bridge_contact.jpg > bridge_contact.b64.txt
+          base64 -w0 counterweight_contact.jpg > counterweight_contact.b64.txt
+      - name: Persist contacts
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add global_shorts_render_lab/output/motion_logic_transfer_preview
+          git commit -m "render: Motion Logic transfer contacts [skip ci]"
+          git pull --rebase origin global-shorts-render-lab
+          git push origin HEAD:global-shorts-render-lab
