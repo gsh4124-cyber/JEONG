@@ -1,0 +1,86 @@
+name: MorphMint Family C POC V1 Preview
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/morphmint-family-c-poc-v1.yml"
+      - "global_shorts_render_lab/morphmint_family_c_poc_v1.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  render:
+    strategy:
+      fail-fast: false
+      matrix:
+        frame: [1,24,54,66,78,112,126,144]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+          fetch-depth: 0
+      - name: Install Blender
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends wget xz-utils libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libegl1 libxkbcommon0 libsm6
+          wget -q https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
+          tar -xf blender-5.2.2-linux-x64.tar.xz
+      - name: Render
+        run: |
+          mkdir -p out
+          ./blender-5.2.2-linux-x64/blender --background \
+            --python global_shorts_render_lab/morphmint_family_c_poc_v1.py -- \
+            out ${{ matrix.frame }}
+      - name: Persist
+        run: |
+          OUT=global_shorts_render_lab/output/morphmint_family_c_poc_v1
+          mkdir -p "$OUT"
+          cp out/* "$OUT"/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$OUT"
+          git commit -m "render: MorphMint Family C POC frame ${{ matrix.frame }} [skip ci]"
+          for n in 1 2 3 4 5 6; do
+            git fetch origin global-shorts-render-lab
+            git rebase origin/global-shorts-render-lab
+            if git push origin HEAD:global-shorts-render-lab; then exit 0; fi
+            git rebase --abort || true
+            sleep 4
+          done
+          exit 1
+
+  contact:
+    needs: render
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+          fetch-depth: 0
+      - name: Build contact
+        run: |
+          git pull --rebase origin global-shorts-render-lab
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          ROOT=global_shorts_render_lab/output/morphmint_family_c_poc_v1
+          ffmpeg -y -hide_banner -loglevel error \
+            -i "$ROOT/morphmint_0001.png" -i "$ROOT/morphmint_0024.png" \
+            -i "$ROOT/morphmint_0054.png" -i "$ROOT/morphmint_0066.png" \
+            -i "$ROOT/morphmint_0078.png" -i "$ROOT/morphmint_0112.png" \
+            -i "$ROOT/morphmint_0126.png" -i "$ROOT/morphmint_0144.png" \
+            -filter_complex "[0:v]scale=135:240[a];[1:v]scale=135:240[b];[2:v]scale=135:240[c];[3:v]scale=135:240[d];[4:v]scale=135:240[e];[5:v]scale=135:240[f];[6:v]scale=135:240[g];[7:v]scale=135:240[h];[a][b][c][d]hstack=4[top];[e][f][g][h]hstack=4[bot];[top][bot]vstack=2[out]" \
+            -map "[out]" -q:v 24 "$ROOT/morphmint_contact.jpg"
+          ffmpeg -y -hide_banner -loglevel error -i "$ROOT/morphmint_contact.jpg" -vf scale=270:240 -q:v 30 "$ROOT/morphmint_contact_compact.jpg"
+      - name: Persist contact
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add global_shorts_render_lab/output/morphmint_family_c_poc_v1
+          git commit -m "qa: MorphMint Family C POC preview contact [skip ci]"
+          git pull --rebase origin global-shorts-render-lab
+          git push origin HEAD:global-shorts-render-lab
