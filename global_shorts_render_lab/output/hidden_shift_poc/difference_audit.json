@@ -7,15 +7,15 @@
     0,
     0,
     270,
-    450
+    422
   ],
-  "threshold_changed_pixels": 1433,
-  "threshold_changed_ratio": 0.0110570987654321,
+  "threshold_changed_pixels": 961,
+  "threshold_changed_ratio": 0.007415123456790123,
   "threshold_bbox": [
-    67,
-    0,
-    160,
-    183
+    62,
+    103,
+    163,
+    151
   ],
   "single_change_intent": "rocket orientation only"
 }
