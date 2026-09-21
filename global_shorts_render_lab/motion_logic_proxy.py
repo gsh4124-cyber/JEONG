@@ -54,20 +54,26 @@ def add_cube(name, loc, scale, material, rot=(0,0,0), bevel=0.0):
         mod.segments = 3
     return o
 
-def add_passive(o, friction=0.6):
+def add_passive(o, friction=0.6, shape='BOX'):
+    bpy.ops.object.select_all(action='DESELECT')
     bpy.context.view_layer.objects.active = o
     o.select_set(True)
     bpy.ops.rigidbody.object_add()
     o.rigid_body.type = 'PASSIVE'
+    o.rigid_body.collision_shape = shape
     o.rigid_body.friction = friction
     o.rigid_body.restitution = 0.05
     o.select_set(False)
 
-def add_active(o, mass=1.0, friction=0.5, restitution=0.1):
+def add_active(o, mass=1.0, friction=0.5, restitution=0.1, shape='BOX'):
+    bpy.ops.object.select_all(action='DESELECT')
     bpy.context.view_layer.objects.active = o
     o.select_set(True)
     bpy.ops.rigidbody.object_add()
     o.rigid_body.type = 'ACTIVE'
+    o.rigid_body.enabled = True
+    o.rigid_body.kinematic = False
+    o.rigid_body.collision_shape = shape
     o.rigid_body.mass = mass
     o.rigid_body.friction = friction
     o.rigid_body.restitution = restitution
@@ -92,14 +98,14 @@ ball = bpy.context.object
 ball.name = "BlueMarble"
 ball.data.materials.append(MAT_BALL)
 bpy.ops.object.shade_smooth()
-add_active(ball, mass=1.2, friction=0.08, restitution=0.06)
+add_active(ball, mass=1.2, friction=0.08, restitution=0.06, shape='SPHERE')
 
 # Domino chain
 domino_xs = [-0.45, 0.12, 0.69, 1.26, 1.83, 2.40, 2.97]
 dominos = []
 for i, x in enumerate(domino_xs):
-    d = add_cube(f"Domino_{i+1}", (x,0,0.62), (0.12,0.42,0.70), MAT_DOMINO, bevel=0.035)
-    add_active(d, mass=0.38, friction=0.72, restitution=0.02)
+    d = add_cube(f"Domino_{i+1}", (x,0,0.72), (0.12,0.42,0.70), MAT_DOMINO, bevel=0.035)
+    add_active(d, mass=0.34, friction=0.48, restitution=0.02, shape='BOX')
     dominos.append(d)
 
 # Goal bell/target
@@ -166,6 +172,7 @@ for fno in (1, 30, 60, 90):
     trace.append({
         "frame": fno,
         "ball_location": [round(float(v), 4) for v in ball.matrix_world.translation],
+        "domino_location": [[round(float(v), 4) for v in d.matrix_world.translation] for d in dominos],
         "domino_rot_y": [round(float(d.rotation_euler.y), 4) for d in dominos],
         "domino_rot_x": [round(float(d.rotation_euler.x), 4) for d in dominos],
     })
