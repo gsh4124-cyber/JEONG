@@ -165,14 +165,6 @@ cam.rotation_euler=(Vector((0,0,-0.15))-cam.location).to_track_quat('-Z','Y').to
 cube('TopCap',(0,0.36,4.62),(2.22,0.12,0.12),M_RAIL,0.08)
 cube('BottomCap',(0,0.36,-4.62),(2.22,0.12,0.12),M_RAIL,0.08)
 
-# compositor bloom-ish glare (Eevee emission + compositor)
-scene.use_nodes=True
-nt=scene.node_tree; nt.nodes.clear()
-rl=nt.nodes.new('CompositorNodeRLayers')
-gl=nt.nodes.new('CompositorNodeGlare'); gl.glare_type='FOG_GLOW'; gl.quality='HIGH'; gl.threshold=0.8; gl.size=6
-comp=nt.nodes.new('CompositorNodeComposite')
-nt.links.new(rl.outputs['Image'],gl.inputs['Image']); nt.links.new(gl.outputs['Image'],comp.inputs['Image'])
-
 # render selected frames
 for f in range(start,end+1,step):
     scene.frame_set(f)
