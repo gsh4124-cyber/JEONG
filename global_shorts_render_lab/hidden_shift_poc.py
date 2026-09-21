@@ -115,20 +115,20 @@ h2=cube('ClockHand2',(0.26,-0.085,1.58),(0.13,0.018,0.022),DARK,0.01)
 h2.rotation_euler.y=math.radians(10)
 
 # rocket target: fixed position, only yaw changes A vs B
-bpy.ops.object.empty_add(type='PLAIN_AXES',location=(-0.42,-0.03,1.64))
+bpy.ops.object.empty_add(type='PLAIN_AXES',location=(-0.30,-0.18,1.72))
 rocket=bpy.context.object; rocket.name='RocketPivot'
 # horizontal body along local X
-body=cyl('RocketBody',(-0.42,-0.03,1.64),0.17,0.78,BLUE,rot=(0,math.pi/2,0))
+body=cyl('RocketBody',(-0.30,-0.18,1.72),0.21,0.96,BLUE,rot=(0,math.pi/2,0))
 body.parent=rocket; body.matrix_parent_inverse=rocket.matrix_world.inverted()
-bpy.ops.mesh.primitive_cone_add(vertices=48,radius1=0.18,radius2=0.0,depth=0.34,
-                                location=(-0.03,-0.03,1.64),rotation=(0,math.pi/2,0))
+bpy.ops.mesh.primitive_cone_add(vertices=48,radius1=0.22,radius2=0.0,depth=0.40,
+                                location=(0.18,-0.18,1.72),rotation=(0,math.pi/2,0))
 nose=bpy.context.object; nose.data.materials.append(RED); nose.parent=rocket; nose.matrix_parent_inverse=rocket.matrix_world.inverted()
 # fins
 for z in (1.49,1.79):
-    fin=cube('RocketFin',(-0.75,-0.03,z),(0.16,0.08,0.06),RED,0.03,rot=(0,0,math.radians(18 if z>1.6 else -18)))
+    fin=cube('RocketFin',(-0.70,-0.18,z+0.08),(0.16,0.08,0.06),RED,0.03,rot=(0,0,math.radians(18 if z>1.6 else -18)))
     fin.parent=rocket; fin.matrix_parent_inverse=rocket.matrix_world.inverted()
 # small window
-uv('RocketWindow',(-0.24,-0.19,1.64),0.085,CERAMIC,scale=(1,0.25,1)).parent=rocket
+uv('RocketWindow',(-0.08,-0.36,1.72),0.085,CERAMIC,scale=(1.15,0.25,1.15)).parent=rocket
 
 if state in ('B','R'):
     rocket.rotation_euler.z=math.radians(180)
@@ -140,7 +140,7 @@ cube('Pencil',(-0.28,-0.62,-1.38),(0.42,0.025,0.025),BRASS,0.015,rot=(0,0,math.r
 # reveal halo only in R
 if state=='R':
     bpy.ops.mesh.primitive_torus_add(major_radius=0.60,minor_radius=0.055,major_segments=64,minor_segments=16,
-                                    location=(-0.42,-0.28,1.64),rotation=(math.pi/2,0,0))
+                                    location=(-0.30,-0.43,1.72),rotation=(math.pi/2,0,0))
     halo=bpy.context.object; halo.data.materials.append(GLOW)
 
 # lighting
@@ -159,7 +159,7 @@ area('TopRim',(0,2.8,4.0),900,3.0,(1.0,0.36,0.18),(0,0,0.4))
 bpy.ops.object.light_add(type='POINT',location=(-1.85,-0.55,0.40))
 pl=bpy.context.object; pl.data.energy=210; pl.data.color=(1.0,0.42,0.16); pl.data.shadow_soft_size=0.5
 if state=='R':
-    bpy.ops.object.light_add(type='POINT',location=(-0.42,-0.80,1.64))
+    bpy.ops.object.light_add(type='POINT',location=(-0.30,-0.95,1.72))
     q=bpy.context.object; q.data.energy=90; q.data.color=(1.0,0.15,0.03); q.data.shadow_soft_size=0.6
 
 # camera fixed
