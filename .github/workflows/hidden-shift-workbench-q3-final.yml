@@ -1,0 +1,146 @@
+name: Hidden Shift Workbench Q3 Final Edit
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/hidden-shift-workbench-q3-final.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  edit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+          fetch-depth: 0
+      - name: Install edit tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-dejavu-core python3-pil
+          git pull --rebase origin global-shorts-render-lab
+      - name: Build Q3 final
+        run: |
+          ROOT=global_shorts_render_lab/output/hidden_shift_workbench_quality_v2
+          OUT=global_shorts_render_lab/output/hidden_shift_workbench_q3_final
+          rm -rf "$OUT"; mkdir -p "$OUT"
+
+          # Base visual: 3.45s observe → 0.16s blink → 3.0s changed → 2.39s reveal/settle.
+          # The blink hides the discrete state swap, so the viewer must compare memory rather than simply watch the object jump.
+          ffmpeg -y -hide_banner -loglevel error \
+            -loop 1 -t 3.45 -i "$ROOT/workbench_q2_0001.png" \
+            -f lavfi -t 0.16 -i "color=c=black:s=720x1280:r=18" \
+            -loop 1 -t 3.00 -i "$ROOT/workbench_q2_0073.png" \
+            -loop 1 -t 0.70 -i "$ROOT/workbench_q2_0132.png" \
+            -loop 1 -t 0.70 -i "$ROOT/workbench_q2_0146.png" \
+            -loop 1 -t 0.99 -i "$ROOT/workbench_q2_0162.png" \
+            -filter_complex "
+              [0:v]fps=18,setsar=1[v0];
+              [1:v]fps=18,setsar=1[vb];
+              [2:v]fps=18,setsar=1[v1];
+              [3:v]fps=18,setsar=1[v2];
+              [4:v]fps=18,setsar=1[v3];
+              [5:v]fps=18,setsar=1[v4];
+              [v0][vb][v1][v2][v3][v4]concat=n=6:v=1:a=0,
+              scale=1080:1920:flags=lanczos,
+              unsharp=5:5:0.30:5:5:0,
+              drawbox=x=120:y=72:w=840:h=116:color=black@0.42:t=fill,
+              drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:
+                text='SPOT THE CHANGE':
+                fontsize=62:
+                fontcolor=white:
+                x=(w-text_w)/2:
+                y=96:
+                shadowcolor=black@0.7:
+                shadowx=2:
+                shadowy=3:
+                enable='lt(t,6.61)'[v]" \
+            -map "[v]" -c:v libx264 -profile:v high -level 4.1 -pix_fmt yuv420p -crf 18 -preset medium "$OUT/q3_silent.mp4"
+
+          python - <<'PY'
+          import wave,math,struct,os
+          sr=48000; dur=9.0; n=int(sr*dur); buf=[0.0]*n
+          def tone(t,f,a,l,d):
+              s=max(0,int(t*sr)); ln=min(int(l*sr),n-s)
+              for j in range(ln):
+                  x=j/sr; buf[s+j]+=a*math.sin(2*math.pi*f*x)*math.exp(-d*x)
+          # subtle observation pulse, blink cue, reveal chord
+          for t in (0.8,1.65,2.5,4.5,5.35):
+              tone(t,630,.045,.045,38)
+          tone(3.45,300,.16,.09,30)
+          reveal=6.61
+          tone(reveal,820,.36,.44,8)
+          tone(reveal+.035,1230,.21,.36,10)
+          tone(reveal+.075,1640,.11,.30,11)
+          mx=max(1.0,max(abs(v) for v in buf))
+          with wave.open("q3.wav","w") as w:
+              w.setnchannels(1); w.setsampwidth(2); w.setframerate(sr)
+              raw=bytearray()
+              for v in buf: raw.extend(struct.pack("<h",int(max(-1,min(1,v/mx))*32767)))
+              w.writeframes(raw)
+          PY
+
+          ffmpeg -y -hide_banner -loglevel error \
+            -i "$OUT/q3_silent.mp4" -i q3.wav -shortest \
+            -c:v copy -c:a aac -b:a 160k -movflags +faststart \
+            "$OUT/hidden_shift_workbench_q3_final.mp4"
+      - name: QA final asset
+        run: |
+          OUT=global_shorts_render_lab/output/hidden_shift_workbench_q3_final
+          python - <<'PY'
+          import subprocess,json,wave,struct,hashlib,os
+          path="global_shorts_render_lab/output/hidden_shift_workbench_q3_final/hidden_shift_workbench_q3_final.mp4"
+          probe=json.loads(subprocess.run([
+              "ffprobe","-v","error",
+              "-show_entries","format=duration,size:stream=index,codec_type,codec_name,width,height,r_frame_rate,start_time,duration",
+              "-of","json",path],capture_output=True,text=True,check=True).stdout)
+          wav="/tmp/q3.wav"
+          subprocess.run(["ffmpeg","-y","-hide_banner","-loglevel","error","-i",path,"-vn","-ac","1","-ar","48000",wav],check=True)
+          with wave.open(wav,"rb") as w:
+              sr=w.getframerate(); vals=struct.unpack("<"+"h"*w.getnframes(),w.readframes(w.getnframes()))
+          hop=int(sr*.005); win=int(sr*.01); active=[]
+          for s in range(0,len(vals)-win,hop):
+              rms=(sum(v*v for v in vals[s:s+win])/win)**.5/32768
+              if rms>.012: active.append(s/sr)
+          ons=[]; prev=-99
+          for t in active:
+              if t-prev>.08: ons.append(t)
+              prev=t
+          expected=(3.45,6.61); matches=[]
+          for et in expected:
+              ot=min(ons,key=lambda x:abs(x-et))
+              matches.append({"expected":et,"actual":round(ot,4),"delta_ms":round((ot-et)*1000,1)})
+          video=next(s for s in probe["streams"] if s["codec_type"]=="video")
+          audio=next(s for s in probe["streams"] if s["codec_type"]=="audio")
+          duration=float(probe["format"]["duration"])
+          h=hashlib.sha256(open(path,"rb").read()).hexdigest()
+          passed=(video.get("width")==1080 and video.get("height")==1920 and video.get("codec_name")=="h264" and
+                  audio.get("codec_name")=="aac" and 8.8<=duration<=9.15 and
+                  max(abs(m["delta_ms"]) for m in matches)<=55.6)
+          result={"ffprobe":probe,"event_sync":matches,"sha256":h,"technical_qa":passed}
+          with open("global_shorts_render_lab/output/hidden_shift_workbench_q3_final/final_qa.json","w") as f:
+              json.dump(result,f,indent=2)
+          print(json.dumps(result,indent=2))
+          if not passed: raise SystemExit("Q3 technical QA failed")
+          PY
+
+          # Review contacts: first-second/readability, before/after/reveal, and timeline.
+          ffmpeg -y -hide_banner -loglevel error -i "$OUT/hidden_shift_workbench_q3_final.mp4" \
+            -vf "select='eq(n,5)+eq(n,55)+eq(n,66)+eq(n,95)+eq(n,125)+eq(n,150)',scale=180:320,tile=3x2" \
+            -frames:v 1 -q:v 24 "$OUT/q3_review_contact.jpg"
+          ffmpeg -y -hide_banner -loglevel error -i "$OUT/q3_review_contact.jpg" \
+            -vf scale=270:320 -q:v 30 "$OUT/q3_review_contact_compact.jpg"
+          base64 -w0 "$OUT/q3_review_contact_compact.jpg" > "$OUT/q3_review_contact_compact.b64.txt"
+      - name: Persist Q3
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add global_shorts_render_lab/output/hidden_shift_workbench_q3_final
+          git commit -m "render: Hidden Shift workbench Q3 submission candidate [skip ci]"
+          git pull --rebase origin global-shorts-render-lab
+          git push origin HEAD:global-shorts-render-lab
