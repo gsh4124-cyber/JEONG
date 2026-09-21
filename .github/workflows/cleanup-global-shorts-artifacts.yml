@@ -1,0 +1,80 @@
+name: Cleanup Global Shorts Actions Artifacts
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/cleanup-global-shorts-artifacts.yml"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+          fetch-depth: 0
+
+      - name: Delete redundant render artifacts from this branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os, subprocess, pathlib
+          repo=os.environ["REPO"]
+          deleted=[]
+          kept=[]
+          page=1
+          while True:
+              raw=subprocess.check_output([
+                  "gh","api",f"repos/{repo}/actions/artifacts?per_page=100&page={page}"
+              ], text=True)
+              data=json.loads(raw)
+              arts=data.get("artifacts",[])
+              if not arts: break
+              for a in arts:
+                  wr=a.get("workflow_run") or {}
+                  branch=wr.get("head_branch")
+                  row={
+                      "id":a["id"],
+                      "name":a.get("name"),
+                      "size_in_bytes":a.get("size_in_bytes",0),
+                      "created_at":a.get("created_at"),
+                      "expired":a.get("expired"),
+                      "head_branch":branch,
+                  }
+                  if branch=="global-shorts-render-lab":
+                      subprocess.run([
+                          "gh","api","-X","DELETE",f"repos/{repo}/actions/artifacts/{a['id']}"
+                      ],check=True)
+                      deleted.append(row)
+                  else:
+                      kept.append(row)
+              page+=1
+          report={
+              "deleted_count":len(deleted),
+              "deleted_bytes":sum(x["size_in_bytes"] for x in deleted),
+              "kept_count":len(kept),
+              "deleted":deleted
+          }
+          out=pathlib.Path("global_shorts_render_lab/output/storage_cleanup")
+          out.mkdir(parents=True,exist_ok=True)
+          (out/"actions_artifact_cleanup.json").write_text(json.dumps(report,indent=2),encoding="utf-8")
+          print(json.dumps({k:v for k,v in report.items() if k!="deleted"},indent=2))
+          PY
+
+      - name: Persist cleanup report
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add global_shorts_render_lab/output/storage_cleanup/actions_artifact_cleanup.json
+          git commit -m "ops: clean redundant global shorts Actions artifacts [skip ci]"
+          git pull --rebase origin global-shorts-render-lab
+          git push origin HEAD:global-shorts-render-lab
