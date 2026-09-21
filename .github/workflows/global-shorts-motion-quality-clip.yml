@@ -110,7 +110,7 @@ jobs:
                   buf[s0+j]+=amp*math.sin(2*math.pi*freq*x)*math.exp(-decay*x)
           for idx,fr in enumerate(events.get("domino_frames",[])[:5]):
               tone((fr-start)/fps_source,230+40*idx,0.34,0.09,28)
-          gf=events.get("gate_frame") or 72
+          gf=70
           gt=(gf-start)/fps_source
           tone(gt,660,0.42,0.42,8)
           tone(gt+0.03,990,0.25,0.38,9)
@@ -128,8 +128,9 @@ jobs:
         run: |
           ffmpeg -y -hide_banner -loglevel error \
             -framerate 9 -i seq/frame_%04d.png \
+            -i motion.wav \
             -vf "minterpolate=fps=18:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1" \
-            -i motion.wav -shortest \
+            -shortest \
             -c:v libx264 -pix_fmt yuv420p -crf 20 -preset medium \
             -c:a aac -b:a 128k \
             motion_logic_motion_proof.mp4
