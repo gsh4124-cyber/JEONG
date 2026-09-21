@@ -83,6 +83,26 @@ def add_active(o, mass=1.0, friction=0.5, restitution=0.1, shape='BOX'):
 floor = add_cube("Ground", (0,0,-0.18), (5.8,2.3,0.18), MAT_FLOOR, bevel=0.06)
 add_passive(floor, 0.7)
 
+def hinge_to_ground(name, body, x, base_z=0.02):
+    bpy.ops.object.select_all(action='DESELECT')
+    bpy.ops.object.empty_add(
+        type='PLAIN_AXES',
+        location=(x, 0, base_z),
+        rotation=(math.radians(90), 0, 0)
+    )
+    hinge = bpy.context.object
+    hinge.name = name
+    hinge.empty_display_size = 0.18
+    bpy.ops.rigidbody.constraint_add(type='HINGE')
+    rc = hinge.rigid_body_constraint
+    rc.object1 = floor
+    rc.object2 = body
+    rc.disable_collisions = True
+    rc.use_limit_ang_z = True
+    rc.limit_ang_z_lower = -math.radians(100)
+    rc.limit_ang_z_upper = math.radians(100)
+    return hinge
+
 # Inclined start ramp descending toward +X
 ramp = add_cube("Ramp", (-2.9,0,0.68), (2.15,0.72,0.12), MAT_RAMP, rot=(0, math.radians(14), 0), bevel=0.05)
 add_passive(ramp, 0.16)
@@ -110,6 +130,7 @@ dominos = []
 for i, x in enumerate(domino_xs):
     d = add_cube(f"Domino_{i+1}", (x,0,0.52), (0.11,0.38,0.50), MAT_DOMINO, bevel=0.035)
     add_active(d, mass=0.18, friction=0.95, restitution=0.01, shape='BOX')
+    hinge_to_ground(f"Hinge_{i+1}", d, x)
     dominos.append(d)
 
 # Goal bell/target
