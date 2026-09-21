@@ -1,0 +1,21 @@
+{
+  "size": [
+    270,
+    480
+  ],
+  "raw_bbox": [
+    0,
+    0,
+    270,
+    450
+  ],
+  "threshold_changed_pixels": 1433,
+  "threshold_changed_ratio": 0.0110570987654321,
+  "threshold_bbox": [
+    67,
+    0,
+    160,
+    183
+  ],
+  "single_change_intent": "rocket orientation only"
+}
