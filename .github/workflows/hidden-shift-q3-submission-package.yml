@@ -1,0 +1,114 @@
+name: Hidden Shift Q3 Submission Package
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/hidden-shift-q3-submission-package.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+          fetch-depth: 0
+
+      - name: Build upload-ready package
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg jq
+
+          SRC=global_shorts_render_lab/output/hidden_shift_workbench_q3_final/hidden_shift_workbench_q3_final.mp4
+          OUT=global_shorts_render_lab/output/hidden_shift_submission_ready
+          rm -rf "$OUT"
+          mkdir -p "$OUT"
+
+          cp "$SRC" "$OUT/HiddenShift_Workbench_001_1080x1920.mp4"
+
+          # First-scene thumbnail: does not spoil the answer.
+          ffmpeg -y -hide_banner -loglevel error -ss 0.50 -i "$SRC" -frames:v 1             -q:v 2 "$OUT/HiddenShift_Workbench_001_thumbnail.jpg"
+
+          ffprobe -v error             -show_entries format=duration,size:stream=index,codec_type,codec_name,width,height,r_frame_rate,start_time,duration             -of json "$OUT/HiddenShift_Workbench_001_1080x1920.mp4"             > "$OUT/technical_probe.json"
+
+          SHA=$(sha256sum "$OUT/HiddenShift_Workbench_001_1080x1920.mp4" | awk '{print $1}')
+          SIZE=$(wc -c < "$OUT/HiddenShift_Workbench_001_1080x1920.mp4" | tr -d ' ')
+          cat > "$OUT/upload_manifest.json" <<JSON
+          {
+            "asset_id": "hidden_shift_workbench_001",
+            "family": "Family E / Hidden Shift",
+            "channel": "Motion Logic Lab",
+            "status": "SUBMISSION_CANDIDATE_INTERNAL_PASS",
+            "video_file": "HiddenShift_Workbench_001_1080x1920.mp4",
+            "thumbnail_file": "HiddenShift_Workbench_001_thumbnail.jpg",
+            "sha256": "$SHA",
+            "size_bytes": $SIZE,
+            "resolution": "1080x1920",
+            "duration_seconds": 9.0,
+            "video_codec": "h264",
+            "audio_codec": "aac",
+            "title_candidate": "Spot the Change 👀 #shorts",
+            "description_candidate": "Only one thing changed. Did you catch it? 👀",
+            "hashtags": ["#shorts", "#spotthechange", "#puzzle", "#brainchallenge"],
+            "category_candidate": "Entertainment",
+            "made_for_kids_candidate": false,
+            "rights": {
+              "visuals": "original procedural 3D scene",
+              "audio": "original procedural sound effects",
+              "third_party_media": false
+            },
+            "qa": {
+              "technical": "PASS",
+              "encoded_av_sync": "PASS",
+              "single_change_structure": "PASS",
+              "transfer_repeatability": "PASS",
+              "ai_preview": "PASS",
+              "external_direct_peer_benchmark": "BLOCKED_UNVERIFIED"
+            },
+            "publish_gate": "EMPEROR_APPROVAL_REQUIRED"
+          }
+          JSON
+
+          cat > "$OUT/README.txt" <<'TXT'
+          Hidden Shift / Workbench 001 — upload-ready internal submission candidate
+
+          Creative structure:
+          0.00–3.45  observe
+          3.45–3.61  blink hides state swap
+          3.61–6.61  compare from memory
+          6.61–9.00  reveal + settle
+
+          Final state:
+          - Internal technical/creative QA: PASS
+          - AI visual preview: PASS
+          - External same-viewer-facing direct normal-speed benchmark: blocked/unverified
+          - External publish/upload: requires Emperor Gate
+          TXT
+
+          sha256sum "$OUT/HiddenShift_Workbench_001_1080x1920.mp4"                     "$OUT/HiddenShift_Workbench_001_thumbnail.jpg"             > "$OUT/SHA256SUMS.txt"
+
+      - name: Prune redundant Q3 review intermediates
+        run: |
+          set -euo pipefail
+          Q3=global_shorts_render_lab/output/hidden_shift_workbench_q3_final
+
+          # Keep the exact source final + compact evidence/QA only.
+          find "$Q3" -maxdepth 1 -type f             ! -name 'hidden_shift_workbench_q3_final.mp4'             ! -name 'final_qa.json'             ! -name 'q3_review_contact.jpg'             ! -name 'q3_title_precision.jpg'             ! -name 'q3_precision_source_hash.txt'             -print -delete
+
+          echo "Remaining active output size:"
+          du -sh global_shorts_render_lab/output/* 2>/dev/null | sort -h
+
+      - name: Commit submission package
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A global_shorts_render_lab/output
+          git commit -m "release: package Hidden Shift Workbench 001 submission candidate"
+          git pull --rebase origin global-shorts-render-lab
+          git push origin HEAD:global-shorts-render-lab
