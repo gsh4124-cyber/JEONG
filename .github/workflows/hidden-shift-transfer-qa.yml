@@ -1,0 +1,207 @@
+name: Hidden Shift Transfer QA
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/hidden-shift-transfer-qa.yml"
+      - "global_shorts_render_lab/hidden_shift_transfer.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hidden-shift-transfer-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {variant: kitchen, frame: 1}
+          - {variant: kitchen, frame: 72}
+          - {variant: kitchen, frame: 73}
+          - {variant: kitchen, frame: 132}
+          - {variant: kitchen, frame: 162}
+          - {variant: workbench, frame: 1}
+          - {variant: workbench, frame: 72}
+          - {variant: workbench, frame: 73}
+          - {variant: workbench, frame: 132}
+          - {variant: workbench, frame: 162}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+          fetch-depth: 0
+      - name: Install Blender
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends wget xz-utils libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libegl1 libxkbcommon0 libsm6
+          wget -q https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
+          tar -xf blender-5.2.2-linux-x64.tar.xz
+      - name: Render keyframe
+        run: |
+          mkdir -p out
+          ./blender-5.2.2-linux-x64/blender --background \
+            --python global_shorts_render_lab/hidden_shift_transfer.py -- \
+            ${{ matrix.variant }} out ${{ matrix.frame }}
+      - name: Persist keyframe
+        run: |
+          OUT="global_shorts_render_lab/output/hidden_shift_transfer/${{ matrix.variant }}"
+          mkdir -p "$OUT"
+          cp out/* "$OUT"/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$OUT"
+          git commit -m "render: Hidden Shift ${{ matrix.variant }} frame ${{ matrix.frame }} [skip ci]"
+          for n in 1 2 3 4 5 6; do
+            git fetch origin global-shorts-render-lab
+            git rebase origin/global-shorts-render-lab
+            if git push origin HEAD:global-shorts-render-lab; then exit 0; fi
+            git rebase --abort || true
+            sleep 3
+          done
+          exit 1
+
+  qa:
+    needs: render
+    strategy:
+      matrix:
+        variant: [kitchen, workbench]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+          fetch-depth: 0
+      - name: Install tools
+        run: |
+          git pull --rebase origin global-shorts-render-lab
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg python3-pil
+      - name: Structural diff QA
+        run: |
+          python - <<'PY'
+          from PIL import Image,ImageChops
+          import json,os
+          v=os.environ["VARIANT"]
+          root=f"global_shorts_render_lab/output/hidden_shift_transfer/{v}"
+          a=Image.open(f"{root}/{v}_0001.png").convert("RGB")
+          b=Image.open(f"{root}/{v}_0072.png").convert("RGB")
+          c=Image.open(f"{root}/{v}_0073.png").convert("RGB")
+          stable=ImageChops.difference(a,b).getbbox() is None
+          d=ImageChops.difference(b,c)
+          px=d.load(); mask=Image.new("L",d.size,0); mp=mask.load(); strong=0
+          for y in range(d.height):
+              for x in range(d.width):
+                  if max(px[x,y])>=24:
+                      mp[x,y]=255; strong+=1
+          bbox=mask.getbbox()
+          strong_ratio=strong/(a.width*a.height)
+          bbox_ratio=0
+          if bbox:
+              x0,y0,x1,y1=bbox
+              bbox_ratio=((x1-x0)*(y1-y0))/(a.width*a.height)
+          # Both targets are intentionally in upper/mid scene; no strong changes may touch frame edges.
+          localized=bbox is not None and bbox[0]>int(a.width*.18) and bbox[2]<int(a.width*.92) and bbox[1]>int(a.height*.05) and bbox[3]<int(a.height*.72)
+          passed=stable and localized and 0<strong_ratio<.10 and bbox_ratio<.28
+          result={"variant":v,"pre_change_pixel_identical":stable,"strong_change_bbox":bbox,
+                  "strong_changed_pixel_ratio":round(strong_ratio,5),
+                  "strong_change_bbox_area_ratio":round(bbox_ratio,5),
+                  "localized":localized,"single_change_structural_qa":passed}
+          out=f"global_shorts_render_lab/output/hidden_shift_transfer_qa/{v}"
+          os.makedirs(out,exist_ok=True)
+          with open(f"{out}/structural_qa.json","w") as f:json.dump(result,f,indent=2)
+          print(json.dumps(result,indent=2))
+          if not passed: raise SystemExit("structural QA failed")
+          PY
+        env:
+          VARIANT: ${{ matrix.variant }}
+      - name: Build 9-second clip and contact
+        run: |
+          V=${{ matrix.variant }}
+          ROOT="global_shorts_render_lab/output/hidden_shift_transfer/$V"
+          OUT="global_shorts_render_lab/output/hidden_shift_transfer_qa/$V"
+          ffmpeg -y -hide_banner -loglevel error \
+            -loop 1 -t 4 -i "$ROOT/${V}_0001.png" \
+            -loop 1 -t 3 -i "$ROOT/${V}_0073.png" \
+            -loop 1 -t 1 -i "$ROOT/${V}_0132.png" \
+            -loop 1 -t 1 -i "$ROOT/${V}_0162.png" \
+            -filter_complex "[0:v]fps=18,setsar=1[v0];[1:v]fps=18,setsar=1[v1];[2:v]fps=18,setsar=1[v2];[3:v]fps=18,setsar=1[v3];[v0][v1][v2][v3]concat=n=4:v=1:a=0[v]" \
+            -map "[v]" -c:v libx264 -pix_fmt yuv420p -crf 20 "$OUT/${V}_silent.mp4"
+          python - <<'PY'
+          import wave,math,struct,os
+          v=os.environ["VARIANT"]; sr=48000; dur=9.; n=int(sr*dur); buf=[0.0]*n
+          def tone(t,f,a,l,d):
+              s=int(t*sr); ln=min(int(l*sr),n-s)
+              for j in range(ln):
+                  x=j/sr; buf[s+j]+=a*math.sin(2*math.pi*f*x)*math.exp(-d*x)
+          # slightly different cue pitch per transfer; reveal grammar remains shared.
+          base=420 if v=="kitchen" else 300
+          tone(4.0,base,.15,.08,28)
+          tone(7.0,840,.34,.36,8); tone(7.04,1260,.18,.28,10)
+          mx=max(1,max(abs(x) for x in buf))
+          with wave.open("hs.wav","w") as w:
+              w.setnchannels(1); w.setsampwidth(2); w.setframerate(sr)
+              raw=bytearray()
+              for x in buf: raw.extend(struct.pack("<h",int(max(-1,min(1,x/mx))*32767)))
+              w.writeframes(raw)
+          PY
+          ffmpeg -y -hide_banner -loglevel error -i "$OUT/${V}_silent.mp4" -i hs.wav -shortest \
+            -c:v copy -c:a aac -b:a 128k "$OUT/${V}.mp4"
+          ffmpeg -y -hide_banner -loglevel error -i "$OUT/${V}.mp4" \
+            -vf "fps=1,scale=90:160,tile=9x1" -frames:v 1 -q:v 26 "$OUT/${V}_sequence.jpg"
+        env:
+          VARIANT: ${{ matrix.variant }}
+      - name: Encoded sync QA
+        run: |
+          python - <<'PY'
+          import subprocess,wave,struct,json,os
+          v=os.environ["VARIANT"]
+          path=f"global_shorts_render_lab/output/hidden_shift_transfer_qa/{v}/{v}.mp4"
+          wav="/tmp/a.wav"
+          subprocess.run(["ffmpeg","-y","-hide_banner","-loglevel","error","-i",path,"-vn","-ac","1","-ar","48000",wav],check=True)
+          with wave.open(wav,"rb") as w:
+              sr=w.getframerate(); vals=struct.unpack("<"+"h"*w.getnframes(),w.readframes(w.getnframes()))
+          hop=int(sr*.005); win=int(sr*.01); ons=[]; prev=-99
+          active=[]
+          for s in range(0,len(vals)-win,hop):
+              rms=(sum(x*x for x in vals[s:s+win])/win)**.5/32768
+              if rms>.003: active.append((s/sr,rms))
+          for t,r in active:
+              if t-prev>.08: ons.append(t)
+              prev=t
+          matches=[]
+          for et in (4.,7.):
+              ot=min(ons,key=lambda x:abs(x-et))
+              matches.append({"expected":et,"actual":round(ot,4),"delta_ms":round((ot-et)*1000,1)})
+          passed=max(abs(m["delta_ms"]) for m in matches)<=55.6
+          result={"variant":v,"matches":matches,"pass_1frame_18fps":passed}
+          out=f"global_shorts_render_lab/output/hidden_shift_transfer_qa/{v}"
+          with open(f"{out}/av_sync_qa.json","w") as f:json.dump(result,f,indent=2)
+          print(json.dumps(result,indent=2))
+          if not passed: raise SystemExit("sync fail")
+          PY
+        env:
+          VARIANT: ${{ matrix.variant }}
+      - name: Persist QA
+        run: |
+          OUT="global_shorts_render_lab/output/hidden_shift_transfer_qa/${{ matrix.variant }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$OUT"
+          git commit -m "qa: Hidden Shift ${{ matrix.variant }} transfer proof [skip ci]"
+          for n in 1 2 3 4 5; do
+            git fetch origin global-shorts-render-lab
+            git rebase origin/global-shorts-render-lab
+            if git push origin HEAD:global-shorts-render-lab; then exit 0; fi
+            git rebase --abort || true
+            sleep 3
+          done
+          exit 1
