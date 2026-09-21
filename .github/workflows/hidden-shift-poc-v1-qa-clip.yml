@@ -1,0 +1,140 @@
+name: Hidden Shift POC V1 QA and Clip
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/hidden-shift-poc-v1-qa-clip.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+          fetch-depth: 0
+      - name: Install tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg python3-pil
+      - name: Pixel-diff QA
+        run: |
+          python - <<'PY'
+          from PIL import Image, ImageChops
+          import json, os
+          root="global_shorts_render_lab/output/hidden_shift_poc_v1"
+          a=Image.open(f"{root}/hidden_shift_0001.png").convert("RGB")
+          b=Image.open(f"{root}/hidden_shift_0072.png").convert("RGB")
+          c=Image.open(f"{root}/hidden_shift_0073.png").convert("RGB")
+          # Stability before change must be exact.
+          d0=ImageChops.difference(a,b)
+          stable_bbox=d0.getbbox()
+
+          d=ImageChops.difference(b,c)
+          bbox=d.getbbox()
+          if bbox:
+              x0,y0,x1,y1=bbox
+              area=(x1-x0)*(y1-y0)
+              frame_area=a.width*a.height
+              area_ratio=area/frame_area
+          else:
+              area_ratio=0
+
+          # Target is upper-right shelf. Diff must remain localized, not global.
+          localized = bbox is not None and bbox[0] > int(a.width*0.45) and bbox[2] < a.width and bbox[1] < int(a.height*0.42)
+          pass_qa = stable_bbox is None and localized and 0 < area_ratio < 0.12
+
+          result={
+            "resolution":[a.width,a.height],
+            "pre_change_pixel_identical": stable_bbox is None,
+            "change_bbox": bbox,
+            "change_bbox_area_ratio": round(area_ratio,5),
+            "localized_upper_right": localized,
+            "single_change_structural_qa": pass_qa
+          }
+          os.makedirs("global_shorts_render_lab/output/hidden_shift_poc_v1_qa",exist_ok=True)
+          with open("global_shorts_render_lab/output/hidden_shift_poc_v1_qa/pixel_diff_qa.json","w") as f:
+              json.dump(result,f,indent=2)
+          print(json.dumps(result,indent=2))
+          if not pass_qa:
+              raise SystemExit("single-change QA failed")
+          PY
+      - name: Build 9-second normal-speed POC
+        run: |
+          ROOT=global_shorts_render_lab/output/hidden_shift_poc_v1
+          OUT=global_shorts_render_lab/output/hidden_shift_poc_v1_qa
+          # 0-4s observe original, 4-7s changed scene, 7-8s reveal ring, 8-9s settle.
+          ffmpeg -y -hide_banner -loglevel error \
+            -loop 1 -t 4 -i "$ROOT/hidden_shift_0001.png" \
+            -loop 1 -t 3 -i "$ROOT/hidden_shift_0073.png" \
+            -loop 1 -t 1 -i "$ROOT/hidden_shift_0132.png" \
+            -loop 1 -t 1 -i "$ROOT/hidden_shift_0162.png" \
+            -filter_complex "[0:v]fps=18,setsar=1[v0];[1:v]fps=18,setsar=1[v1];[2:v]fps=18,setsar=1[v2];[3:v]fps=18,setsar=1[v3];[v0][v1][v2][v3]concat=n=4:v=1:a=0[v]" \
+            -map "[v]" -c:v libx264 -pix_fmt yuv420p -crf 20 "$OUT/hidden_shift_poc_v1_silent.mp4"
+          python - <<'PY'
+          import wave, math, struct
+          sr=48000; dur=9.0; n=int(sr*dur); buf=[0.0]*n
+          def tone(t,f,a,l,d):
+              s=int(t*sr); ln=min(int(l*sr),n-s)
+              for j in range(ln):
+                  x=j/sr
+                  buf[s+j]+=a*math.sin(2*math.pi*f*x)*math.exp(-d*x)
+          # subtle change cue and clear reveal payoff
+          tone(4.0,360,.16,.08,28)
+          tone(7.0,820,.34,.38,8)
+          tone(7.04,1230,.19,.30,10)
+          mx=max(1,max(abs(x) for x in buf))
+          with wave.open("hidden_shift.wav","w") as w:
+              w.setnchannels(1);w.setsampwidth(2);w.setframerate(sr)
+              raw=bytearray()
+              for x in buf: raw.extend(struct.pack("<h",int(max(-1,min(1,x/mx))*32767)))
+              w.writeframes(raw)
+          PY
+          ffmpeg -y -hide_banner -loglevel error \
+            -i "$OUT/hidden_shift_poc_v1_silent.mp4" -i hidden_shift.wav -shortest \
+            -c:v copy -c:a aac -b:a 128k "$OUT/hidden_shift_poc_v1.mp4"
+          ffmpeg -y -hide_banner -loglevel error -i "$OUT/hidden_shift_poc_v1.mp4" \
+            -vf "fps=1,scale=90:160,tile=9x1" -frames:v 1 -q:v 26 "$OUT/hidden_shift_poc_v1_sequence.jpg"
+      - name: Encoded A/V audit
+        run: |
+          python - <<'PY'
+          import subprocess,wave,struct,json,os
+          path="global_shorts_render_lab/output/hidden_shift_poc_v1_qa/hidden_shift_poc_v1.mp4"
+          wav="/tmp/a.wav"
+          subprocess.run(["ffmpeg","-y","-hide_banner","-loglevel","error","-i",path,"-vn","-ac","1","-ar","48000",wav],check=True)
+          with wave.open(wav,"rb") as w:
+              sr=w.getframerate(); vals=struct.unpack("<"+"h"*w.getnframes(),w.readframes(w.getnframes()))
+          hop=int(sr*.005); win=int(sr*.01)
+          env=[]
+          for s in range(0,len(vals)-win,hop):
+              rms=(sum(v*v for v in vals[s:s+win])/win)**.5/32768
+              env.append((s/sr,rms))
+          active=[(t,r) for t,r in env if r>.003]
+          ons=[]; prev=-99
+          for t,r in active:
+              if t-prev>.08: ons.append(t)
+              prev=t
+          expected=[4.0,7.0]
+          matches=[]
+          for et in expected:
+              ot=min(ons,key=lambda x:abs(x-et))
+              matches.append({"expected":et,"actual":round(ot,4),"delta_ms":round((ot-et)*1000,1)})
+          result={"onsets":ons[:8],"matches":matches,"pass_1frame_18fps":max(abs(x["delta_ms"]) for x in matches)<=55.6}
+          with open("global_shorts_render_lab/output/hidden_shift_poc_v1_qa/av_sync_qa.json","w") as f:json.dump(result,f,indent=2)
+          print(json.dumps(result,indent=2))
+          if not result["pass_1frame_18fps"]: raise SystemExit("AV sync fail")
+          PY
+      - name: Persist
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add global_shorts_render_lab/output/hidden_shift_poc_v1_qa
+          git commit -m "qa: Hidden Shift POC v1 single-change and AV proof [skip ci]"
+          git pull --rebase origin global-shorts-render-lab
+          git push origin HEAD:global-shorts-render-lab
