@@ -8,7 +8,7 @@
   ],
   "fps": 18,
   "frame_start": 1,
-  "frame_end": 45,
+  "frame_end": 90,
   "mechanism": "gravity ramp -> marble -> domino chain -> goal",
   "composition_revision": "portrait path rotated into screen vertical; full ball-to-goal chain visible",
   "direct_cost_usd": 0
