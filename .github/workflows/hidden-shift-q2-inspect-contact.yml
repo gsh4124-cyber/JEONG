@@ -1,0 +1,36 @@
+name: Hidden Shift Q2 Inspect Contact
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/hidden-shift-q2-inspect-contact.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+          fetch-depth: 0
+      - name: Build inspect contact
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          ROOT=global_shorts_render_lab/output/hidden_shift_workbench_quality_v2
+          OUT=global_shorts_render_lab/output/hidden_shift_workbench_quality_v2_qa
+          ffmpeg -y -hide_banner -loglevel error             -i "$ROOT/workbench_q2_0001.png"             -i "$ROOT/workbench_q2_0073.png"             -i "$ROOT/workbench_q2_0146.png"             -filter_complex "[0:v]scale=180:320[a];[1:v]scale=180:320[b];[2:v]scale=180:320[c];[a][b][c]hstack=inputs=3[out]"             -map "[out]" -q:v 27 "$OUT/inspect_contact.jpg"
+          base64 -w0 "$OUT/inspect_contact.jpg" > "$OUT/inspect_contact.b64.txt"
+      - name: Persist
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add global_shorts_render_lab/output/hidden_shift_workbench_quality_v2_qa/inspect_contact.jpg                   global_shorts_render_lab/output/hidden_shift_workbench_quality_v2_qa/inspect_contact.b64.txt
+          git commit -m "qa: add Hidden Shift q2 inspect contact [skip ci]"
+          git pull --rebase origin global-shorts-render-lab
+          git push origin HEAD:global-shorts-render-lab
