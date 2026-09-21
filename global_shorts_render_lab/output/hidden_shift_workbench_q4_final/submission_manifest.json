@@ -1,0 +1,21 @@
+{
+  "channel": {
+    "name": "Hidden Shift",
+    "handle": "@hiddenshiftlab",
+    "upload_post_profile": "hidden-shift"
+  },
+  "asset": "hidden_shift_workbench_q4_final.mp4",
+  "asset_sha256": "b952650574d0f180c655d2274e6ea106ac93c81ee8d323286be252f9ff967259",
+  "title": "What Changed on the Workbench? 👀 #Shorts",
+  "description": "Watch closely. Something changes after the blink. Did you catch it before the reveal? #SpotTheDifference #VisualPuzzle #Shorts",
+  "duration_seconds": 8,
+  "viewer_structure": {
+    "observe_end": 1.95,
+    "hidden_swap_blink_end": 2.09,
+    "reveal_start": 4.3,
+    "loop_reset_blink_start": 7.72
+  },
+  "publish_status": "NOT_PUBLISHED",
+  "ready_status": "BENCHMARK_GATE_PENDING",
+  "external_action_gate": "EMPEROR_APPROVAL_REQUIRED"
+}

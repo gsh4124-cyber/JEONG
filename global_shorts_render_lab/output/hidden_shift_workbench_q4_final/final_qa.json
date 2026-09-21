@@ -1,0 +1,29 @@
+{
+  "candidate": "Hidden Shift Workbench Q4",
+  "duration_seconds": 8.0,
+  "resolution": [
+    1080,
+    1920
+  ],
+  "video_codec": "h264",
+  "audio_codec": "aac",
+  "event_sync": [
+    {
+      "expected": 1.95,
+      "actual": 1.945,
+      "delta_ms": -5.0
+    },
+    {
+      "expected": 4.3,
+      "actual": 4.295,
+      "delta_ms": -5.0
+    },
+    {
+      "expected": 7.72,
+      "actual": 7.715,
+      "delta_ms": -5.0
+    }
+  ],
+  "sha256": "b952650574d0f180c655d2274e6ea106ac93c81ee8d323286be252f9ff967259",
+  "technical_qa": true
+}
