@@ -1,0 +1,15 @@
+{
+  "variant": "workbench",
+  "pre_change_strong_pixel_ratio": 0.0,
+  "pre_change_perceptually_stable": true,
+  "strong_change_bbox": [
+    124,
+    92,
+    190,
+    158
+  ],
+  "strong_changed_pixel_ratio": 0.00698,
+  "strong_change_bbox_area_ratio": 0.03361,
+  "localized": true,
+  "single_change_structural_qa": true
+}
