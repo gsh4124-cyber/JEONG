@@ -1,3 +1,4 @@
+# five-paddle-payoff-fast-preview
 import bpy, os, sys, mathutils
 args = sys.argv[sys.argv.index("--")+1:] if "--" in sys.argv else []
 outdir = args[0] if args else "."
@@ -43,7 +44,7 @@ area((4.0,-1.0,3.5),800,4.0,(0.55,0.72,1.0))
 area((1.0,4.0,5.0),1000,3.0,(0.55,0.70,1.0))
 if scene.camera:
     scene.camera.data.type='ORTHO'
-    scene.camera.data.ortho_scale=10.6
+    scene.camera.data.ortho_scale=9.2
 
 scene.frame_set(60)
 scene.render.filepath=os.path.join(outdir,'quality_fast_60.png')
