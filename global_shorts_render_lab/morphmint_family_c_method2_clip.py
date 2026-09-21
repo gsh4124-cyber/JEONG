@@ -72,12 +72,6 @@ def apple_ico(name, material, scale=(1.30,.92,1.40), loc=(0,-.20,.30)):
     o.data.materials.append(material)
     return o
 
-def linear_keys(obj, prop):
-    if not obj.animation_data or not obj.animation_data.action: return
-    for fc in obj.animation_data.action.fcurves:
-        if fc.data_path==prop:
-            for kp in fc.keyframe_points: kp.interpolation='LINEAR'
-
 # stage
 cube('Floor',(0,.65,-3.55),(3.5,2.2,.18),DARK,.10)
 cube('Pedestal',(0,.10,-2.05),(1.75,.82,.30),PLAT,.18)
@@ -101,7 +95,6 @@ chrome.scale.z=.015; chrome.location.z=-1.03
 chrome.keyframe_insert('scale',frame=28); chrome.keyframe_insert('location',frame=28)
 chrome.scale.z=1.0; chrome.location.z=.30
 chrome.keyframe_insert('scale',frame=70); chrome.keyframe_insert('location',frame=70)
-linear_keys(chrome,'scale'); linear_keys(chrome,'location')
 
 # two specular ribs ride with same bottom-up reveal
 for name,x,zoff,tilt in [('ChromeRibL',-.48,.10,-10),('ChromeRibR',.52,-.08,12)]:
@@ -110,13 +103,11 @@ for name,x,zoff,tilt in [('ChromeRibL',-.48,.10,-10),('ChromeRibR',.52,-.08,12)]
     rib.keyframe_insert('scale',frame=28); rib.keyframe_insert('location',frame=28)
     rib.scale.z=1.0; rib.location.z=.40+zoff
     rib.keyframe_insert('scale',frame=70); rib.keyframe_insert('location',frame=70)
-    linear_keys(rib,'scale'); linear_keys(rib,'location')
 
 # crystal geometry grows out of completed chrome
 crystal=apple_ico('CrystalGrowth',CRYSTAL)
 crystal.scale=(.015,.015,.015); crystal.keyframe_insert('scale',frame=86)
 crystal.scale=(1,1,1); crystal.keyframe_insert('scale',frame=120)
-linear_keys(crystal,'scale')
 
 facet_objs=[]
 for i,ang in enumerate((0,45,90,135)):
@@ -125,7 +116,6 @@ for i,ang in enumerate((0,45,90,135)):
     bar.rotation_euler.y=a; bar.rotation_euler.z=a*.20
     bar.scale=(.015,.015,.015); bar.keyframe_insert('scale',frame=86)
     bar.scale=(1,1,1); bar.keyframe_insert('scale',frame=120)
-    linear_keys(bar,'scale')
     facet_objs.append(bar)
 
 bpy.ops.mesh.primitive_torus_add(major_radius=.82,minor_radius=.028,major_segments=48,minor_segments=10,
@@ -133,7 +123,6 @@ bpy.ops.mesh.primitive_torus_add(major_radius=.82,minor_radius=.028,major_segmen
 ring=bpy.context.object; ring.name='CrystalRing'; ring.data.materials.append(CRYSTAL_EDGE)
 ring.scale=(.015,.015,.015); ring.keyframe_insert('scale',frame=92)
 ring.scale=(1,1,1); ring.keyframe_insert('scale',frame=122)
-linear_keys(ring,'scale')
 
 # payoff halo
 bpy.ops.mesh.primitive_torus_add(major_radius=1.68,minor_radius=.045,major_segments=72,minor_segments=12,
@@ -143,7 +132,6 @@ halo.scale=(.001,.001,.001); halo.keyframe_insert('scale',frame=112)
 halo.scale=(1,1,1); halo.keyframe_insert('scale',frame=126)
 halo.scale=(1.08,1.08,1.08); halo.keyframe_insert('scale',frame=134)
 halo.scale=(1,1,1); halo.keyframe_insert('scale',frame=144)
-linear_keys(halo,'scale')
 
 # reflection cards
 cube('CardL',(-3.0,.40,.75),(.18,.04,2.5),WHITE,.02)
