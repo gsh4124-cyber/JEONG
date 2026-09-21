@@ -1,0 +1,136 @@
+name: Motion Logic AV Sync Audit
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/global-shorts-motion-av-sync-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+          fetch-depth: 0
+      - name: Install tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+      - name: Add final V3 SFX
+        run: |
+          SRC=global_shorts_render_lab/output/motion_logic_camera_follow_v3/motion_logic_camera_follow_v3.mp4
+          mkdir -p global_shorts_render_lab/output/motion_logic_camera_follow_v3_av
+          python - <<'PY'
+          import math,wave,struct,subprocess,json
+          src="global_shorts_render_lab/output/motion_logic_camera_follow_v3/motion_logic_camera_follow_v3.mp4"
+          p=subprocess.run(["ffprobe","-v","error","-show_entries","format=duration","-of","json",src],capture_output=True,text=True,check=True)
+          dur=float(json.loads(p.stdout)["format"]["duration"])
+          sr=48000; n=int(dur*sr)+1; buf=[0.0]*n
+          fps=18
+          def tone(t,f,a,l,d):
+              s=max(0,int(t*sr)); ln=min(int(l*sr),n-s)
+              for j in range(ln):
+                  x=j/sr
+                  buf[s+j]+=a*math.sin(2*math.pi*f*x)*math.exp(-d*x)
+          for i,fr in enumerate((11,23,35)):
+              tone((fr-1)/fps,280+60*i,0.34,0.10,26)
+          t=(46-1)/fps
+          tone(t,780,0.42,0.40,8)
+          tone(t+0.035,1170,0.24,0.34,9)
+          mx=max(1.0,max(abs(v) for v in buf))
+          with wave.open("v3_audio.wav","w") as w:
+              w.setnchannels(1);w.setsampwidth(2);w.setframerate(sr)
+              raw=bytearray()
+              for v in buf: raw.extend(struct.pack("<h",int(max(-1,min(1,v/mx))*32767)))
+              w.writeframes(raw)
+          PY
+          ffmpeg -y -hide_banner -loglevel error -i "$SRC" -i v3_audio.wav -shortest \
+            -c:v copy -c:a aac -b:a 128k \
+            global_shorts_render_lab/output/motion_logic_camera_follow_v3_av/motion_logic_camera_follow_v3_av.mp4
+      - name: Audit encoded A/V timing
+        run: |
+          python - <<'PY'
+          import subprocess, json, os, wave, math, struct
+          items=[
+            ("v3",
+             "global_shorts_render_lab/output/motion_logic_camera_follow_v3_av/motion_logic_camera_follow_v3_av.mp4",
+             [11,23,35,46]),
+            ("bridge",
+             "global_shorts_render_lab/output/motion_logic_transfer_final/bridge/bridge.mp4",
+             [18,24,49]),
+            ("counterweight",
+             "global_shorts_render_lab/output/motion_logic_transfer_final/counterweight/counterweight.mp4",
+             [23,30,49]),
+          ]
+          out={}
+          for name,path,frames in items:
+              wav=f"/tmp/{name}.wav"
+              subprocess.run(["ffmpeg","-y","-hide_banner","-loglevel","error","-i",path,"-vn","-ac","1","-ar","48000",wav],check=True)
+              with wave.open(wav,"rb") as w:
+                  sr=w.getframerate(); n=w.getnframes()
+                  raw=w.readframes(n)
+              vals=struct.unpack("<"+"h"*(len(raw)//2),raw)
+              # RMS envelope at 5 ms hops / 10 ms window.
+              hop=max(1,int(sr*0.005)); win=max(1,int(sr*0.010))
+              env=[]
+              for s in range(0,len(vals)-win,hop):
+                  rms=(sum(v*v for v in vals[s:s+win])/win)**0.5/32768
+                  env.append((s/sr,rms))
+              floor=0.003
+              active=[(t,r) for t,r in env if r>floor]
+              onsets=[]
+              prev=-99
+              for t,r in active:
+                  if t-prev>0.08:
+                      onsets.append(t)
+                  prev=t
+              expected=[(f-1)/18 for f in frames]
+              # greedily match nearest onset within 120ms
+              matches=[]
+              used=set()
+              for et in expected:
+                  cand=[(abs(ot-et),i,ot) for i,ot in enumerate(onsets) if i not in used]
+                  if cand:
+                      d,i,ot=min(cand)
+                      if d<=0.12:
+                          used.add(i); matches.append({"expected":round(et,4),"actual":round(ot,4),"delta_ms":round((ot-et)*1000,1)})
+                      else:
+                          matches.append({"expected":round(et,4),"actual":None,"delta_ms":None})
+                  else:
+                      matches.append({"expected":round(et,4),"actual":None,"delta_ms":None})
+              ff=json.loads(subprocess.run(["ffprobe","-v","error","-show_entries","stream=index,codec_type,codec_name,start_time,duration","-of","json",path],capture_output=True,text=True,check=True).stdout)
+              max_abs=max([abs(x["delta_ms"]) for x in matches if x["delta_ms"] is not None] or [9999])
+              pass_sync=(all(x["actual"] is not None for x in matches) and max_abs<=55.6) # <= 1 frame at 18fps
+              out[name]={"path":path,"expected_frames":frames,"onsets": [round(x,4) for x in onsets[:12]],"matches":matches,"max_abs_delta_ms":max_abs,"sync_pass_1frame_18fps":pass_sync,"streams":ff["streams"]}
+          os.makedirs("global_shorts_render_lab/output/motion_logic_av_sync_audit",exist_ok=True)
+          with open("global_shorts_render_lab/output/motion_logic_av_sync_audit/audit.json","w") as f:
+              json.dump(out,f,indent=2)
+          print(json.dumps(out,indent=2))
+          PY
+      - name: Dense visual sequence QA
+        run: |
+          OUT=global_shorts_render_lab/output/motion_logic_av_sync_audit
+          for item in \
+            "v3:global_shorts_render_lab/output/motion_logic_camera_follow_v3_av/motion_logic_camera_follow_v3_av.mp4" \
+            "bridge:global_shorts_render_lab/output/motion_logic_transfer_final/bridge/bridge.mp4" \
+            "counterweight:global_shorts_render_lab/output/motion_logic_transfer_final/counterweight/counterweight.mp4"; do
+            name="${item%%:*}"; file="${item#*:}"
+            ffmpeg -y -hide_banner -loglevel error -i "$file" \
+              -vf "fps=4,scale=90:160,tile=6x2" -frames:v 1 -q:v 24 "$OUT/${name}_dense_contact.jpg"
+          done
+      - name: Persist
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add global_shorts_render_lab/output/motion_logic_camera_follow_v3_av \
+                  global_shorts_render_lab/output/motion_logic_av_sync_audit
+          git commit -m "qa: Motion Logic final A/V sync audit [skip ci]"
+          git pull --rebase origin global-shorts-render-lab
+          git push origin HEAD:global-shorts-render-lab
