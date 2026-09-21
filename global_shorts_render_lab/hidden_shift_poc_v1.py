@@ -99,26 +99,20 @@ for i,ang in enumerate((-38,-18,4,26,46)):
 cube('Frame',(-.78,-.06,3.10),(.60,.09,.48),GOLD,.07)
 cube('FrameInner',(-.78,-.17,3.10),(.48,.035,.36),CREAM,.03)
 
-# target object: small golden hourglass at upper-right shelf.
-# It shifts from x=1.15 to x=1.65 only during the hidden change cut.
-base=cube('HourglassBase',(1.15,-.15,3.10),(.32,.16,.08),GOLD,.04)
-top=cube('HourglassTop',(1.15,-.15,3.74),(.32,.16,.08),GOLD,.04)
-stem=cyl('HourglassStem',(1.15,-.14,3.42),.14,.55,CREAM)
-for o in (base,top,stem):
-    o.keyframe_insert('location',frame=1)
-    o.keyframe_insert('location',frame=72)
-    o.location.x += .50
-    o.keyframe_insert('location',frame=73)
-    o.keyframe_insert('location',frame=162)
+# target object: deterministic state, no interpolation.
+# Frames <=72 show the original state. Frames >=73 show one instantaneous shift only.
+target_x = 1.15 if frame <= 72 else 1.65
+base=cube('HourglassBase',(target_x,-.15,3.10),(.32,.16,.08),GOLD,.04)
+top=cube('HourglassTop',(target_x,-.15,3.74),(.32,.16,.08),GOLD,.04)
+stem=cyl('HourglassStem',(target_x,-.14,3.42),.14,.55,CREAM)
 
-# reveal ring exists only late
-bpy.ops.mesh.primitive_torus_add(major_radius=.62,minor_radius=.055,major_segments=64,minor_segments=14,
-    location=(1.65,-.48,3.42),rotation=(math.pi/2,0,0))
-ring=bpy.context.object; ring.name='RevealRing'; ring.data.materials.append(GLOW)
-ring.scale=(0,0,0); ring.keyframe_insert('scale',frame=124)
-ring.scale=(1.0,1.0,1.0); ring.keyframe_insert('scale',frame=132)
-ring.scale=(1.10,1.10,1.10); ring.keyframe_insert('scale',frame=146)
-ring.scale=(1.0,1.0,1.0); ring.keyframe_insert('scale',frame=162)
+# reveal ring is absent until the reveal phase; no animated geometry before then.
+if frame >= 132:
+    bpy.ops.mesh.primitive_torus_add(major_radius=.62,minor_radius=.055,major_segments=64,minor_segments=14,
+        location=(1.65,-.48,3.42),rotation=(math.pi/2,0,0))
+    ring=bpy.context.object; ring.name='RevealRing'; ring.data.materials.append(GLOW)
+    pulse = 1.10 if 140 <= frame <= 150 else 1.0
+    ring.scale=(pulse,pulse,pulse)
 
 # lighting
 for o in list(bpy.data.objects):
