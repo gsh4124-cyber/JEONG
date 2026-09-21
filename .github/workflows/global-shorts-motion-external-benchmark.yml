@@ -23,19 +23,22 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg python3-pip
-          python -m pip install -q --break-system-packages yt-dlp
+          python -m pip install -q --break-system-packages -U "yt-dlp[default]"
       - name: Download current public benchmark samples
         run: |
           mkdir -p bench
-          # Current simple action→impact peer with exact public Short URL.
-          yt-dlp --no-playlist --quiet --merge-output-format mp4 \
-            -f "bv*[height<=720]+ba/b[height<=720]" \
-            -o "bench/cancrush.%(ext)s" "https://www.youtube.com/watch?v=5zFgNARFB2o"
-          # Current viewer-facing 3D marble/physics peer discovered from public 2026 search results.
-          yt-dlp --no-playlist --quiet --merge-output-format mp4 \
-            -f "bv*[height<=720]+ba/b[height<=720]" \
-            -o "bench/marble.%(ext)s" \
-            "ytsearch1:Satisfying Marble Run Physics shorts animation Rigid Body World"
+          download_one() {
+            key="$1"; url="$2"
+            common=(--no-playlist --quiet --merge-output-format mp4 --js-runtimes node --remote-components ejs:github -f "bv*[height<=720]+ba/b[height<=720]" -o "bench/${key}.%(ext)s")
+            yt-dlp "${common[@]}" --extractor-args "youtube:player_client=tv,web_safari" "$url" && return 0
+            yt-dlp "${common[@]}" --extractor-args "youtube:player_client=web_embedded" "$url" && return 0
+            yt-dlp "${common[@]}" --extractor-args "youtube:player_client=android_vr" "$url" && return 0
+            return 1
+          }
+          # Direct current action→impact Short.
+          download_one cancrush "https://www.youtube.com/watch?v=5zFgNARFB2o"
+          # Direct current 3D physics Short, 2026-08-09, 13s, public video id recovered from current search evidence.
+          download_one marble "https://www.youtube.com/watch?v=wkIBFxcLilg"
           python - <<'PY'
           import subprocess,json,glob,os
           meta={}
