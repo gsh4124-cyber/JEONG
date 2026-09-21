@@ -1,0 +1,69 @@
+{
+  "metrics": {
+    "ceramic": {
+      "mean_rgb": [
+        164.16,
+        143.77,
+        134.43
+      ],
+      "mean_luma": 147.43,
+      "mean_saturation": 0.1256,
+      "highlight_fraction": 0.5504,
+      "dark_fraction": 0.0,
+      "bbox": [
+        54,
+        91,
+        216,
+        331
+      ]
+    },
+    "chrome": {
+      "mean_rgb": [
+        69.15,
+        72.83,
+        77.45
+      ],
+      "mean_luma": 72.38,
+      "mean_saturation": 0.121,
+      "highlight_fraction": 0.0756,
+      "dark_fraction": 0.0,
+      "bbox": [
+        54,
+        91,
+        216,
+        331
+      ]
+    },
+    "crystal": {
+      "mean_rgb": [
+        122.72,
+        144.68,
+        160.6
+      ],
+      "mean_luma": 141.16,
+      "mean_saturation": 0.1822,
+      "highlight_fraction": 0.2641,
+      "dark_fraction": 0.0,
+      "bbox": [
+        54,
+        91,
+        216,
+        331
+      ]
+    }
+  },
+  "normalized_state_differences": {
+    "ceramic_chrome": 0.3207,
+    "chrome_crystal": 0.3128,
+    "ceramic_crystal": 0.141
+  },
+  "checks": {
+    "ceramic_warm": true,
+    "chrome_reflective": false,
+    "chrome_neutraler": true,
+    "crystal_blue": false,
+    "crystal_distinct_from_chrome": true,
+    "all_states_visually_distinct": true
+  },
+  "material_state_qa": false
+}
