@@ -1,0 +1,140 @@
+name: Motion Logic Kinematic Proof
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/global-shorts-motion-kinematic.yml"
+      - "global_shorts_render_lab/motion_logic_kinematic.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: motion-logic-kinematic-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {start: 1, end: 7, events: 1, part: "a"}
+          - {start: 9, end: 15, events: 0, part: "b"}
+          - {start: 17, end: 23, events: 0, part: "c"}
+          - {start: 25, end: 31, events: 0, part: "d"}
+          - {start: 33, end: 39, events: 0, part: "e"}
+          - {start: 41, end: 49, events: 0, part: "f"}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+          fetch-depth: 0
+      - name: Install runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends wget xz-utils \
+            libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libegl1 libxkbcommon0 libsm6
+      - name: Download Blender
+        run: |
+          wget -q https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
+          tar -xf blender-5.2.2-linux-x64.tar.xz
+      - name: Render chunk
+        run: |
+          rm -rf chunk
+          mkdir -p chunk
+          ./blender-5.2.2-linux-x64/blender --background \
+            --python global_shorts_render_lab/motion_logic_kinematic.py -- \
+            chunk ${{ matrix.start }} ${{ matrix.end }} 2 ${{ matrix.events }}
+      - name: Persist chunk
+        run: |
+          git fetch origin global-shorts-render-lab
+          git rebase origin/global-shorts-render-lab
+          OUT="global_shorts_render_lab/output/motion_logic_kinematic_parts_v1/${{ matrix.part }}"
+          rm -rf "$OUT"
+          mkdir -p "$OUT"
+          cp chunk/* "$OUT"/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$OUT"
+          git commit -m "render: Motion Logic kinematic part ${{ matrix.part }} [skip ci]"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin global-shorts-render-lab
+            if git rebase origin/global-shorts-render-lab && git push origin HEAD:global-shorts-render-lab; then exit 0; fi
+            git rebase --abort || true
+            sleep 3
+          done
+          exit 1
+
+  assemble:
+    needs: render
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+          fetch-depth: 0
+      - name: Refresh and encode
+        run: |
+          git pull --rebase origin global-shorts-render-lab
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          rm -rf seq
+          mkdir -p seq
+          i=0
+          while IFS= read -r f; do
+            cp "$f" "seq/frame_$(printf '%04d' "$i").png"
+            i=$((i+1))
+          done < <(find global_shorts_render_lab/output/motion_logic_kinematic_parts_v1 -name 'frame_*.png' | sort)
+          test "$i" -ge 24
+          cp global_shorts_render_lab/output/motion_logic_kinematic_parts_v1/a/events.json events.json
+          python - <<'PY'
+          import json, math, wave, struct
+          fps=18; start=1; dur=49/fps; sr=48000; n=int(dur*sr)
+          buf=[0.0]*n
+          with open("events.json") as f: ev=json.load(f)
+          def tone(t,f,a,l,d):
+              s=max(0,int(t*sr)); ln=min(int(l*sr),n-s)
+              for j in range(ln):
+                  x=j/sr; buf[s+j]+=a*math.sin(2*math.pi*f*x)*math.exp(-d*x)
+          for i,fr in enumerate(ev["gate_contact_frames"]):
+              tone((fr-start)/fps,260+55*i,0.32,0.10,26)
+          tone((ev["goal_frame"]-start)/fps,720,0.40,0.42,8)
+          tone((ev["goal_frame"]-start)/fps+0.04,1080,0.22,0.36,9)
+          mx=max(1.0,max(abs(v) for v in buf))
+          with wave.open("audio.wav","w") as w:
+              w.setnchannels(1); w.setsampwidth(2); w.setframerate(sr)
+              raw=bytearray()
+              for v in buf: raw.extend(struct.pack("<h",int(max(-1,min(1,v/mx))*32767)))
+              w.writeframes(raw)
+          PY
+          ffmpeg -y -hide_banner -loglevel error \
+            -framerate 9 -i seq/frame_%04d.png -i audio.wav \
+            -vf "minterpolate=fps=18:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1" \
+            -shortest -c:v libx264 -pix_fmt yuv420p -crf 20 -preset medium \
+            -c:a aac -b:a 128k motion_logic_kinematic_proof.mp4
+          ffmpeg -y -hide_banner -loglevel error -i motion_logic_kinematic_proof.mp4 \
+            -vf "fps=3,scale=180:320,tile=4x3" -frames:v 1 -q:v 18 motion_logic_kinematic_contact.jpg
+          ffmpeg -y -hide_banner -loglevel error -i motion_logic_kinematic_proof.mp4 \
+            -vf "scale=90:160,fps=9" -an -c:v libx264 -crf 35 -preset veryfast -pix_fmt yuv420p \
+            motion_logic_kinematic_tiny.mp4
+          base64 -w0 motion_logic_kinematic_contact.jpg > motion_logic_kinematic_contact.b64.txt
+          base64 -w0 motion_logic_kinematic_tiny.mp4 > motion_logic_kinematic_tiny.b64.txt
+      - name: Persist proof
+        run: |
+          git pull --rebase origin global-shorts-render-lab
+          OUT=global_shorts_render_lab/output/motion_logic_kinematic_proof
+          rm -rf "$OUT"; mkdir -p "$OUT"
+          cp motion_logic_kinematic_proof.mp4 motion_logic_kinematic_contact.jpg \
+             motion_logic_kinematic_contact.b64.txt motion_logic_kinematic_tiny.mp4 \
+             motion_logic_kinematic_tiny.b64.txt events.json "$OUT"/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$OUT"
+          git commit -m "render: Motion Logic kinematic proof [skip ci]"
+          git push origin HEAD:global-shorts-render-lab
