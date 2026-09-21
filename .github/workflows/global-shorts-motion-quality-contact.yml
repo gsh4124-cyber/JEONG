@@ -1,0 +1,31 @@
+name: Motion Logic Quality Contact
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/global-shorts-motion-quality-contact.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  contact:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build quality contact
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          cd global_shorts_render_lab/output/motion_logic_quality
+          ffmpeg -y -hide_banner -loglevel error             -i quality_01_start.png -i quality_60_action.png -i quality_90_payoff.png             -filter_complex "[0:v]scale=135:240[a];[1:v]scale=135:240[b];[2:v]scale=135:240[c];[a][b][c]hstack=inputs=3[out]"             -map "[out]" -q:v 15 quality_contact.jpg
+          ls -lh quality_contact.jpg
+      - name: Persist
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add global_shorts_render_lab/output/motion_logic_quality/quality_contact.jpg
+          git commit -m "render: add Motion Logic quality contact [skip ci]"
+          git push origin HEAD:global-shorts-render-lab
