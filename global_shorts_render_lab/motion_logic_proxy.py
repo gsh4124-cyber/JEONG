@@ -154,7 +154,7 @@ if rw:
     rw.substeps_per_frame = 12
     rw.solver_iterations = 20
     rw.point_cache.frame_start = 1
-    rw.point_cache.frame_end = 45
+    rw.point_cache.frame_end = scene.frame_end
 
 # Headless rigid-body must be baked before render. Save first so cache has a stable mainfile.
 blend_path = os.path.join(outdir, "motion_logic_proxy.blend")
@@ -177,8 +177,9 @@ for fno in (1, 30, 60, 90):
         "frame": fno,
         "ball_location": [round(float(v), 4) for v in ball.matrix_world.translation],
         "domino_location": [[round(float(v), 4) for v in d.matrix_world.translation] for d in dominos],
-        "domino_rot_y": [round(float(d.rotation_euler.y), 4) for d in dominos],
-        "domino_rot_x": [round(float(d.rotation_euler.x), 4) for d in dominos],
+        "domino_world_rot_y": [round(float(d.matrix_world.to_euler().y), 4) for d in dominos],
+        "domino_world_rot_x": [round(float(d.matrix_world.to_euler().x), 4) for d in dominos],
+        "domino_world_rot_z": [round(float(d.matrix_world.to_euler().z), 4) for d in dominos],
     })
 with open(os.path.join(outdir, "physics_trace.json"), "w", encoding="utf-8") as f:
     json.dump(trace, f, ensure_ascii=False, indent=2)
