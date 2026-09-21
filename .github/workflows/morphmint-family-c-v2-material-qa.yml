@@ -1,0 +1,119 @@
+name: MorphMint Family C V2 Material QA
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/morphmint-family-c-v2-material-qa.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+          fetch-depth: 0
+      - name: Install QA runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-pil
+      - name: Measure material-state separation
+        run: |
+          python - <<'PY'
+          from PIL import Image,ImageStat,ImageChops
+          import colorsys,json,math,os
+
+          root="global_shorts_render_lab/output/morphmint_family_c_poc_v1"
+          frames={
+            "ceramic":"morphmint_0024.png",
+            "chrome":"morphmint_0066.png",
+            "crystal":"morphmint_0126.png",
+          }
+
+          def metrics(path):
+            im=Image.open(path).convert("RGB")
+            # central coin crop; excludes pedestal and most background
+            w,h=im.size
+            crop=im.crop((int(w*.20),int(h*.19),int(w*.80),int(h*.69)))
+            vals=list(crop.getdata())
+            lum=[]; sats=[]; highlights=0; darks=0
+            for r,g,b in vals:
+              y=.2126*r+.7152*g+.0722*b
+              lum.append(y)
+              mx=max(r,g,b); mn=min(r,g,b)
+              s=0 if mx==0 else (mx-mn)/mx
+              sats.append(s)
+              if y>=190: highlights+=1
+              if y<=32: darks+=1
+            st=ImageStat.Stat(crop)
+            return {
+              "mean_rgb":[round(x,2) for x in st.mean],
+              "mean_luma":round(sum(lum)/len(lum),2),
+              "mean_saturation":round(sum(sats)/len(sats),4),
+              "highlight_fraction":round(highlights/len(vals),4),
+              "dark_fraction":round(darks/len(vals),4),
+              "bbox":[int(w*.20),int(h*.19),int(w*.80),int(h*.69)]
+            },crop
+
+          out={}; crops={}
+          for k,f in frames.items():
+            out[k],crops[k]=metrics(f"{root}/{f}")
+
+          def norm_diff(a,b):
+            d=ImageChops.difference(a,b)
+            st=ImageStat.Stat(d)
+            return round(sum(st.mean)/(3*255),4)
+
+          sep={
+            "ceramic_chrome":norm_diff(crops["ceramic"],crops["chrome"]),
+            "chrome_crystal":norm_diff(crops["chrome"],crops["crystal"]),
+            "ceramic_crystal":norm_diff(crops["ceramic"],crops["crystal"]),
+          }
+
+          # Heuristic intent:
+          # ceramic = warmer/saturated, chrome = stronger highlights & lower saturation,
+          # crystal = blue/cyan saturation with substantial highlight response.
+          ceramic=out["ceramic"]; chrome=out["chrome"]; crystal=out["crystal"]
+          ceramic_warm = ceramic["mean_rgb"][0] > ceramic["mean_rgb"][2] * 1.15
+          chrome_reflective = chrome["highlight_fraction"] >= ceramic["highlight_fraction"] * 1.20
+          chrome_neutraler = chrome["mean_saturation"] < ceramic["mean_saturation"]
+          crystal_blue = crystal["mean_rgb"][2] > crystal["mean_rgb"][0] * 1.45
+          crystal_distinct = sep["chrome_crystal"] >= .055
+          all_distinct = min(sep.values()) >= .045
+
+          passed=all([ceramic_warm,chrome_reflective,chrome_neutraler,crystal_blue,crystal_distinct,all_distinct])
+          result={
+            "metrics":out,
+            "normalized_state_differences":sep,
+            "checks":{
+              "ceramic_warm":ceramic_warm,
+              "chrome_reflective":chrome_reflective,
+              "chrome_neutraler":chrome_neutraler,
+              "crystal_blue":crystal_blue,
+              "crystal_distinct_from_chrome":crystal_distinct,
+              "all_states_visually_distinct":all_distinct
+            },
+            "material_state_qa":passed
+          }
+          os.makedirs("global_shorts_render_lab/output/morphmint_family_c_v2_qa",exist_ok=True)
+          with open("global_shorts_render_lab/output/morphmint_family_c_v2_qa/material_qa.json","w") as f:
+            json.dump(result,f,indent=2)
+          print(json.dumps(result,indent=2))
+          if not passed:
+            raise SystemExit("material QA failed")
+          PY
+      - name: Persist QA
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add global_shorts_render_lab/output/morphmint_family_c_v2_qa
+          git commit -m "qa: MorphMint Family C V2 material-state separation [skip ci]" || true
+          git pull --rebase origin global-shorts-render-lab
+          git push origin HEAD:global-shorts-render-lab
