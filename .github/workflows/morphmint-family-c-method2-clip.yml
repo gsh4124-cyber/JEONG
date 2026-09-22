@@ -11,24 +11,22 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: morphmint-method2-full-clip-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   render:
     strategy:
       fail-fast: false
       matrix:
         include:
-          - {chunk: 1, start: 1, end: 12}
-          - {chunk: 2, start: 13, end: 24}
-          - {chunk: 3, start: 25, end: 36}
-          - {chunk: 4, start: 37, end: 48}
-          - {chunk: 5, start: 49, end: 60}
-          - {chunk: 6, start: 61, end: 72}
-          - {chunk: 7, start: 73, end: 84}
-          - {chunk: 8, start: 85, end: 96}
-          - {chunk: 9, start: 97, end: 108}
-          - {chunk: 10, start: 109, end: 120}
-          - {chunk: 11, start: 121, end: 132}
-          - {chunk: 12, start: 133, end: 144}
+          - {chunk: 1, start: 1, end: 24}
+          - {chunk: 2, start: 25, end: 48}
+          - {chunk: 3, start: 49, end: 72}
+          - {chunk: 4, start: 73, end: 96}
+          - {chunk: 5, start: 97, end: 120}
+          - {chunk: 6, start: 121, end: 144}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -45,8 +43,8 @@ jobs:
       - name: Render chunk
         run: |
           mkdir -p frames out
-          ./blender-5.2.2-linux-x64/blender --background             --python global_shorts_render_lab/morphmint_family_c_method2_clip.py --             frames ${{ matrix.start }} ${{ matrix.end }}
-          ffmpeg -y -hide_banner -loglevel error             -framerate 18 -start_number ${{ matrix.start }}             -i frames/frame_%04d.png             -frames:v 12 -c:v libx264 -pix_fmt yuv420p -crf 20 -preset veryfast             out/chunk_${{ matrix.chunk }}.mp4
+          ./blender-5.2.2-linux-x64/blender --background             --python global_shorts_render_lab/morphmint_family_c_method2_clip.py --             frames ${{ matrix.start }} ${{ matrix.end }} 2
+          ffmpeg -y -hide_banner -loglevel error             -framerate 9 -pattern_type glob -i 'frames/frame_*.png' -vf "minterpolate=fps=18:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1" -frames:v 24 -c:v libx264 -pix_fmt yuv420p -crf 20 -preset veryfast             out/chunk_${{ matrix.chunk }}.mp4
       - name: Persist chunk
         run: |
           OUT=global_shorts_render_lab/output/morphmint_family_c_method2_clip/chunks
@@ -90,12 +88,6 @@ jobs:
           file '$GITHUB_WORKSPACE/$ROOT/chunks/chunk_4.mp4'
           file '$GITHUB_WORKSPACE/$ROOT/chunks/chunk_5.mp4'
           file '$GITHUB_WORKSPACE/$ROOT/chunks/chunk_6.mp4'
-          file '$GITHUB_WORKSPACE/$ROOT/chunks/chunk_7.mp4'
-          file '$GITHUB_WORKSPACE/$ROOT/chunks/chunk_8.mp4'
-          file '$GITHUB_WORKSPACE/$ROOT/chunks/chunk_9.mp4'
-          file '$GITHUB_WORKSPACE/$ROOT/chunks/chunk_10.mp4'
-          file '$GITHUB_WORKSPACE/$ROOT/chunks/chunk_11.mp4'
-          file '$GITHUB_WORKSPACE/$ROOT/chunks/chunk_12.mp4'
           EOF
           ffmpeg -y -hide_banner -loglevel error -f concat -safe 0 -i /tmp/list.txt -c copy "$ROOT/final/morphmint_method2_silent.mp4"
 
