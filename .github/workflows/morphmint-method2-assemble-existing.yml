@@ -32,19 +32,15 @@ jobs:
           rm -rf "$OUT"
           mkdir -p "$OUT"
 
-          for i in 1 2 3 4 5 6; do
+          for i in $(seq 1 12); do
             test -s "$ROOT/chunks/chunk_$i.mp4"
             ffprobe -v error -select_streams v:0               -show_entries stream=width,height,r_frame_rate,duration               -of compact=p=0:nk=1 "$ROOT/chunks/chunk_$i.mp4"
           done
 
-          cat > /tmp/list.txt <<EOF
-          file '$GITHUB_WORKSPACE/$ROOT/chunks/chunk_1.mp4'
-          file '$GITHUB_WORKSPACE/$ROOT/chunks/chunk_2.mp4'
-          file '$GITHUB_WORKSPACE/$ROOT/chunks/chunk_3.mp4'
-          file '$GITHUB_WORKSPACE/$ROOT/chunks/chunk_4.mp4'
-          file '$GITHUB_WORKSPACE/$ROOT/chunks/chunk_5.mp4'
-          file '$GITHUB_WORKSPACE/$ROOT/chunks/chunk_6.mp4'
-          EOF
+          : > /tmp/list.txt
+          for i in $(seq 1 12); do
+            echo "file '$GITHUB_WORKSPACE/$ROOT/chunks/chunk_$i.mp4'" >> /tmp/list.txt
+          done
 
           ffmpeg -y -hide_banner -loglevel error             -f concat -safe 0 -i /tmp/list.txt -c copy             "$OUT/morphmint_method2_silent.mp4"
 
