@@ -1,0 +1,16 @@
+name: Global Shorts Actions Healthcheck
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/global-shorts-actions-healthcheck.yml"
+  workflow_dispatch:
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "ACTIONS_OK"
+          uname -a
