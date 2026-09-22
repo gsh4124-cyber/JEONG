@@ -1,0 +1,53 @@
+{
+  "probe": {
+    "programs": [],
+    "streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "codec_type": "video",
+        "width": 270,
+        "height": 480,
+        "r_frame_rate": "18/1",
+        "start_time": "0.000000",
+        "duration": "8.000000"
+      },
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "codec_type": "audio",
+        "r_frame_rate": "0/0",
+        "start_time": "0.000000",
+        "duration": "8.000000"
+      }
+    ],
+    "format": {
+      "duration": "8.000000",
+      "size": "168902"
+    }
+  },
+  "sync": [
+    {
+      "expected": 1.5,
+      "actual": 1.495,
+      "delta_ms": -5.0
+    },
+    {
+      "expected": 3.8333,
+      "actual": 3.825,
+      "delta_ms": -8.3
+    },
+    {
+      "expected": 4.7222,
+      "actual": 4.715,
+      "delta_ms": -7.2
+    },
+    {
+      "expected": 6.6111,
+      "actual": 6.605,
+      "delta_ms": -6.1
+    }
+  ],
+  "sha256": "65540745305ab8b5d2a6a088986aea1ab828e59c53ead5a5e00b22361a3fd9c6",
+  "technical_qa": true
+}
