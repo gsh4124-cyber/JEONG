@@ -3,7 +3,7 @@ from mathutils import Vector
 
 args=sys.argv[sys.argv.index("--")+1:] if "--" in sys.argv else []
 outdir=args[0]
-start=int(args[1]); end=int(args[2])
+start=int(args[1]); end=int(args[2]); step=int(args[3]) if len(args)>3 else 1
 os.makedirs(outdir,exist_ok=True)
 
 bpy.ops.object.select_all(action='SELECT')
@@ -11,8 +11,8 @@ bpy.ops.object.delete(use_global=False)
 
 scene=bpy.context.scene
 scene.render.engine='BLENDER_EEVEE'
-scene.render.resolution_x=360
-scene.render.resolution_y=640
+scene.render.resolution_x=180
+scene.render.resolution_y=320
 scene.render.resolution_percentage=100
 scene.render.image_settings.file_format='PNG'
 scene.render.fps=18
@@ -156,4 +156,7 @@ bpy.ops.object.camera_add(location=(2.0,-13.8,1.0))
 cam=bpy.context.object; scene.camera=cam; cam.data.lens=64
 cam.rotation_euler=(Vector((0,0,.18))-cam.location).to_track_quat('-Z','Y').to_euler()
 
-bpy.ops.render.render(animation=True)
+for f in range(start,end+1,step):
+    scene.frame_set(f)
+    scene.render.filepath=os.path.join(outdir,f"frame_{f:04d}.png")
+    bpy.ops.render.render(write_still=True)
