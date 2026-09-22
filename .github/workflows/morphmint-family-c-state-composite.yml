@@ -1,0 +1,186 @@
+name: MorphMint Family C State Composite Proof
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/morphmint-family-c-state-composite.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  compose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+          fetch-depth: 0
+
+      - name: Install tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg python3-pil
+
+      - name: Build deterministic spatial material takeover
+        run: |
+          python - <<'PY'
+          from PIL import Image,ImageFilter,ImageDraw
+          import os,math
+          root="global_shorts_render_lab/output/morphmint_family_c_method2"
+          out="global_shorts_render_lab/output/morphmint_family_c_state_composite"
+          frames=f"{out}/frames"
+          os.makedirs(frames,exist_ok=True)
+
+          ceramic=Image.open(f"{root}/morphmint_m2_0001.png").convert("RGB")
+          chrome=Image.open(f"{root}/morphmint_m2_0072.png").convert("RGB")
+          crystal=Image.open(f"{root}/morphmint_m2_0120.png").convert("RGB")
+          W,H=ceramic.size
+
+          def feathered_wipe_y(progress, feather=18):
+              # bottom-up material takeover
+              m=Image.new("L",(W,H),0); px=m.load()
+              boundary=H*(1-progress)
+              for y in range(H):
+                  v=(y-boundary+feather)/(2*feather)
+                  a=max(0,min(1,v))
+                  val=int(255*a)
+                  for x in range(W): px[x,y]=val
+              return m
+
+          def radial_mask(progress, feather=20):
+              m=Image.new("L",(W,H),0); px=m.load()
+              cx,cy=W*0.50,H*0.49
+              maxr=math.hypot(W*.55,H*.47)
+              r=progress*maxr
+              for y in range(H):
+                  for x in range(W):
+                      d=math.hypot(x-cx,y-cy)
+                      a=(r-d+feather)/(2*feather)
+                      px[x,y]=int(255*max(0,min(1,a)))
+              return m
+
+          def glow_horizontal(img,y,strength=0.65):
+              lay=Image.new("RGBA",(W,H),(0,0,0,0))
+              d=ImageDraw.Draw(lay)
+              for k in range(8,0,-1):
+                  alpha=int(18*strength*(9-k))
+                  d.line((0,y-k,W,y-k),fill=(80,220,255,alpha),width=1)
+                  d.line((0,y+k,W,y+k),fill=(80,220,255,alpha),width=1)
+              d.line((0,y,W,y),fill=(220,250,255,int(210*strength)),width=2)
+              return Image.alpha_composite(img.convert("RGBA"),lay).convert("RGB")
+
+          def glow_ring(img,cx,cy,r,strength=0.55):
+              lay=Image.new("RGBA",(W,H),(0,0,0,0))
+              d=ImageDraw.Draw(lay)
+              for k in range(8,0,-1):
+                  a=int(12*strength*(9-k))
+                  d.ellipse((cx-r-k,cy-r-k,cx+r+k,cy+r+k),outline=(80,220,255,a),width=2)
+              d.ellipse((cx-r,cy-r,cx+r,cy+r),outline=(225,250,255,int(190*strength)),width=2)
+              return Image.alpha_composite(img.convert("RGBA"),lay).convert("RGB")
+
+          for f in range(1,145):
+              if f < 28:
+                  img=ceramic.copy()
+              elif f <= 70:
+                  p=(f-28)/(70-28)
+                  # ease-in-out
+                  p=p*p*(3-2*p)
+                  m=feathered_wipe_y(p)
+                  img=Image.composite(chrome,ceramic,m)
+                  y=int(H*(1-p))
+                  img=glow_horizontal(img,max(0,min(H-1,y)),0.75)
+              elif f < 86:
+                  img=chrome.copy()
+              elif f <= 120:
+                  p=(f-86)/(120-86)
+                  p=p*p*(3-2*p)
+                  m=radial_mask(p)
+                  img=Image.composite(crystal,chrome,m)
+                  maxr=math.hypot(W*.55,H*.47)
+                  img=glow_ring(img,W*.50,H*.49,max(2,p*maxr),0.70)
+              else:
+                  img=crystal.copy()
+              img.save(f"{frames}/frame_{f:04d}.png",compress_level=5)
+          PY
+
+          OUT=global_shorts_render_lab/output/morphmint_family_c_state_composite
+          ffmpeg -y -hide_banner -loglevel error             -framerate 18 -i "$OUT/frames/frame_%04d.png"             -c:v libx264 -pix_fmt yuv420p -crf 18 -preset medium             "$OUT/morphmint_state_composite_silent.mp4"
+
+          python - <<'PY'
+          import wave,math,struct
+          sr=48000; dur=8.0; n=int(sr*dur); buf=[0.0]*n
+          def tone(t,f,a,l,d):
+              s=int(t*sr); ln=min(int(l*sr),n-s)
+              for j in range(ln):
+                  x=j/sr; buf[s+j]+=a*math.sin(2*math.pi*f*x)*math.exp(-d*x)
+          def sweep(t,f0,f1,a,l):
+              s=int(t*sr); ln=min(int(l*sr),n-s)
+              for j in range(ln):
+                  x=j/sr
+                  f=f0+(f1-f0)*min(1,x/l)
+                  buf[s+j]+=a*math.sin(2*math.pi*f*x)*math.exp(-3.3*x)
+          sweep((28-1)/18,180,620,.17,2.25)
+          tone((70-1)/18,690,.15,.10,28)
+          sweep((86-1)/18,440,1180,.18,1.8)
+          tone((120-1)/18,1050,.28,.42,8)
+          tone((120-1)/18+.035,1580,.14,.30,10)
+          mx=max(1,max(abs(x) for x in buf))
+          with wave.open("/tmp/morph.wav","w") as w:
+              w.setnchannels(1);w.setsampwidth(2);w.setframerate(sr)
+              raw=bytearray()
+              for x in buf: raw.extend(struct.pack("<h",int(max(-1,min(1,x/mx))*32767)))
+              w.writeframes(raw)
+          PY
+
+          ffmpeg -y -hide_banner -loglevel error             -i "$OUT/morphmint_state_composite_silent.mp4" -i /tmp/morph.wav -shortest             -c:v copy -c:a aac -b:a 128k -movflags +faststart             "$OUT/morphmint_state_composite.mp4"
+
+          ffmpeg -y -hide_banner -loglevel error             -i "$OUT/morphmint_state_composite.mp4"             -vf "fps=1,scale=135:240,tile=8x1" -frames:v 1 -q:v 23             "$OUT/sequence.jpg"
+
+      - name: Technical QA
+        run: |
+          python - <<'PY'
+          import subprocess,json,wave,struct,hashlib,os
+          path="global_shorts_render_lab/output/morphmint_family_c_state_composite/morphmint_state_composite.mp4"
+          probe=json.loads(subprocess.run([
+            "ffprobe","-v","error","-show_entries",
+            "format=duration,size:stream=index,codec_type,codec_name,width,height,r_frame_rate,start_time,duration",
+            "-of","json",path],capture_output=True,text=True,check=True).stdout)
+          wav="/tmp/decoded.wav"
+          subprocess.run(["ffmpeg","-y","-hide_banner","-loglevel","error","-i",path,"-vn","-ac","1","-ar","48000",wav],check=True)
+          with wave.open(wav,"rb") as w:
+              sr=w.getframerate(); vals=struct.unpack("<"+"h"*w.getnframes(),w.readframes(w.getnframes()))
+          hop=int(sr*.005); win=int(sr*.01); active=[]
+          for s in range(0,len(vals)-win,hop):
+              rms=(sum(v*v for v in vals[s:s+win])/win)**.5/32768
+              if rms>.006: active.append(s/sr)
+          ons=[]; prev=-99
+          for t in active:
+              if t-prev>.08: ons.append(t)
+              prev=t
+          expected=[(28-1)/18,(70-1)/18,(86-1)/18,(120-1)/18]
+          matches=[]
+          for et in expected:
+              ot=min(ons,key=lambda x:abs(x-et))
+              matches.append({"expected":round(et,4),"actual":round(ot,4),"delta_ms":round((ot-et)*1000,1)})
+          v=next(s for s in probe["streams"] if s["codec_type"]=="video")
+          a=next(s for s in probe["streams"] if s["codec_type"]=="audio")
+          passed=(v.get("width")==270 and v.get("height")==480 and v.get("codec_name")=="h264" and a.get("codec_name")=="aac" and max(abs(m["delta_ms"]) for m in matches)<=55.6)
+          out={"probe":probe,"sync":matches,"sha256":hashlib.sha256(open(path,"rb").read()).hexdigest(),"technical_qa":passed}
+          with open("global_shorts_render_lab/output/morphmint_family_c_state_composite/qa.json","w") as f:json.dump(out,f,indent=2)
+          print(json.dumps(out,indent=2))
+          if not passed: raise SystemExit("technical QA failed")
+          PY
+
+      - name: Persist
+        run: |
+          rm -rf global_shorts_render_lab/output/morphmint_family_c_state_composite/frames
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add global_shorts_render_lab/output/morphmint_family_c_state_composite
+          git commit -m "render: MorphMint state-composite full proof [skip ci]"
+          git pull --rebase origin global-shorts-render-lab
+          git push origin HEAD:global-shorts-render-lab
