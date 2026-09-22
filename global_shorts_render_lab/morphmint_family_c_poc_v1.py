@@ -40,9 +40,9 @@ for f in (1,24):
     if 'Coat Weight' in b.inputs: b.inputs['Coat Weight'].keyframe_insert('default_value',frame=f)
 
 # liquid chrome state
-b.inputs['Base Color'].default_value=(0.42,0.48,0.58,1)
+b.inputs['Base Color'].default_value=(0.55,0.60,0.68,1)
 b.inputs['Metallic'].default_value=1.0
-b.inputs['Roughness'].default_value=0.13
+b.inputs['Roughness'].default_value=0.10
 if 'Coat Weight' in b.inputs: b.inputs['Coat Weight'].default_value=0.45
 for f in (54,78):
     b.inputs['Base Color'].keyframe_insert('default_value',frame=f)
@@ -146,22 +146,15 @@ root.rotation_euler.y=math.radians(-8); root.keyframe_insert('rotation_euler',fr
 root.rotation_euler.y=math.radians(8); root.keyframe_insert('rotation_euler',frame=144)
 
 # glow payoff behind final crystal state only
-bpy.ops.mesh.primitive_torus_add(major_radius=1.75,minor_radius=.045,major_segments=96,minor_segments=14,
+bpy.ops.mesh.primitive_torus_add(major_radius=1.48,minor_radius=.032,major_segments=96,minor_segments=14,
                                 location=(0,.10,.30),rotation=(math.pi/2,0,0))
 halo=bpy.context.object; halo.name='FinalHalo'; halo.data.materials.append(BLUEGLOW)
 halo.scale=(0,0,0); halo.keyframe_insert('scale',frame=100)
 halo.scale=(1.0,1.0,1.0); halo.keyframe_insert('scale',frame=116)
-halo.scale=(1.10,1.10,1.10); halo.keyframe_insert('scale',frame=126)
+halo.scale=(1.04,1.04,1.04); halo.keyframe_insert('scale',frame=126)
 halo.scale=(1.0,1.0,1.0); halo.keyframe_insert('scale',frame=144)
 
-# studio reflection cards: invisible-as-objects outside main framing but visible in metallic/glass response
-WHITEGLOW=mat('WhiteGlow',(0.95,0.98,1.0,1),0,.12,(1.0,1.0,1.0,1),5.0)
-CYANGLOW=mat('CyanGlow',(0.05,0.55,1.0,1),0,.10,(0.05,0.55,1.0,1),3.0)
-
-cube('ReflectCardL',(-3.15,.55,.75),(.18,.06,2.65),WHITEGLOW,.02)
-cube('ReflectCardR',(3.15,.50,.55),(.16,.06,2.45),WHITEGLOW,.02)
-cube('ReflectCardTop',(0,.65,3.20),(2.15,.05,.14),CYANGLOW,.02)
-
+# reflection is created only with off-camera area lights; no visible reflection-card geometry.
 # crystal-state facet accents appear only near final phase; preserve same coin identity.
 facet_mat=mat('Facet',(0.70,0.92,1.0,1),.02,.04,(0.10,0.45,1.0,1),1.2)
 if frame >= 104:
@@ -187,8 +180,9 @@ def area(name,loc,energy,size,color,target):
 area('WarmKey',(-4.0,-5.0,5.8),1850,4.5,(1.0,.72,.52),(0,0,.2))
 area('CoolFill',(4.2,-3.2,1.4),1650,3.8,(.42,.62,1.0),(0,0,.3))
 area('TopRim',(0,2.4,5.5),1550,3.2,(.72,.86,1.0),(0,0,.6))
-area('ChromeStripL',(-3.2,-2.0,1.0),1350,1.2,(1.0,1.0,1.0),(0,0,.4))
-area('ChromeStripR',(3.2,-1.7,.4),1250,1.0,(.72,.88,1.0),(0,0,.2))
+area('ChromeStripL',(-3.8,-2.6,1.2),1750,.75,(1.0,1.0,1.0),(0,0,.35))
+area('ChromeStripR',(3.8,-2.2,.45),1650,.70,(.78,.90,1.0),(0,0,.20))
+area('FrontRim',(0,-4.8,3.4),950,1.0,(.65,.82,1.0),(0,0,.45))
 
 # camera
 bpy.ops.object.camera_add(location=(2.25,-13.5,1.15))
