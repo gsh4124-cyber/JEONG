@@ -1,0 +1,13 @@
+name: Global Shorts Runner Healthcheck
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/global-shorts-runner-healthcheck.yml"
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo runner-ok
