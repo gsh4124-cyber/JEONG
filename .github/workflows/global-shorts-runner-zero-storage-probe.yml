@@ -1,0 +1,19 @@
+name: Global Shorts Runner Zero Storage Probe
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "global_shorts_render_lab/runner_probe_trigger.txt"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Zero storage runner proof
+        run: |
+          echo "GLOBAL_SHORTS_ZERO_STORAGE_RUNNER_PASS"
+          echo "No checkout, no cache, no artifact, no Blender."
