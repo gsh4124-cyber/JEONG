@@ -1,0 +1,13 @@
+{
+  "id": "YOUR_KAGGLE_USERNAME/global-shorts-blender-remote-worker",
+  "title": "Global Shorts Blender Remote Worker",
+  "code_file": "kaggle_remote_blender_smoke.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": "true",
+  "enable_gpu": "true",
+  "enable_internet": "true",
+  "dataset_sources": [],
+  "competition_sources": [],
+  "kernel_sources": []
+}
