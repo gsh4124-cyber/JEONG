@@ -1,0 +1,4 @@
+# Example only. Replace paths with actual final render/audio files.
+ffmpeg -y -i MorphMint_005_video.mp4 -i MorphMint_005_audio.wav   -c:v copy -c:a aac -b:a 160k -ar 48000 -ac 1   -movflags +faststart -shortest MorphMint_005_1080x1920.mp4
+
+sha256sum MorphMint_005_1080x1920.mp4
