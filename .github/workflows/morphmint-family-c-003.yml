@@ -1,0 +1,86 @@
+name: MorphMint Family C Fresh Candidate 003
+
+on:
+  push:
+    branches: [global-shorts-render-lab]
+    paths:
+      - ".github/workflows/morphmint-family-c-003.yml"
+      - "global_shorts_render_lab/morphmint_family_c_003.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build_003:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: global-shorts-render-lab
+          fetch-depth: 0
+      - name: Install runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg python3-pip
+          python3 -m pip install --quiet pillow numpy
+      - name: Render deterministic source
+        run: |
+          rm -rf /tmp/morphmint003
+          mkdir -p /tmp/morphmint003
+          python3 global_shorts_render_lab/morphmint_family_c_003.py /tmp/morphmint003
+      - name: Encode exact final binary
+        run: |
+          OUT=global_shorts_render_lab/output/morphmint_material_shift_003
+          mkdir -p "$OUT"
+          ffmpeg -y -hide_banner -loglevel error             -framerate 30 -i /tmp/morphmint003/frame_%04d.png             -i /tmp/morphmint003/audio.wav             -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p             -c:a aac -b:a 160k -ar 48000 -ac 1             -movflags +faststart -t 8.000             "$OUT/MorphMint_MaterialShift_003_1080x1920.mp4"
+          sha256sum "$OUT/MorphMint_MaterialShift_003_1080x1920.mp4" > "$OUT/SHA256.txt"
+      - name: Build QA evidence
+        run: |
+          OUT=global_shorts_render_lab/output/morphmint_material_shift_003
+          MP4="$OUT/MorphMint_MaterialShift_003_1080x1920.mp4"
+          ffprobe -v error -show_entries stream=index,codec_name,codec_type,width,height,r_frame_rate,start_time,duration,sample_rate,channels -show_entries format=duration,size -of json "$MP4" > "$OUT/ffprobe.json"
+          ffmpeg -hide_banner -i "$MP4" -vf "blackdetect=d=0.10:pix_th=0.03" -an -f null - 2> "$OUT/blackdetect.txt" || true
+          ffmpeg -y -hide_banner -loglevel error             -ss 0.40 -i "$MP4" -frames:v 1 /tmp/q1.png             -ss 2.45 -i "$MP4" -frames:v 1 /tmp/q2.png             -ss 4.70 -i "$MP4" -frames:v 1 /tmp/q3.png             -ss 5.45 -i "$MP4" -frames:v 1 /tmp/q4.png             -ss 7.45 -i "$MP4" -frames:v 1 /tmp/q5.png
+          ffmpeg -y -hide_banner -loglevel error             -i /tmp/q1.png -i /tmp/q2.png -i /tmp/q3.png -i /tmp/q4.png -i /tmp/q5.png             -filter_complex "[0:v]scale=216:384[a];[1:v]scale=216:384[b];[2:v]scale=216:384[c];[3:v]scale=216:384[d];[4:v]scale=216:384[e];[a][b][c][d][e]hstack=5[out]"             -map "[out]" -q:v 3 "$OUT/contact_003.jpg"
+          python3 - <<'PY'
+          import json,hashlib,os
+          out="global_shorts_render_lab/output/morphmint_material_shift_003"
+          mp4=os.path.join(out,"MorphMint_MaterialShift_003_1080x1920.mp4")
+          with open(mp4,"rb") as f: sha=hashlib.sha256(f.read()).hexdigest()
+          with open(os.path.join(out,"ffprobe.json")) as f: probe=json.load(f)
+          black=open(os.path.join(out,"blackdetect.txt"),errors="ignore").read()
+          qa={
+            "asset_id":"morphmint_material_shift_003",
+            "filename":"MorphMint_MaterialShift_003_1080x1920.mp4",
+            "production_route":"LOCAL_DETERMINISTIC_2_5D_ART_DIRECTED",
+            "source":"global_shorts_render_lab/morphmint_family_c_003.py",
+            "sha256":sha,
+            "expected_resolution":"1080x1920",
+            "expected_fps":"30/1",
+            "expected_duration_seconds":8.0,
+            "event_schedule_seconds":{"ceramic_to_chrome":2.2,"chrome_to_crystal":5.0,"payoff":7.1},
+            "reflection_mask_rule":"PASS_BY_CONSTRUCTION: chrome bands alpha-clipped to coin silhouette; halo separate FX layer",
+            "black_segment_detected":"black_start:" in black,
+            "ffprobe":probe,
+            "ai_preview_status":"PENDING_READBACK",
+            "technical_status":"PENDING_READBACK"
+          }
+          with open(os.path.join(out,"qa_evidence.json"),"w") as f: json.dump(qa,f,indent=2)
+          PY
+      - name: Persist source-linked exact binary and evidence
+        run: |
+          OUT=global_shorts_render_lab/output/morphmint_material_shift_003
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add global_shorts_render_lab/morphmint_family_c_003.py "$OUT"
+          git commit -m "asset: persist MorphMint fresh candidate 003 exact binary and QA evidence [skip ci]"
+          for n in 1 2 3 4 5 6; do
+            git fetch origin global-shorts-render-lab
+            git rebase origin/global-shorts-render-lab
+            if git push origin HEAD:global-shorts-render-lab; then exit 0; fi
+            git rebase --abort || true
+            sleep 4
+          done
+          exit 1
