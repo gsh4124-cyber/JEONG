@@ -1,0 +1,52 @@
+name: Blender Runner Recovery Smoke
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "runner_recovery_probe.txt"
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Runner alive
+        run: |
+          echo "runner_alive=1"
+          uname -a
+          python3 --version
+      - name: Install Blender deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends wget xz-utils libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libegl1 libxkbcommon0 libsm6
+      - name: Fetch Blender
+        run: |
+          wget -q https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
+          tar -xf blender-5.2.2-linux-x64.tar.xz
+          ./blender-5.2.2-linux-x64/blender --version
+      - name: 64x64 smoke render
+        run: |
+          cat > /tmp/smoke.py <<'PY'
+          import bpy, os, math
+          bpy.ops.object.select_all(action='SELECT')
+          bpy.ops.object.delete(use_global=False)
+          bpy.ops.mesh.primitive_uv_sphere_add(radius=1.0)
+          bpy.ops.object.light_add(type='AREA', location=(2,-3,4))
+          bpy.context.object.data.energy=800
+          bpy.ops.object.camera_add(location=(0,-5,0))
+          cam=bpy.context.object
+          cam.rotation_euler=(math.radians(90),0,0)
+          bpy.context.scene.camera=cam
+          s=bpy.context.scene
+          s.render.engine='BLENDER_EEVEE_NEXT'
+          s.render.resolution_x=64
+          s.render.resolution_y=64
+          s.render.resolution_percentage=100
+          s.render.filepath='/tmp/blender_smoke.png'
+          bpy.ops.render.render(write_still=True)
+          assert os.path.exists('/tmp/blender_smoke.png')
+          print('BLENDER_SMOKE_RENDER_PASS')
+          PY
+          ./blender-5.2.2-linux-x64/blender --background --python /tmp/smoke.py
