@@ -1,0 +1,19 @@
+name: Global Shorts Remote Runner Smoke
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/global-shorts-remote-runner-smoke.yml"
+  workflow_dispatch:
+
+jobs:
+  runner_smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Runner alive
+        run: |
+          echo "GLOBAL_SHORTS_REMOTE_RUNNER_ALIVE"
+          uname -a
+          python3 --version
