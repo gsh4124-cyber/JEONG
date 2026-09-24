@@ -1,7 +1,7 @@
 import bpy, os
 
 scene=bpy.context.scene
-scene.render.engine='BLENDER_EEVEE_NEXT'
+scene.render.engine='BLENDER_EEVEE'
 scene.render.resolution_x=270
 scene.render.resolution_y=480
 scene.render.resolution_percentage=100
