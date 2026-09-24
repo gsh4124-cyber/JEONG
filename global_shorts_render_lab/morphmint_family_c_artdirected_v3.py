@@ -1,3 +1,7 @@
+# ARCHIVED_REFERENCE_ONLY — DO NOT USE AS CURRENT GLOBAL SHORTS PRODUCTION ROUTE
+# Current primary route: global_shorts_render_lab/blender_mcp/ (Blender MCP local 3D)
+# Retained only for failure learning / fallback reconstruction; no active workflow should invoke this file.
+
 import bpy, math, os, sys
 from mathutils import Vector
 
