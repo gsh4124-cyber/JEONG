@@ -1,0 +1,26 @@
+{
+  "system": "global_shorts_blender_mcp",
+  "status": "PORTABLE_BOOTSTRAP_SOURCE_PERSISTED_LOCAL_EXECUTION_PENDING",
+  "blender": {
+    "recommended": "5.2.2 LTS",
+    "minimum_for_official_mcp": "5.1",
+    "render_engine_primary": "BLENDER_EEVEE_NEXT"
+  },
+  "mcp": {
+    "provider": "official Blender MCP Server",
+    "client_requirement": "MCP-capable agent/client",
+    "smoke_pass_label": "BLENDER_MCP_LOCAL_SMOKE_PASS"
+  },
+  "production": {
+    "primary_route": "BLENDER_MCP_LOCAL_3D",
+    "fallback_route": "LOCAL_DETERMINISTIC_2_5D_ART_DIRECTED",
+    "runway_policy": "FORBIDDEN_BY_EMPEROR",
+    "internal_quality_gate": 90
+  },
+  "assets": {
+    "smoke_script": "smoke_scene.py",
+    "morphmint_005_base_scene": "morphmint_005_scene.py",
+    "proxy_renderer": "render_proxy.py",
+    "ffmpeg_finalize_example": "ffmpeg_finalize.example.txt"
+  }
+}
