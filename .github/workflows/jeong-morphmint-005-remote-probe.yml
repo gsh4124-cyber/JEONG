@@ -1,31 +1,25 @@
-name: JEONG MorphMint 005 Remote Probe
+name: JEONG MorphMint 005 Crystal Grammar QA
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "global_shorts_render_lab/github_public_runner/morphmint_005_remote_probe.py"
-      - ".github/workflows/jeong-morphmint-005-remote-probe.yml"
-      - "jeong_morphmint_005_probe_trigger.txt"
   pull_request:
     branches: [main]
     paths:
-      - "global_shorts_render_lab/github_public_runner/morphmint_005_remote_probe.py"
+      - "global_shorts_render_lab/github_public_runner/morphmint_005_crystal_cutgem_a.py"
       - ".github/workflows/jeong-morphmint-005-remote-probe.yml"
-      - "jeong_morphmint_005_probe_trigger.txt"
+      - "jeong_morphmint_005_crystal_cutgem_a_trigger.txt"
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  probe:
+  crystal-grammar:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || 'main' }}
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
 
       - name: Install Blender runtime libraries
         run: |
@@ -38,28 +32,29 @@ jobs:
           curl -L --fail --retry 3 -o .cache/blender/blender.tar.xz https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
           tar -xf .cache/blender/blender.tar.xz -C .cache/blender
 
-      - name: Render MorphMint 005 V21 stills
+      - name: Render selected cut-gem crystal grammar
         env:
           EGL_PLATFORM: surfaceless
         run: |
-          .cache/blender/blender-5.2.2-linux-x64/blender --background --factory-startup --python global_shorts_render_lab/github_public_runner/morphmint_005_remote_probe.py
+          .cache/blender/blender-5.2.2-linux-x64/blender --background --factory-startup --python global_shorts_render_lab/github_public_runner/morphmint_005_crystal_cutgem_a.py
 
-      - name: Verify
+      - name: Verify exact still and make readable preview proof
         run: |
-          test -s render_output/morphmint_005_probe/ceramic.png
-          test -s render_output/morphmint_005_probe/chrome.png
-          test -s render_output/morphmint_005_probe/crystal.png
-          grep -q "MORPHMINT_005_PUBLIC_REMOTE_3STATE_V21_PASS" render_output/morphmint_005_probe/result.json
-          echo "JEONG_MORPHMINT_005_V21_PASS"
+          test -s render_output/morphmint_005_crystal_cutgem_a/crystal.png
+          test -s render_output/morphmint_005_crystal_cutgem_a/crystal_preview.png
+          grep -q "MORPHMINT_005_CRYSTAL_CUTGEM_A_RENDER_PASS" render_output/morphmint_005_crystal_cutgem_a/result.json
+          base64 -w0 render_output/morphmint_005_crystal_cutgem_a/crystal_preview.png > render_output/morphmint_005_crystal_cutgem_a/crystal_preview.b64
+          test -s render_output/morphmint_005_crystal_cutgem_a/crystal_preview.b64
+          echo "JEONG_MORPHMINT_005_CRYSTAL_CUTGEM_A_RENDER_PASS"
 
-      - name: Persist compact QA proof to PR branch
+      - name: Persist exact QA proof to PR branch
         run: |
           git config user.name "global-shorts-render-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add render_output/morphmint_005_probe/ceramic.png
-          git add render_output/morphmint_005_probe/chrome.png
-          git add render_output/morphmint_005_probe/crystal.png
-          git add render_output/morphmint_005_probe/result.json
+          git add render_output/morphmint_005_crystal_cutgem_a/crystal.png
+          git add render_output/morphmint_005_crystal_cutgem_a/crystal_preview.png
+          git add render_output/morphmint_005_crystal_cutgem_a/crystal_preview.b64
+          git add render_output/morphmint_005_crystal_cutgem_a/result.json
           git diff --cached --quiet && exit 0
-          git commit -m "render: persist JEONG MorphMint 005 V21 QA"
+          git commit -m "render: persist MorphMint 005 cut-gem A QA"
           git push
