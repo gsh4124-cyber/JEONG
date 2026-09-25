@@ -342,11 +342,12 @@ def set_backdrop_transmission(visible):
         pass
 
 # Camera
-bpy.ops.object.camera_add(location=(0,-10.2,0.45))
+bpy.ops.object.camera_add(location=(0.95,-10.25,0.72))
 cam=bpy.context.object
 cam.name="MorphMint_Camera"
-cam.data.lens=65
-cam.rotation_euler=(Vector((0,0,0))-cam.location).to_track_quat('-Z','Y').to_euler()
+cam.data.lens=68
+camera_target=Vector((0,0,0.05))
+cam.rotation_euler=(camera_target-cam.location).to_track_quat('-Z','Y').to_euler()
 scene.camera=cam
 
 def set_material(mat):
@@ -462,7 +463,7 @@ bpy.ops.render.render(write_still=True)
 rendered.append(str(OUT/"crystal.png"))
 
 result={
-  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V19_PASS",
+  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V20_PASS",
   "resolution":f"{W}x{H}",
   "renders":rendered,
   "crystal_engine":"CYCLES",
@@ -471,9 +472,9 @@ result={
     "removed all reflection-card geometry",
     "chrome uses three narrow area-strip highlights only",
     "removed radial shard and inner crystal ring structure",
-    "crystal uses a clean high-poly center with faceted edge materials while refracting a procedural camera-hidden world environment; no visible stripe-card props"
+    "all three states use the same subtle three-quarter product camera to reveal thickness; crystal keeps clean glass center, faceted edge materials and procedural hidden world refraction"
   ],
   "note":"Visual QA stills only. Transition remains blocked until all three states pass."
 }
 (OUT/"result.json").write_text(json.dumps(result,indent=2),encoding="utf-8")
-print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V19_PASS")
+print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V20_PASS")
