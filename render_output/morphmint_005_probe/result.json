@@ -1,0 +1,19 @@
+{
+  "marker": "MORPHMINT_005_PUBLIC_REMOTE_3STATE_V4_PASS",
+  "resolution": "540x960",
+  "renders": [
+    "render_output/morphmint_005_probe/ceramic.png",
+    "render_output/morphmint_005_probe/chrome.png",
+    "render_output/morphmint_005_probe/crystal.png"
+  ],
+  "crystal_engine": "CYCLES",
+  "crystal_samples": 40,
+  "changes": [
+    "JEONG native public runner",
+    "reflection cards remain outside camera view",
+    "chrome reflection intensity reduced",
+    "crystal switched to Cycles glass + volume absorption",
+    "refined thin radial shards and reduced chrome reflection blowout"
+  ],
+  "note": "Visual QA stills only. Transition remains blocked until all three states pass."
+}
