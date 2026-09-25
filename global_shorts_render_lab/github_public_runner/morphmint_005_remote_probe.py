@@ -86,7 +86,7 @@ def make_tetra(name, loc, scale, rot, material):
 
 
 def make_cut_disc(name, material, segments=40):
-    # V16: closed cut-gem medallion with a clean central face.
+    # V16 rerun: closed cut-gem medallion with a clean central face.
     # Facets exist only between concentric rings so no radial spoke pattern appears.
     radii=[0.46,0.86,1.18,1.42,1.55]
     base_front=[-0.265,-0.252,-0.272,-0.220,-0.158]
