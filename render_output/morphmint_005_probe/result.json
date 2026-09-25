@@ -1,5 +1,5 @@
 {
-  "marker": "MORPHMINT_005_PUBLIC_REMOTE_3STATE_V20_PASS",
+  "marker": "MORPHMINT_005_PUBLIC_REMOTE_3STATE_V21_PASS",
   "resolution": "540x960",
   "renders": [
     "render_output/morphmint_005_probe/ceramic.png",
@@ -7,12 +7,12 @@
     "render_output/morphmint_005_probe/crystal.png"
   ],
   "crystal_engine": "CYCLES",
-  "crystal_samples": 80,
+  "crystal_samples": 96,
   "changes": [
     "removed all reflection-card geometry",
     "chrome uses three narrow area-strip highlights only",
     "removed radial shard and inner crystal ring structure",
-    "all three states use the same subtle three-quarter product camera to reveal thickness; crystal keeps clean glass center, faceted edge materials and procedural hidden world refraction"
+    "crystal uses dedicated asset geometry: thin optical body, 24-facet outer crown, 24-facet inner ring, glint ring and separate cut crystal identity bar"
   ],
   "note": "Visual QA stills only. Transition remains blocked until all three states pass."
 }
