@@ -51,8 +51,8 @@ def glass_material(name, color, rough=0.018, ior=1.46, absorption=(0.12,0.42,0.9
         ramp.color_ramp.elements[0].position=0.025
         ramp.color_ramp.elements[1].position=0.11
         bump=nt.nodes.new('ShaderNodeBump')
-        bump.inputs['Strength'].default_value=0.010
-        bump.inputs['Distance'].default_value=0.006
+        bump.inputs['Strength'].default_value=0.018
+        bump.inputs['Distance'].default_value=0.008
         nt.links.new(tex.outputs['Distance'], ramp.inputs['Fac'])
         nt.links.new(ramp.outputs['Color'], bump.inputs['Height'])
         nt.links.new(bump.outputs['Normal'], glass.inputs['Normal'])
@@ -85,74 +85,60 @@ def make_tetra(name, loc, scale, rot, material):
     return obj
 
 
-def make_cut_disc(name, material, segments=36):
-    # Closed cut-gem medallion. Concentric rings + alternating angular depth
-    # create real planar facets on the front and back surfaces.
-    radii=[0.52,0.88,1.18,1.40,1.55]
-    base_front=[-0.260,-0.248,-0.278,-0.222,-0.150]
-    base_back =[ 0.260, 0.248, 0.278, 0.222, 0.150]
+def make_cut_disc(name, material, segments=40):
+    # V16: closed cut-gem medallion with a clean central face.
+    # Facets exist only between concentric rings so no radial spoke pattern appears.
+    radii=[0.46,0.86,1.18,1.42,1.55]
+    base_front=[-0.265,-0.252,-0.272,-0.220,-0.158]
+    base_back =[ 0.265, 0.252, 0.272, 0.220, 0.158]
     verts=[]
     faces=[]
 
-    front_center=len(verts)
-    verts.append((0.0,-0.270,0.0))
     front_rings=[]
     for k,(r,base_y) in enumerate(zip(radii,base_front)):
         ring=[]
         for i in range(segments):
             a=2*math.pi*i/segments
-            # Alternating cut depth creates a faceted gemstone face.
-            wave=(0.014*math.sin(3*a+0.7*k) +
-                  0.010*math.cos(5*a-0.4*k) +
-                  (0.008 if i%2==0 else -0.008))
-            y=base_y + wave
+            wave=(0.008*math.sin(3*a+0.55*k) +
+                  0.006*math.cos(5*a-0.35*k) +
+                  (0.004 if (i+k)%2==0 else -0.004))
             ring.append(len(verts))
-            verts.append((r*math.cos(a),y,r*math.sin(a)))
+            verts.append((r*math.cos(a),base_y+wave,r*math.sin(a)))
         front_rings.append(ring)
 
-    back_center=len(verts)
-    verts.append((0.0,0.270,0.0))
     back_rings=[]
     for k,(r,base_y) in enumerate(zip(radii,base_back)):
         ring=[]
         for i in range(segments):
             a=2*math.pi*i/segments
-            wave=(0.012*math.sin(4*a-0.5*k) +
-                  0.008*math.cos(6*a+0.2*k) +
-                  (-0.006 if i%2==0 else 0.006))
-            y=base_y + wave
+            wave=(0.007*math.sin(4*a-0.45*k) +
+                  0.005*math.cos(6*a+0.25*k) +
+                  (-0.003 if (i+k)%2==0 else 0.003))
             ring.append(len(verts))
-            verts.append((r*math.cos(a),y,r*math.sin(a)))
+            verts.append((r*math.cos(a),base_y+wave,r*math.sin(a)))
         back_rings.append(ring)
 
-    # Front triangulated/quadded rings.
-    r0=front_rings[0]
-    for i in range(segments):
-        j=(i+1)%segments
-        faces.append((front_center,r0[i],r0[j]))
+    # Clean center faces: n-gons, no radial fan triangles.
+    faces.append(tuple(reversed(front_rings[0])))
+    faces.append(tuple(back_rings[0]))
+
+    # Front annular facets. Mostly quads, occasional diagonal split in outer rings only.
     for k in range(len(front_rings)-1):
         ra,rb=front_rings[k],front_rings[k+1]
         for i in range(segments):
             j=(i+1)%segments
-            # Alternate diagonal direction to break repetitive spoke rhythm.
-            if (i+k)%2==0:
+            if k >= 2 and (i+k)%3==0:
                 faces.append((ra[i],rb[i],rb[j]))
                 faces.append((ra[i],rb[j],ra[j]))
             else:
-                faces.append((ra[i],rb[i],ra[j]))
-                faces.append((ra[j],rb[i],rb[j]))
+                faces.append((ra[i],rb[i],rb[j],ra[j]))
 
-    # Back.
-    r0=back_rings[0]
-    for i in range(segments):
-        j=(i+1)%segments
-        faces.append((back_center,r0[j],r0[i]))
+    # Back annular surfaces.
     for k in range(len(back_rings)-1):
         ra,rb=back_rings[k],back_rings[k+1]
         for i in range(segments):
             j=(i+1)%segments
-            faces.append((ra[j],rb[j],rb[i]))
-            faces.append((ra[j],rb[i],ra[i]))
+            faces.append((ra[j],rb[j],rb[i],ra[i]))
 
     # Outer wall.
     rf=front_rings[-1]
@@ -177,10 +163,10 @@ CHROME=principled("MM_Chrome",(0.82,0.87,0.96,1),1.0,0.19)
 CRYSTAL=glass_material(
     "MM_Crystal",
     (0.985,1.0,1.0,1),
-    rough=0.006,
+    rough=0.012,
     ior=1.48,
-    absorption=(0.12,0.42,0.95,1),
-    density=0.0014,
+    absorption=(0.22,0.62,1.0,1),
+    density=0.0009,
     faceted=True
 )
 CRYSTAL_SHELL=glass_material(
@@ -226,11 +212,11 @@ bev2.segments=5
 objects=(body,rim,bar)
 
 # Crystal-state V14 cut-gem shell. Same medallion identity and round silhouette.
-crystal_body=make_cut_disc("MorphMint_CrystalBody", CRYSTAL, segments=32)
+crystal_body=make_cut_disc("MorphMint_CrystalBody", CRYSTAL, segments=40)
 
 bpy.ops.mesh.primitive_torus_add(
     major_radius=1.20, minor_radius=0.105,
-    major_segments=32, minor_segments=8,
+    major_segments=40, minor_segments=10,
     location=(0,-0.245,0),
     rotation=(math.radians(90),0,0)
 )
@@ -263,7 +249,7 @@ bpy.ops.mesh.primitive_plane_add(size=18, location=(0,2.8,1.2), rotation=(math.r
 back=bpy.context.object
 back.name="Backdrop"
 BACK_DARK=principled("BackdropDark",(0.006,0.012,0.028,1),0.0,0.48)
-BACK_CRYSTAL=principled("BackdropCrystal",(0.004,0.012,0.040,1),0.0,0.62)
+BACK_CRYSTAL=principled("BackdropCrystal",(0.010,0.028,0.075,1),0.0,0.58)
 back.data.materials.append(BACK_DARK)
 
 # General lighting
@@ -392,7 +378,7 @@ scene.cycles.transmission_bounces=10
 scene.cycles.glossy_bounces=6
 scene.cycles.diffuse_bounces=3
 scene.view_settings.look='AgX - Medium High Contrast'
-scene.world.color=(0.003,0.008,0.024)
+scene.world.color=(0.006,0.016,0.045)
 set_material(CRYSTAL)
 set_crystal_internals(False)
 set_crystal_shell(True)
@@ -402,16 +388,16 @@ set_backdrop(BACK_CRYSTAL)
 # Crystal state: remove the floor from the render entirely so no large
 # refracted polygon fragments can appear inside the transparent medallion.
 floor.hide_render=True
-lights['Key'].data.energy=760
-lights['Fill'].data.energy=430
-lights['Rim'].data.energy=1550
+lights['Key'].data.energy=540
+lights['Fill'].data.energy=620
+lights['Rim'].data.energy=1180
 lights['Under'].data.energy=0
 scene.render.filepath=str(OUT/"crystal.png")
 bpy.ops.render.render(write_still=True)
 rendered.append(str(OUT/"crystal.png"))
 
 result={
-  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V15_PASS",
+  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V16_PASS",
   "resolution":f"{W}x{H}",
   "renders":rendered,
   "crystal_engine":"CYCLES",
@@ -420,9 +406,9 @@ result={
     "removed all reflection-card geometry",
     "chrome uses three narrow area-strip highlights only",
     "removed radial shard and inner crystal ring structure",
-    "crystal uses triangulated sector-varying cut-disc geometry with angular ring and separate cut identity bar on a dark gem-contrast background"
+    "crystal uses clean-center concentric cut-disc geometry with ring-only irregular facets, avoiding radial spoke artifacts"
   ],
   "note":"Visual QA stills only. Transition remains blocked until all three states pass."
 }
 (OUT/"result.json").write_text(json.dumps(result,indent=2),encoding="utf-8")
-print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V15_PASS")
+print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V16_PASS")
