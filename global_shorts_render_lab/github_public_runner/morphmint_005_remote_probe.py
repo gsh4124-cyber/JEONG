@@ -95,6 +95,15 @@ CRYSTAL=glass_material(
     density=0.012,
     faceted=True
 )
+CRYSTAL_SHELL=glass_material(
+    "MM_CrystalShell",
+    (0.94,0.99,1.0,1),
+    rough=0.018,
+    ior=1.50,
+    absorption=(0.08,0.34,0.88,1),
+    density=0.010,
+    faceted=False
+)
 
 # Main identity geometry
 bpy.ops.mesh.primitive_cylinder_add(vertices=128, radius=1.55, depth=0.42, location=(0,0,0))
@@ -127,6 +136,30 @@ bev2=bar.modifiers.new("BarBevel","BEVEL")
 bev2.width=0.06
 bev2.segments=5
 objects=(body,rim,bar)
+
+# Crystal-state faceted shell. Same medallion identity and silhouette,
+# but lower segment counts create real planar gemstone facets.
+bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=1.55, depth=0.42, location=(0,0,0))
+crystal_body=bpy.context.object
+crystal_body.name="MorphMint_CrystalBody"
+crystal_body.rotation_euler=(math.radians(90),0,0)
+crystal_body.data.materials.append(CRYSTAL_SHELL)
+crystal_body.hide_render=True
+crystal_body_bevel=crystal_body.modifiers.new("CrystalBodyChamfer","BEVEL")
+crystal_body_bevel.width=0.055
+crystal_body_bevel.segments=1
+
+bpy.ops.mesh.primitive_torus_add(
+    major_radius=1.20, minor_radius=0.105,
+    major_segments=48, minor_segments=12,
+    location=(0,-0.245,0),
+    rotation=(math.radians(90),0,0)
+)
+crystal_rim=bpy.context.object
+crystal_rim.name="MorphMint_CrystalRim"
+crystal_rim.data.materials.append(CRYSTAL_SHELL)
+crystal_rim.hide_render=True
+
 
 # Ground and backdrop
 bpy.ops.mesh.primitive_plane_add(size=30, location=(0,2,-2.25))
@@ -207,6 +240,19 @@ def set_chrome_strips(enabled):
     for l in chrome_strips.values():
         l.hide_render=not enabled
 
+def set_crystal_shell(enabled):
+    body.hide_render=enabled
+    rim.hide_render=enabled
+    crystal_body.hide_render=not enabled
+    crystal_rim.hide_render=not enabled
+
+def set_light_transmission_visibility(visible):
+    for l in list(lights.values()) + list(chrome_strips.values()):
+        try:
+            l.visible_transmission=visible
+        except Exception:
+            pass
+
 rendered=[]
 
 # Ceramic
@@ -214,12 +260,14 @@ scene.render.engine='BLENDER_EEVEE'
 scene.view_settings.look='AgX - Medium High Contrast'
 set_material(CERAMIC)
 set_crystal_internals(False)
+set_crystal_shell(False)
 set_chrome_strips(False)
+set_light_transmission_visibility(True)
 set_backdrop(BACK_DARK)
 lights['Key'].data.energy=1300
-lights['Fill'].data.energy=820
+lights['Fill'].data.energy=760
 lights['Rim'].data.energy=820
-lights['Under'].data.energy=120
+lights['Under'].data.energy=80
 scene.render.filepath=str(OUT/"ceramic.png")
 bpy.ops.render.render(write_still=True)
 rendered.append(str(OUT/"ceramic.png"))
@@ -229,7 +277,9 @@ scene.render.engine='BLENDER_EEVEE'
 scene.view_settings.look='AgX - High Contrast'
 set_material(CHROME)
 set_crystal_internals(False)
+set_crystal_shell(False)
 set_chrome_strips(True)
+set_light_transmission_visibility(True)
 set_backdrop(BACK_DARK)
 lights['Key'].data.energy=520
 lights['Fill'].data.energy=360
@@ -251,21 +301,23 @@ scene.view_settings.look='AgX - Medium High Contrast'
 scene.world.color=(0.010,0.024,0.060)
 set_material(CRYSTAL)
 set_crystal_internals(False)
+set_crystal_shell(True)
 set_chrome_strips(False)
+set_light_transmission_visibility(False)
 set_backdrop(BACK_CRYSTAL)
 # Crystal state: remove the floor from the render entirely so no large
 # refracted polygon fragments can appear inside the transparent medallion.
 floor.hide_render=True
-lights['Key'].data.energy=620
+lights['Key'].data.energy=560
 lights['Fill'].data.energy=820
-lights['Rim'].data.energy=980
+lights['Rim'].data.energy=920
 lights['Under'].data.energy=120
 scene.render.filepath=str(OUT/"crystal.png")
 bpy.ops.render.render(write_still=True)
 rendered.append(str(OUT/"crystal.png"))
 
 result={
-  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V9_PASS",
+  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V10_PASS",
   "resolution":f"{W}x{H}",
   "renders":rendered,
   "crystal_engine":"CYCLES",
@@ -274,9 +326,9 @@ result={
     "removed all reflection-card geometry",
     "chrome uses three narrow area-strip highlights only",
     "removed radial shard and inner crystal ring structure",
-    "crystal removes all internal prop geometry; floor hidden entirely during crystal render; Voronoi facet bump softened for cleaner gemstone refraction"
+    "crystal uses real low-poly faceted body/rim shell; floor hidden; area lights hidden from transmission rays; softened surface facet bump retained on identity bar"
   ],
   "note":"Visual QA stills only. Transition remains blocked until all three states pass."
 }
 (OUT/"result.json").write_text(json.dumps(result,indent=2),encoding="utf-8")
-print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V9_PASS")
+print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V10_PASS")
