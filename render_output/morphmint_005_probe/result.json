@@ -1,5 +1,5 @@
 {
-  "marker": "MORPHMINT_005_CRYSTAL_CUTGRAMMAR_A3_PASS",
+  "marker": "MORPHMINT_005_CRYSTAL_BRILLIANT57_A4_PASS",
   "resolution": "540x960",
   "renders": [
     "render_output/morphmint_005_probe/ceramic.png",
@@ -12,7 +12,7 @@
     "removed all reflection-card geometry",
     "chrome uses three narrow area-strip highlights only",
     "replaced stacked crystal rings with one watertight brilliant-cut medallion mesh",
-    "deliberate brilliant-cut facet families: table, 8 star, 8 bezel/kite, 16 upper-girdle facets, crisp girdle and symmetric pavilion",
+    "BRILLIANT57-inspired topology: 1 table, 8 star, 8 bezel/kite, 16 upper girdle, 16 lower girdle and 8 pavilion-main facets",
     "matching baguette-cut identity bar preserves MorphMint identity",
     "removed transmission-visible emissive cards that caused torn white streaks",
     "facet readability now comes from the cut topology, procedural world refraction and real area-light highlights"
