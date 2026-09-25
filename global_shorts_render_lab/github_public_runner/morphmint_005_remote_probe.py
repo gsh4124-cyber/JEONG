@@ -163,64 +163,81 @@ def _recalc_outside_normals(obj):
     obj.select_set(False)
 
 def build_cut_gem_medallion(name, material, accent_material):
-    segments=16
-    ring_specs=[
-        # radius, camera-axis depth(Y), angular offset
-        (0.62,-0.310,0.0),                    # front table
-        (0.98,-0.255,math.pi/segments),       # star facets
-        (1.36,-0.125,0.0),                    # bezel/crown
-        (1.55,-0.025,math.pi/segments),       # front girdle
-        (1.55, 0.115,0.0),                    # back girdle
-        (0.96, 0.285,math.pi/segments),       # pavilion mains
-        (0.18, 0.405,0.0),                    # culet ring
-    ]
+    # Brilliant-cut-inspired visual grammar:
+    # 1 table + 8 star + 8 bezel/kite + 16 upper-girdle crown facets,
+    # a thin 16-sided girdle, then a deliberately symmetric pavilion family.
+    crown_n=8
+    girdle_n=16
 
     verts=[]
-    rings=[]
-    for radius,depth,offset in ring_specs:
+    def add_ring(count, radius, depth, offset=0.0):
         ids=[]
-        for i in range(segments):
-            a=(2.0*math.pi*i/segments)+offset
+        for i in range(count):
+            ang=(2.0*math.pi*i/count)+offset
             ids.append(len(verts))
-            verts.append((radius*math.cos(a),depth,radius*math.sin(a)))
-        rings.append(ids)
+            verts.append((radius*math.cos(ang),depth,radius*math.sin(ang)))
+        return ids
+
+    table=add_ring(crown_n,0.58,-0.345,0.0)
+    stars=add_ring(crown_n,0.92,-0.255,math.pi/crown_n)
+    girdle_front=add_ring(girdle_n,1.52,-0.035,0.0)
+    girdle_back=add_ring(girdle_n,1.52,0.085,0.0)
+    pavilion=add_ring(crown_n,0.68,0.315,0.0)
+    culet=len(verts)
+    verts.append((0.0,0.455,0.0))
 
     faces=[]
     mats=[]
 
-    # Flat table facing the camera.
-    faces.append(tuple(rings[0]))
+    # Table.
+    faces.append(tuple(table))
     mats.append(0)
 
-    # Every band is triangulated with alternating diagonals. The shifted rings
-    # create kite/triangle facet families instead of visible stacked rings.
-    for k in range(len(rings)-1):
-        a=rings[k]
-        b=rings[k+1]
-        for i in range(segments):
-            j=(i+1)%segments
-            if (i+k)%2==0:
-                faces.extend([
-                    (a[i],b[i],b[j]),
-                    (a[i],b[j],a[j]),
-                ])
-            else:
-                faces.extend([
-                    (a[i],b[i],a[j]),
-                    (a[j],b[i],b[j]),
-                ])
-            # Accent only a minority of crown/girdle facets; geometry remains
-            # the primary cue and the material shift stays subtle.
-            if k<=3 and (i+k)%4==0:
-                mats.extend([1,1])
-            elif k==3:
-                mats.extend([1,1])
-            else:
-                mats.extend([0,0])
+    # Crown: intentional 8-fold facet hierarchy.
+    for i in range(crown_n):
+        ni=(i+1)%crown_n
+        pi=(i-1)%crown_n
+        ge=(2*i)%girdle_n
+        go=(2*i+1)%girdle_n
+        gn=(2*i+2)%girdle_n
 
-    # Back culet cap.
-    faces.append(tuple(reversed(rings[-1])))
-    mats.append(0)
+        # 8 star facets around the table.
+        faces.append((table[i],table[ni],stars[i]))
+        mats.append(0)
+
+        # 8 large bezel/kite facets: the dominant premium-cut read.
+        faces.append((table[i],stars[i],girdle_front[ge],stars[pi]))
+        mats.append(0)
+
+        # 16 upper-girdle facets: narrower sparkle facets at the edge.
+        faces.append((stars[i],girdle_front[ge],girdle_front[go]))
+        mats.append(1)
+        faces.append((stars[i],girdle_front[go],girdle_front[gn]))
+        mats.append(1)
+
+    # Thin, crisp girdle.
+    for j in range(girdle_n):
+        nj=(j+1)%girdle_n
+        faces.append((girdle_front[j],girdle_front[nj],girdle_back[nj],girdle_back[j]))
+        mats.append(1)
+
+    # Pavilion: symmetric lower facets feeding eight deep pavilion mains.
+    for i in range(crown_n):
+        ni=(i+1)%crown_n
+        ge=(2*i)%girdle_n
+        go=(2*i+1)%girdle_n
+        gn=(2*i+2)%girdle_n
+
+        faces.append((girdle_back[ge],girdle_back[go],pavilion[i]))
+        mats.append(0)
+        faces.append((girdle_back[go],pavilion[ni],pavilion[i]))
+        mats.append(0)
+        faces.append((girdle_back[go],girdle_back[gn],pavilion[ni]))
+        mats.append(0)
+
+        # 8 pavilion mains converge to the culet.
+        faces.append((pavilion[i],pavilion[ni],culet))
+        mats.append(0)
 
     mesh=bpy.data.meshes.new(name+"_Mesh")
     mesh.from_pydata(verts,[],faces)
@@ -506,7 +523,7 @@ scene.render.filepath=str(OUT/"chrome.png")
 bpy.ops.render.render(write_still=True)
 rendered.append(str(OUT/"chrome.png"))
 
-# Crystal grammar A2: brilliant-cut watertight mesh + facet-lighting studio.
+# Crystal grammar A3: deliberate brilliant-cut facet families + facet-lighting studio.
 scene.render.engine='CYCLES'
 scene.cycles.samples=96
 scene.cycles.use_denoising=True
@@ -525,22 +542,28 @@ set_light_transmission_visibility(True)
 set_backdrop(BACK_CRYSTAL)
 set_world_crystal_env(True)
 set_backdrop_transmission(False)
-chrome_strips['ChromeStripL'].data.energy=120
-chrome_strips['ChromeStripR'].data.energy=105
-chrome_strips['ChromeStripTop'].data.energy=85
+chrome_strips['ChromeStripL'].data.energy=85
+chrome_strips['ChromeStripR'].data.energy=72
+chrome_strips['ChromeStripTop'].data.energy=65
+chrome_strips['ChromeStripL'].data.color=(1.0,0.96,0.92)
+chrome_strips['ChromeStripR'].data.color=(0.86,0.93,1.0)
+chrome_strips['ChromeStripTop'].data.color=(1.0,1.0,1.0)
 # Crystal state: remove the floor from the render entirely so no large
 # refracted polygon fragments can appear inside the transparent medallion.
 floor.hide_render=True
-lights['Key'].data.energy=430
-lights['Fill'].data.energy=520
-lights['Rim'].data.energy=1720
+lights['Key'].data.energy=560
+lights['Fill'].data.energy=380
+lights['Rim'].data.energy=980
 lights['Under'].data.energy=0
+lights['Key'].data.color=(1.0,0.96,0.92)
+lights['Fill'].data.color=(0.74,0.86,1.0)
+lights['Rim'].data.color=(1.0,1.0,1.0)
 scene.render.filepath=str(OUT/"crystal.png")
 bpy.ops.render.render(write_still=True)
 rendered.append(str(OUT/"crystal.png"))
 
 result={
-  "marker":"MORPHMINT_005_CRYSTAL_CUTGRAMMAR_A2_PASS",
+  "marker":"MORPHMINT_005_CRYSTAL_CUTGRAMMAR_A3_PASS",
   "resolution":f"{W}x{H}",
   "renders":rendered,
   "crystal_engine":"CYCLES",
@@ -549,7 +572,7 @@ result={
     "removed all reflection-card geometry",
     "chrome uses three narrow area-strip highlights only",
     "replaced stacked crystal rings with one watertight brilliant-cut medallion mesh",
-    "front table, shifted star/bezel facets, real girdle thickness and pavilion/geo depth form the crystal grammar",
+    "deliberate brilliant-cut facet families: table, 8 star, 8 bezel/kite, 16 upper-girdle facets, crisp girdle and symmetric pavilion",
     "matching baguette-cut identity bar preserves MorphMint identity",
     "removed transmission-visible emissive cards that caused torn white streaks",
     "facet readability now comes from the cut topology, procedural world refraction and real area-light highlights"
@@ -557,4 +580,4 @@ result={
   "note":"Visual QA stills only. Transition remains blocked until all three states pass."
 }
 (OUT/"result.json").write_text(json.dumps(result,indent=2),encoding="utf-8")
-print("MORPHMINT_005_CRYSTAL_CUTGRAMMAR_A2_PASS")
+print("MORPHMINT_005_CRYSTAL_CUTGRAMMAR_A3_PASS")
