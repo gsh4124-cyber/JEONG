@@ -32,7 +32,7 @@ jobs:
           curl -L --fail --retry 3 -o .cache/blender/blender.tar.xz https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
           tar -xf .cache/blender/blender.tar.xz -C .cache/blender
 
-      - name: Render MorphMint 005 V5 stills
+      - name: Render MorphMint 005 V6 stills
         env:
           EGL_PLATFORM: surfaceless
         run: |
@@ -43,8 +43,8 @@ jobs:
           test -s render_output/morphmint_005_probe/ceramic.png
           test -s render_output/morphmint_005_probe/chrome.png
           test -s render_output/morphmint_005_probe/crystal.png
-          grep -q "MORPHMINT_005_PUBLIC_REMOTE_3STATE_V5_PASS" render_output/morphmint_005_probe/result.json
-          echo "JEONG_MORPHMINT_005_V5_PASS"
+          grep -q "MORPHMINT_005_PUBLIC_REMOTE_3STATE_V6_PASS" render_output/morphmint_005_probe/result.json
+          echo "JEONG_MORPHMINT_005_V6_PASS"
 
       - name: Persist compact QA proof to PR branch
         run: |
