@@ -82,12 +82,23 @@ bev_shell.segments=3
 # Keep only authored front/crown faces. They become shallow internal optical
 # planes inside the canonical shell; donor silhouette no longer participates.
 front_faces=[]
+def face_area3(face):
+    a=Vector(src_v[face[0]])
+    total=0.0
+    for k in range(1,len(face)-1):
+        b=Vector(src_v[face[k]])
+        d=Vector(src_v[face[k+1]])
+        total += (b-a).cross(d-a).length*0.5
+    return total
+
 for face in src_f:
     avgz=sum(src_v[i][2] for i in face)/len(face)
-    if avgz>5.0:
+    area3=face_area3(face)
+    # Reject donor structural panels; keep authored small/medium crown facets.
+    if avgz>5.0 and area3<=900.0:
         front_faces.append(face)
-if len(front_faces)<12:
-    raise RuntimeError("Authored crown extraction too small")
+if len(front_faces)<20:
+    raise RuntimeError("Authored crown facet filter too small")
 
 facet_v=[]
 R_IN=1.34
@@ -98,7 +109,8 @@ for x,y,z in src_v:
     theta=math.atan2(dy,dx)
     rr=R_IN*(rho**0.92)
     zn=max(-1.0,min(1.0,(z-cz)/zhalf))
-    depth=-0.165 + 0.050*zn*(1.0-0.45*rho)
+    # More optical slope while remaining inside the canonical shell.
+    depth=-0.125 + 0.075*zn*(1.0-0.35*rho)
     facet_v.append((rr*math.cos(theta),depth,rr*math.sin(theta)))
 
 facet_mesh=bpy.data.meshes.new("MM_C2_AuthoredCrownFacetMesh")
@@ -208,7 +220,7 @@ result={
     "construction_method":"AUTHORED_CROWN_OPTICS_IN_CANONICAL_CIRCULAR_SHELL",
     "donor":{"repository":"raysect/source","path":"demos/resources/diamond.obj","blob_sha":"1d36d81a2f2b89949f342a69a535ce82ae736cfa","license":"BSD-3-Clause"},
     "preserved":"donor authored front-face connectivity / facet adjacency",
-    "canonicalized":"independent MorphMint round clear shell; donor hull removed from silhouette",
+    "canonicalized":"independent MorphMint round clear shell; donor hull removed from silhouette",\n    "facet_filter":"front crown faces only; structural panels over area 900 removed",
     "resolution":f"{W}x{H}",
     "engine":"CYCLES",
     "samples":144,
