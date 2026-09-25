@@ -1,0 +1,39 @@
+name: JEONG Public Blender Smoke
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "global_shorts_render_lab/github_public_runner/**"
+      - ".github/workflows/jeong-public-blender-smoke.yml"
+      - "jeong_public_smoke_trigger.txt"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Blender runtime libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libgl1 libxrender1 libxi6 libxkbcommon0 libxfixes3 libxxf86vm1
+      - name: Download Blender 5.2.2
+        run: |
+          mkdir -p .cache/blender
+          curl -L --fail --retry 3 -o .cache/blender/blender.tar.xz https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
+          tar -xf .cache/blender/blender.tar.xz -C .cache/blender
+      - name: Run headless Blender smoke
+        env:
+          EGL_PLATFORM: surfaceless
+        run: |
+          .cache/blender/blender-5.2.2-linux-x64/blender --background --factory-startup --python global_shorts_render_lab/github_public_runner/smoke_scene.py
+      - name: Verify
+        run: |
+          test -s render_output/jeong_public_smoke/jeong_public_blender_smoke.png
+          grep -q "JEONG_PUBLIC_BLENDER_SMOKE_PASS" render_output/jeong_public_smoke/result.json
+          echo "JEONG_PUBLIC_BLENDER_SMOKE_PASS"
