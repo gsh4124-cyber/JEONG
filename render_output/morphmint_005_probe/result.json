@@ -1,0 +1,18 @@
+{
+  "marker": "MORPHMINT_005_PUBLIC_REMOTE_3STATE_V7_PASS",
+  "resolution": "540x960",
+  "renders": [
+    "render_output/morphmint_005_probe/ceramic.png",
+    "render_output/morphmint_005_probe/chrome.png",
+    "render_output/morphmint_005_probe/crystal.png"
+  ],
+  "crystal_engine": "CYCLES",
+  "crystal_samples": 40,
+  "changes": [
+    "removed all reflection-card geometry",
+    "chrome uses three narrow area-strip highlights only",
+    "removed radial shard and inner crystal ring structure",
+    "crystal keeps only four sparse edge fragments plus Voronoi surface facet bump; lower fragment pile removed"
+  ],
+  "note": "Visual QA stills only. Transition remains blocked until all three states pass."
+}
