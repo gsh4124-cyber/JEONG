@@ -1,5 +1,5 @@
 {
-  "marker": "MORPHMINT_005_PUBLIC_REMOTE_3STATE_V18_PASS",
+  "marker": "MORPHMINT_005_PUBLIC_REMOTE_3STATE_V19_PASS",
   "resolution": "540x960",
   "renders": [
     "render_output/morphmint_005_probe/ceramic.png",
@@ -7,12 +7,12 @@
     "render_output/morphmint_005_probe/crystal.png"
   ],
   "crystal_engine": "CYCLES",
-  "crystal_samples": 72,
+  "crystal_samples": 80,
   "changes": [
     "removed all reflection-card geometry",
     "chrome uses three narrow area-strip highlights only",
     "removed radial shard and inner crystal ring structure",
-    "crystal keeps a clean high-poly center and faceted perimeter rings while refracting camera-invisible emissive environment stripes for real optical depth"
+    "crystal uses a clean high-poly center with faceted edge materials while refracting a procedural camera-hidden world environment; no visible stripe-card props"
   ],
   "note": "Visual QA stills only. Transition remains blocked until all three states pass."
 }
