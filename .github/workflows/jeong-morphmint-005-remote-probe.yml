@@ -44,6 +44,7 @@ jobs:
         run: |
           test -s render_output/morphmint_005_crystal_authored_c1/crystal.png
           test -s render_output/morphmint_005_crystal_authored_c1/crystal_preview.png
+          test -s render_output/morphmint_005_crystal_authored_c1/crystal_preview.b64
           grep -q "MORPHMINT_005_CRYSTAL_AUTHORED_C1_RENDER_PASS" render_output/morphmint_005_crystal_authored_c1/result.json
           echo "JEONG_MORPHMINT_005_CRYSTAL_AUTHORED_C1_RENDER_PASS"
 
@@ -53,6 +54,7 @@ jobs:
           git config user.email "actions@users.noreply.github.com"
           git add render_output/morphmint_005_crystal_authored_c1/crystal.png
           git add render_output/morphmint_005_crystal_authored_c1/crystal_preview.png
+          git add render_output/morphmint_005_crystal_authored_c1/crystal_preview.b64
           git add render_output/morphmint_005_crystal_authored_c1/result.json
           git diff --cached --quiet && exit 0
           git commit -m "render: persist MorphMint 005 authored crystal C1 QA"
