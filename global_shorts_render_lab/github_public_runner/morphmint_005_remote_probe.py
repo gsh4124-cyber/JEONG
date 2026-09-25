@@ -408,14 +408,14 @@ def set_world_crystal_env(enabled):
 
     out=nt.nodes.new('ShaderNodeOutputWorld')
     bg=nt.nodes.new('ShaderNodeBackground')
-    bg.inputs['Strength'].default_value=1.15
+    bg.inputs['Strength'].default_value=1.35
 
     texcoord=nt.nodes.new('ShaderNodeTexCoord')
     noise=nt.nodes.new('ShaderNodeTexNoise')
     noise.noise_dimensions='3D'
-    noise.inputs['Scale'].default_value=2.15
-    noise.inputs['Detail'].default_value=3.2
-    noise.inputs['Roughness'].default_value=0.62
+    noise.inputs['Scale'].default_value=0.82
+    noise.inputs['Detail'].default_value=1.25
+    noise.inputs['Roughness'].default_value=0.32
 
     ramp=nt.nodes.new('ShaderNodeValToRGB')
     cr=ramp.color_ramp
@@ -512,7 +512,7 @@ set_material(CHROME)
 set_crystal_internals(False)
 set_crystal_environment(False)
 set_crystal_shell(False)
-set_chrome_strips(True)
+set_chrome_strips(False)
 set_light_transmission_visibility(True)
 set_backdrop(BACK_DARK)
 set_world_crystal_env(False)
@@ -525,7 +525,7 @@ scene.render.filepath=str(OUT/"chrome.png")
 bpy.ops.render.render(write_still=True)
 rendered.append(str(OUT/"chrome.png"))
 
-# Crystal grammar A4: BRILLIANT57-inspired facet topology + neutral facet-lighting studio.
+# Crystal grammar A5: BRILLIANT57 topology + low-frequency environment-light studio.
 scene.render.engine='CYCLES'
 scene.cycles.samples=96
 scene.cycles.use_denoising=True
@@ -544,28 +544,20 @@ set_light_transmission_visibility(True)
 set_backdrop(BACK_CRYSTAL)
 set_world_crystal_env(True)
 set_backdrop_transmission(False)
-chrome_strips['ChromeStripL'].data.energy=85
-chrome_strips['ChromeStripR'].data.energy=72
-chrome_strips['ChromeStripTop'].data.energy=65
-chrome_strips['ChromeStripL'].data.color=(1.0,0.96,0.92)
-chrome_strips['ChromeStripR'].data.color=(0.86,0.93,1.0)
-chrome_strips['ChromeStripTop'].data.color=(1.0,1.0,1.0)
 # Crystal state: remove the floor from the render entirely so no large
 # refracted polygon fragments can appear inside the transparent medallion.
 floor.hide_render=True
-lights['Key'].data.energy=560
-lights['Fill'].data.energy=380
-lights['Rim'].data.energy=980
+lights['Key'].data.energy=0
+lights['Fill'].data.energy=0
+lights['Rim'].data.energy=90
 lights['Under'].data.energy=0
-lights['Key'].data.color=(1.0,0.96,0.92)
-lights['Fill'].data.color=(0.90,0.95,1.0)
 lights['Rim'].data.color=(1.0,1.0,1.0)
 scene.render.filepath=str(OUT/"crystal.png")
 bpy.ops.render.render(write_still=True)
 rendered.append(str(OUT/"crystal.png"))
 
 result={
-  "marker":"MORPHMINT_005_CRYSTAL_BRILLIANT57_A4_PASS",
+  "marker":"MORPHMINT_005_CRYSTAL_BRILLIANT57_A5_PASS",
   "resolution":f"{W}x{H}",
   "renders":rendered,
   "crystal_engine":"CYCLES",
@@ -577,9 +569,9 @@ result={
     "BRILLIANT57-inspired topology: 1 table, 8 star, 8 bezel/kite, 16 upper girdle, 16 lower girdle and 8 pavilion-main facets",
     "matching baguette-cut identity bar preserves MorphMint identity",
     "removed transmission-visible emissive cards that caused torn white streaks",
-    "facet readability now comes from the cut topology, procedural world refraction and real area-light highlights"
+    "facet readability now comes primarily from a low-frequency studio world; large direct softbox reflections are disabled"
   ],
   "note":"Visual QA stills only. Transition remains blocked until all three states pass."
 }
 (OUT/"result.json").write_text(json.dumps(result,indent=2),encoding="utf-8")
-print("MORPHMINT_005_CRYSTAL_BRILLIANT57_A4_PASS")
+print("MORPHMINT_005_CRYSTAL_BRILLIANT57_A5_PASS")
