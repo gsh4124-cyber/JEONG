@@ -1,5 +1,5 @@
 {
-  "marker": "MORPHMINT_005_PUBLIC_REMOTE_3STATE_V21_PASS",
+  "marker": "MORPHMINT_005_CRYSTAL_BRILLIANT57_A5_PASS",
   "resolution": "540x960",
   "renders": [
     "render_output/morphmint_005_probe/ceramic.png",
@@ -7,7 +7,7 @@
     "render_output/morphmint_005_probe/crystal.png"
   ],
   "crystal_engine": "CYCLES",
-  "crystal_samples": 96,
+  "crystal_samples": 128,
   "changes": [
     "removed all reflection-card geometry",
     "chrome uses three narrow area-strip highlights only",
