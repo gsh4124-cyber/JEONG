@@ -43,8 +43,8 @@ jobs:
           test -s render_output/morphmint_005_crystal_cutgem_a2/crystal.png
           test -s render_output/morphmint_005_crystal_cutgem_a2/crystal_preview.png
           grep -q "MORPHMINT_005_CRYSTAL_CUTGEM_A2_RENDER_PASS" render_output/morphmint_005_crystal_cutgem_a2/result.json
-          base64 -w0 render_output/morphmint_005_crystal_cutgem_a/crystal_preview.png > render_output/morphmint_005_crystal_cutgem_a2/crystal_preview.b64
-          test -s render_output/morphmint_005_crystal_cutgem_a/crystal_preview.b64
+          base64 -w0 render_output/morphmint_005_crystal_cutgem_a2/crystal_preview.png > render_output/morphmint_005_crystal_cutgem_a2/crystal_preview.b64
+          test -s render_output/morphmint_005_crystal_cutgem_a2/crystal_preview.b64
           echo "JEONG_MORPHMINT_005_CRYSTAL_CUTGEM_A2_RENDER_PASS"
 
       - name: Persist exact QA proof to PR branch
