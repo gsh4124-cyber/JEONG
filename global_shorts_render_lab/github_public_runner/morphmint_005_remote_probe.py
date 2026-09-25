@@ -46,13 +46,13 @@ def glass_material(name, color, rough=0.018, ior=1.46, absorption=(0.12,0.42,0.9
         tex.voronoi_dimensions='3D'
         tex.distance='EUCLIDEAN'
         tex.feature='DISTANCE_TO_EDGE'
-        tex.inputs['Scale'].default_value=4.6
+        tex.inputs['Scale'].default_value=7.5
         ramp=nt.nodes.new('ShaderNodeValToRGB')
         ramp.color_ramp.elements[0].position=0.025
         ramp.color_ramp.elements[1].position=0.11
         bump=nt.nodes.new('ShaderNodeBump')
-        bump.inputs['Strength'].default_value=0.055
-        bump.inputs['Distance'].default_value=0.025
+        bump.inputs['Strength'].default_value=0.018
+        bump.inputs['Distance'].default_value=0.010
         nt.links.new(tex.outputs['Distance'], ramp.inputs['Fac'])
         nt.links.new(ramp.outputs['Color'], bump.inputs['Height'])
         nt.links.new(bump.outputs['Normal'], glass.inputs['Normal'])
@@ -89,10 +89,10 @@ CHROME=principled("MM_Chrome",(0.82,0.87,0.96,1),1.0,0.19)
 CRYSTAL=glass_material(
     "MM_Crystal",
     (0.94,0.99,1.0,1),
-    rough=0.010,
-    ior=1.49,
-    absorption=(0.08,0.34,0.88,1),
-    density=0.012,
+    rough=0.014,
+    ior=1.48,
+    absorption=(0.10,0.42,0.92,1),
+    density=0.008,
     faceted=True
 )
 CRYSTAL_SHELL=glass_material(
@@ -137,28 +137,30 @@ bev2.width=0.06
 bev2.segments=5
 objects=(body,rim,bar)
 
-# Crystal-state faceted shell. Same medallion identity and silhouette,
-# but lower segment counts create real planar gemstone facets.
-bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=1.55, depth=0.42, location=(0,0,0))
+# Crystal-state smooth shell. Same medallion identity and silhouette.
+# Facet readability is now handled by a subtle shader bump, not large low-poly faces.
+bpy.ops.mesh.primitive_cylinder_add(vertices=128, radius=1.55, depth=0.42, location=(0,0,0))
 crystal_body=bpy.context.object
 crystal_body.name="MorphMint_CrystalBody"
 crystal_body.rotation_euler=(math.radians(90),0,0)
-crystal_body.data.materials.append(CRYSTAL_SHELL)
+crystal_body.data.materials.append(CRYSTAL)
 crystal_body.hide_render=True
-crystal_body_bevel=crystal_body.modifiers.new("CrystalBodyChamfer","BEVEL")
-crystal_body_bevel.width=0.055
-crystal_body_bevel.segments=1
+crystal_body_bevel=crystal_body.modifiers.new("CrystalBodyBevel","BEVEL")
+crystal_body_bevel.width=0.075
+crystal_body_bevel.segments=4
+bpy.ops.object.shade_smooth()
 
 bpy.ops.mesh.primitive_torus_add(
     major_radius=1.20, minor_radius=0.105,
-    major_segments=48, minor_segments=12,
+    major_segments=128, minor_segments=24,
     location=(0,-0.245,0),
     rotation=(math.radians(90),0,0)
 )
 crystal_rim=bpy.context.object
 crystal_rim.name="MorphMint_CrystalRim"
-crystal_rim.data.materials.append(CRYSTAL_SHELL)
+crystal_rim.data.materials.append(CRYSTAL)
 crystal_rim.hide_render=True
+bpy.ops.object.shade_smooth()
 
 
 # Ground and backdrop
@@ -171,7 +173,7 @@ bpy.ops.mesh.primitive_plane_add(size=18, location=(0,2.8,1.2), rotation=(math.r
 back=bpy.context.object
 back.name="Backdrop"
 BACK_DARK=principled("BackdropDark",(0.006,0.012,0.028,1),0.0,0.48)
-BACK_CRYSTAL=principled("BackdropCrystal",(0.035,0.095,0.22,1),0.0,0.46)
+BACK_CRYSTAL=principled("BackdropCrystal",(0.018,0.055,0.14,1),0.0,0.50)
 back.data.materials.append(BACK_DARK)
 
 # General lighting
@@ -308,16 +310,16 @@ set_backdrop(BACK_CRYSTAL)
 # Crystal state: remove the floor from the render entirely so no large
 # refracted polygon fragments can appear inside the transparent medallion.
 floor.hide_render=True
-lights['Key'].data.energy=560
-lights['Fill'].data.energy=820
-lights['Rim'].data.energy=920
-lights['Under'].data.energy=120
+lights['Key'].data.energy=520
+lights['Fill'].data.energy=650
+lights['Rim'].data.energy=1050
+lights['Under'].data.energy=60
 scene.render.filepath=str(OUT/"crystal.png")
 bpy.ops.render.render(write_still=True)
 rendered.append(str(OUT/"crystal.png"))
 
 result={
-  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V10_PASS",
+  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V11_PASS",
   "resolution":f"{W}x{H}",
   "renders":rendered,
   "crystal_engine":"CYCLES",
@@ -326,9 +328,9 @@ result={
     "removed all reflection-card geometry",
     "chrome uses three narrow area-strip highlights only",
     "removed radial shard and inner crystal ring structure",
-    "crystal uses real low-poly faceted body/rim shell; floor hidden; area lights hidden from transmission rays; softened surface facet bump retained on identity bar"
+    "crystal uses smooth high-poly glass body/rim; floor hidden; area lights hidden from transmission rays; facet readability comes only from subtle shader bump"
   ],
   "note":"Visual QA stills only. Transition remains blocked until all three states pass."
 }
 (OUT/"result.json").write_text(json.dumps(result,indent=2),encoding="utf-8")
-print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V10_PASS")
+print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V11_PASS")
