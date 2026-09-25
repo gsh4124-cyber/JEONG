@@ -1,1 +1,1 @@
-trigger JEONG MorphMint 005 V21 crystal asset QA
+trigger JEONG MorphMint 005 crystal facet-laminate B1 QA
