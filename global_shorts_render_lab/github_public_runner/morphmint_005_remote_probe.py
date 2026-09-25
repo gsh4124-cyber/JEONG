@@ -401,13 +401,13 @@ def set_world_crystal_env(enabled):
     ramp=nt.nodes.new('ShaderNodeValToRGB')
     cr=ramp.color_ramp
     cr.elements[0].position=0.18
-    cr.elements[0].color=(0.003,0.012,0.045,1)
+    cr.elements[0].color=(0.003,0.007,0.018,1)
     cr.elements[1].position=0.82
-    cr.elements[1].color=(0.72,0.94,1.0,1)
+    cr.elements[1].color=(0.88,0.96,1.0,1)
     mid=cr.elements.new(0.48)
-    mid.color=(0.03,0.25,0.62,1)
+    mid.color=(0.025,0.10,0.22,1)
     hi=cr.elements.new(0.68)
-    hi.color=(0.28,0.78,1.0,1)
+    hi.color=(0.26,0.56,0.82,1)
 
     nt.links.new(texcoord.outputs['Normal'],noise.inputs['Vector'])
     nt.links.new(noise.outputs['Fac'],ramp.inputs['Fac'])
@@ -506,7 +506,7 @@ scene.render.filepath=str(OUT/"chrome.png")
 bpy.ops.render.render(write_still=True)
 rendered.append(str(OUT/"chrome.png"))
 
-# Crystal grammar A: brilliant-cut watertight mesh + optical studio environment.
+# Crystal grammar A2: brilliant-cut watertight mesh + facet-lighting studio.
 scene.render.engine='CYCLES'
 scene.cycles.samples=96
 scene.cycles.use_denoising=True
@@ -518,10 +518,10 @@ scene.view_settings.look='AgX - Medium High Contrast'
 scene.world.color=(0.0015,0.004,0.012)
 set_material(CRYSTAL)
 set_crystal_internals(False)
-set_crystal_environment(True)
+set_crystal_environment(False)
 set_crystal_shell(True)
 set_chrome_strips(True)
-set_light_transmission_visibility(False)
+set_light_transmission_visibility(True)
 set_backdrop(BACK_CRYSTAL)
 set_world_crystal_env(True)
 set_backdrop_transmission(False)
@@ -540,7 +540,7 @@ bpy.ops.render.render(write_still=True)
 rendered.append(str(OUT/"crystal.png"))
 
 result={
-  "marker":"MORPHMINT_005_CRYSTAL_CUTGRAMMAR_A_PASS",
+  "marker":"MORPHMINT_005_CRYSTAL_CUTGRAMMAR_A2_PASS",
   "resolution":f"{W}x{H}",
   "renders":rendered,
   "crystal_engine":"CYCLES",
@@ -551,9 +551,10 @@ result={
     "replaced stacked crystal rings with one watertight brilliant-cut medallion mesh",
     "front table, shifted star/bezel facets, real girdle thickness and pavilion/geo depth form the crystal grammar",
     "matching baguette-cut identity bar preserves MorphMint identity",
-    "camera-invisible optical studio panels are enabled for crisp refracted facet highlights"
+    "removed transmission-visible emissive cards that caused torn white streaks",
+    "facet readability now comes from the cut topology, procedural world refraction and real area-light highlights"
   ],
   "note":"Visual QA stills only. Transition remains blocked until all three states pass."
 }
 (OUT/"result.json").write_text(json.dumps(result,indent=2),encoding="utf-8")
-print("MORPHMINT_005_CRYSTAL_CUTGRAMMAR_A_PASS")
+print("MORPHMINT_005_CRYSTAL_CUTGRAMMAR_A2_PASS")
