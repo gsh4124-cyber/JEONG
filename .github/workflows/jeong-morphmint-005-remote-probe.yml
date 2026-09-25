@@ -1,6 +1,12 @@
 name: JEONG MorphMint 005 Remote Probe
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "global_shorts_render_lab/github_public_runner/morphmint_005_remote_probe.py"
+      - ".github/workflows/jeong-morphmint-005-remote-probe.yml"
+      - "jeong_morphmint_005_probe_trigger.txt"
   pull_request:
     branches: [main]
     paths:
@@ -19,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
 
       - name: Install Blender runtime libraries
         run: |
