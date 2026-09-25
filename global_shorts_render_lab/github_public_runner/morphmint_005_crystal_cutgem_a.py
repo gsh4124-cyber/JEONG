@@ -1,7 +1,7 @@
 import bpy, bmesh, math, pathlib, json
 from mathutils import Vector
 
-OUT = pathlib.Path("render_output/morphmint_005_crystal_cutgem_a2")
+OUT = pathlib.Path("render_output/morphmint_005_crystal_cutgem_a3")
 OUT.mkdir(parents=True, exist_ok=True)
 W, H = 540, 960
 
@@ -86,6 +86,20 @@ CRYSTAL_ACCENT = glass_mat(
     density=0.0012,
 )
 
+def frosted_crystal_mat(name):
+    m = bpy.data.materials.new(name)
+    m.use_nodes = True
+    bs = m.node_tree.nodes.get("Principled BSDF")
+    bs.inputs["Base Color"].default_value = (0.62, 0.88, 1.0, 1)
+    bs.inputs["Roughness"].default_value = 0.16
+    if "Transmission Weight" in bs.inputs:
+        bs.inputs["Transmission Weight"].default_value = 0.72
+    if "IOR" in bs.inputs:
+        bs.inputs["IOR"].default_value = 1.46
+    return m
+
+FROSTED_INLAY = frosted_crystal_mat("MM_FrostedCrystalInlay")
+
 # ------------------------------------------------------------------
 # Selected upstream grammar:
 # A_TRUE_CUT_GEM_TOPOLOGY
@@ -93,64 +107,73 @@ CRYSTAL_ACCENT = glass_mat(
 # Unlike V21, this is not a smooth medallion plus torus/ring overlays.
 # The transparent hero body itself is a closed, flat-shaded cut-gem mesh.
 # ------------------------------------------------------------------
-SEG = 24
-rings = [
-    # name, radius, y-depth, angular offset
-    ("table",     0.72, -0.340, 0.0),
-    ("star",      1.00, -0.285, math.pi / SEG),
-    ("bezel",     1.30, -0.175, 0.0),
-    ("girdle_f",  1.52, -0.060, math.pi / SEG),
-    ("girdle_b",  1.52,  0.060, math.pi / SEG),
-    ("pavilion",  1.04,  0.410, 0.0),
-]
+FRONT_SEG = 12
+GIRDLE_SEG = 24
 
+# A3 precision-cut topology:
+# 12-fold readable crown grammar + 24-sided near-round girdle.
+# This removes A2's dense alternating fracture look while preserving true
+# geometry-native facets and a materially deep pavilion.
 verts = []
-ring_idx = {}
-for name, radius, y, offset in rings:
-    ids = []
-    for i in range(SEG):
-        a = 2.0 * math.pi * i / SEG + offset
-        ids.append(len(verts))
-        verts.append((radius * math.cos(a), y, radius * math.sin(a)))
-    ring_idx[name] = ids
+table_ids = []
+crown_ids = []
+girdle_f_ids = []
+girdle_b_ids = []
+pavilion_ids = []
+
+for i in range(FRONT_SEG):
+    a = 2.0 * math.pi * i / FRONT_SEG
+    table_ids.append(len(verts))
+    verts.append((0.74 * math.cos(a), -0.340, 0.74 * math.sin(a)))
+    crown_ids.append(len(verts))
+    verts.append((1.27 * math.cos(a), -0.170, 1.27 * math.sin(a)))
+    pavilion_ids.append(len(verts))
+    verts.append((1.00 * math.cos(a), 0.390, 1.00 * math.sin(a)))
+
+for i in range(GIRDLE_SEG):
+    a = 2.0 * math.pi * i / GIRDLE_SEG
+    girdle_f_ids.append(len(verts))
+    verts.append((1.52 * math.cos(a), -0.045, 1.52 * math.sin(a)))
+    girdle_b_ids.append(len(verts))
+    verts.append((1.52 * math.cos(a), 0.065, 1.52 * math.sin(a)))
 
 culet_idx = len(verts)
-verts.append((0.0, 0.700, 0.0))
+verts.append((0.0, 0.690, 0.0))
 
 faces = []
+faces.append(tuple(table_ids))
 
-# Table front face points toward camera (-Y).
-faces.append(tuple(ring_idx["table"]))
+for i in range(FRONT_SEG):
+    j = (i + 1) % FRONT_SEG
+    faces.append((table_ids[i], table_ids[j], crown_ids[j], crown_ids[i]))
 
-def bridge_quads(a_ids, b_ids):
-    for i in range(SEG):
-        j = (i + 1) % SEG
-        # Winding will be normalized by bmesh recalc.
-        faces.append((a_ids[i], a_ids[j], b_ids[j], b_ids[i]))
+for i in range(FRONT_SEG):
+    j = (i + 1) % FRONT_SEG
+    g0 = (2 * i) % GIRDLE_SEG
+    g1 = (2 * i + 1) % GIRDLE_SEG
+    g2 = (2 * i + 2) % GIRDLE_SEG
+    faces.append((crown_ids[i], girdle_f_ids[g0], girdle_f_ids[g1]))
+    faces.append((crown_ids[i], girdle_f_ids[g1], crown_ids[j]))
+    faces.append((crown_ids[j], girdle_f_ids[g1], girdle_f_ids[g2]))
 
-def bridge_tri_alternating(a_ids, b_ids):
-    # Two planar triangular facets per sector make the crown visibly cut,
-    # rather than merely polygonal.
-    for i in range(SEG):
-        j = (i + 1) % SEG
-        if i % 2 == 0:
-            faces.append((a_ids[i], a_ids[j], b_ids[i]))
-            faces.append((a_ids[j], b_ids[j], b_ids[i]))
-        else:
-            faces.append((a_ids[i], a_ids[j], b_ids[j]))
-            faces.append((a_ids[i], b_ids[j], b_ids[i]))
+for i in range(GIRDLE_SEG):
+    j = (i + 1) % GIRDLE_SEG
+    faces.append((girdle_f_ids[i], girdle_f_ids[j], girdle_b_ids[j], girdle_b_ids[i]))
 
-bridge_tri_alternating(ring_idx["table"], ring_idx["star"])
-bridge_tri_alternating(ring_idx["star"], ring_idx["bezel"])
-bridge_tri_alternating(ring_idx["bezel"], ring_idx["girdle_f"])
-bridge_quads(ring_idx["girdle_f"], ring_idx["girdle_b"])
-bridge_tri_alternating(ring_idx["girdle_b"], ring_idx["pavilion"])
+for i in range(FRONT_SEG):
+    j = (i + 1) % FRONT_SEG
+    g0 = (2 * i) % GIRDLE_SEG
+    g1 = (2 * i + 1) % GIRDLE_SEG
+    g2 = (2 * i + 2) % GIRDLE_SEG
+    faces.append((girdle_b_ids[g0], pavilion_ids[i], girdle_b_ids[g1]))
+    faces.append((girdle_b_ids[g1], pavilion_ids[i], pavilion_ids[j]))
+    faces.append((girdle_b_ids[g1], pavilion_ids[j], girdle_b_ids[g2]))
 
-for i in range(SEG):
-    j = (i + 1) % SEG
-    faces.append((ring_idx["pavilion"][i], ring_idx["pavilion"][j], culet_idx))
+for i in range(FRONT_SEG):
+    j = (i + 1) % FRONT_SEG
+    faces.append((pavilion_ids[i], pavilion_ids[j], culet_idx))
 
-mesh = bpy.data.meshes.new("MorphMint_CutGemBody_Mesh")
+mesh = bpy.data.meshes.new("MorphMint_PrecisionCutBody_Mesh")
 mesh.from_pydata(verts, [], faces)
 mesh.update()
 
@@ -162,7 +185,7 @@ bm.free()
 mesh.validate(verbose=False)
 mesh.update()
 
-gem = bpy.data.objects.new("MorphMint_CutGemBody", mesh)
+gem = bpy.data.objects.new("MorphMint_PrecisionCutBody", mesh)
 bpy.context.collection.objects.link(gem)
 gem.data.materials.append(CRYSTAL)
 for p in gem.data.polygons:
@@ -175,7 +198,7 @@ bar = bpy.context.object
 bar.name = "MorphMint_CutCrystalIdentityBar"
 bar.scale = (0.125, 0.026, 0.70)
 bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
-bar.data.materials.append(CRYSTAL_ACCENT)
+bar.data.materials.append(FROSTED_INLAY)
 bev = bar.modifiers.new("IdentityBarSingleCut", "BEVEL")
 bev.width = 0.055
 bev.segments = 1
@@ -188,7 +211,7 @@ bpy.ops.mesh.primitive_cylinder_add(
 )
 seal = bpy.context.object
 seal.name = "MorphMint_CutCrystalSeal"
-seal.data.materials.append(CRYSTAL_ACCENT)
+seal.data.materials.append(FROSTED_INLAY)
 for p in seal.data.polygons:
     p.use_smooth = False
 
@@ -279,21 +302,22 @@ img.file_format = "PNG"
 img.save()
 
 result = {
-    "marker": "MORPHMINT_005_CRYSTAL_CUTGEM_A2_RENDER_PASS",
+    "marker": "MORPHMINT_005_CRYSTAL_CUTGEM_A3_RENDER_PASS",
     "asset": "morphmint_material_shift_005",
     "stage": "CRYSTAL_STILL_GRAMMAR_QA",
     "resolution": f"{W}x{H}",
     "engine": "CYCLES",
     "samples": 112,
     "candidate_comparison": CANDIDATES,
-    "selected_method": "A_TRUE_CUT_GEM_TOPOLOGY_A2_OPTICAL_ARCHITECTURE",
+    "selected_method": "A_TRUE_CUT_GEM_TOPOLOGY_A3_PRECISION_FACET_GRAMMAR",
     "visual_grammar": [
         "A1 optical-card environment rejected after exact-preview visual FAIL",
+        "A2 transparent crystal readability improved but dense facets read as fractured ice; quality gate remained below 90",
         "single closed crystal body; no torus crown/rim/glint overlays",
-        "real table/star/bezel/girdle/pavilion planar facet topology with materially deeper pavilion",
+        "12-fold precision crown with 24-sided girdle and ordered pavilion facet families",
         "no ray-visible proxy cards; camera-dark set and brighter ray studio are separated",
         "flat-shaded facets create geometry-native highlight/refraction changes",
-        "central identity bar retained as shallow cut optical insert",
+        "central identity bar and seal rebuilt as frosted crystal inlay for readable same-object identity",
         "camera-invisible but ray-visible optical cards provide premium crystal gradients",
         "ceramic/chrome remain untouched PASS_LOCKED",
     ],
@@ -302,4 +326,4 @@ result = {
     "transition_gate": "BLOCKED_UNTIL_CRYSTAL_QUALITY_90",
 }
 (OUT / "result.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
-print("MORPHMINT_005_CRYSTAL_CUTGEM_A2_RENDER_PASS")
+print("MORPHMINT_005_CRYSTAL_CUTGEM_A3_RENDER_PASS")
