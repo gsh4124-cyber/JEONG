@@ -492,7 +492,7 @@ bpy.ops.render.render(write_still=True)
 rendered.append(str(OUT/"crystal.png"))
 
 result={
-  "marker":"MORPHMINT_005_CRYSTAL_FACET_LAMINATE_B1_PASS",
+  "marker":"MORPHMINT_005_CRYSTAL_BRILLIANT57_A5_PASS",
   "resolution":f"{W}x{H}",
   "renders":rendered,
   "crystal_engine":"CYCLES",
@@ -506,4 +506,4 @@ result={
   "note":"Visual QA stills only. Transition remains blocked until all three states pass."
 }
 (OUT/"result.json").write_text(json.dumps(result,indent=2),encoding="utf-8")
-print("MORPHMINT_005_CRYSTAL_FACET_LAMINATE_B1_PASS")
+print("MORPHMINT_005_CRYSTAL_BRILLIANT57_A5_PASS")
