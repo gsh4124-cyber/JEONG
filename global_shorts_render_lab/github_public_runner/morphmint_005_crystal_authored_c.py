@@ -1,4 +1,4 @@
-import bpy, math, pathlib, json
+import bpy, math, pathlib, json, base64
 from mathutils import Vector
 
 ROOT=pathlib.Path(__file__).resolve().parents[2]
@@ -170,6 +170,7 @@ img.scale(270,480)
 img.filepath_raw=str(OUT/"crystal_preview.png")
 img.file_format="PNG"
 img.save()
+(OUT/"crystal_preview.b64").write_text(base64.b64encode((OUT/"crystal_preview.png").read_bytes()).decode("ascii"),encoding="ascii")
 
 result={
     "marker":"MORPHMINT_005_CRYSTAL_AUTHORED_C1_RENDER_PASS",
