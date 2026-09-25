@@ -38,7 +38,7 @@ jobs:
           curl -L --fail --retry 3 -o .cache/blender/blender.tar.xz https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
           tar -xf .cache/blender/blender.tar.xz -C .cache/blender
 
-      - name: Render MorphMint 005 V21 stills
+      - name: Render MorphMint 005 crystal facet-laminate B1 still
         env:
           EGL_PLATFORM: surfaceless
         run: |
@@ -49,17 +49,17 @@ jobs:
           test -s render_output/morphmint_005_probe/ceramic.png
           test -s render_output/morphmint_005_probe/chrome.png
           test -s render_output/morphmint_005_probe/crystal.png
-          grep -q "MORPHMINT_005_PUBLIC_REMOTE_3STATE_V21_PASS" render_output/morphmint_005_probe/result.json
-          echo "JEONG_MORPHMINT_005_V21_PASS"
+          test "$(git hash-object render_output/morphmint_005_probe/ceramic.png)" = "704a60f435bf9f29b8c93a4678e15bec5bc2362d"
+          test "$(git hash-object render_output/morphmint_005_probe/chrome.png)" = "20d88389b99f5c8a8fd618f6f23ca636068c3198"
+          grep -q "MORPHMINT_005_CRYSTAL_FACET_LAMINATE_B1_PASS" render_output/morphmint_005_probe/result.json
+          echo "JEONG_MORPHMINT_005_CRYSTAL_FACET_LAMINATE_B1_PASS"
 
       - name: Persist compact QA proof to PR branch
         run: |
           git config user.name "global-shorts-render-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add render_output/morphmint_005_probe/ceramic.png
-          git add render_output/morphmint_005_probe/chrome.png
           git add render_output/morphmint_005_probe/crystal.png
           git add render_output/morphmint_005_probe/result.json
           git diff --cached --quiet && exit 0
-          git commit -m "render: persist JEONG MorphMint 005 V21 QA"
+          git commit -m "render: persist JEONG MorphMint 005 crystal facet-laminate B1 QA"
           git push
