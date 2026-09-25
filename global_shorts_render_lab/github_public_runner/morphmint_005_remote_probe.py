@@ -46,13 +46,13 @@ def glass_material(name, color, rough=0.018, ior=1.46, absorption=(0.12,0.42,0.9
         tex.voronoi_dimensions='3D'
         tex.distance='EUCLIDEAN'
         tex.feature='DISTANCE_TO_EDGE'
-        tex.inputs['Scale'].default_value=3.2
+        tex.inputs['Scale'].default_value=4.6
         ramp=nt.nodes.new('ShaderNodeValToRGB')
-        ramp.color_ramp.elements[0].position=0.035
-        ramp.color_ramp.elements[1].position=0.18
+        ramp.color_ramp.elements[0].position=0.025
+        ramp.color_ramp.elements[1].position=0.11
         bump=nt.nodes.new('ShaderNodeBump')
-        bump.inputs['Strength'].default_value=0.18
-        bump.inputs['Distance'].default_value=0.08
+        bump.inputs['Strength'].default_value=0.055
+        bump.inputs['Distance'].default_value=0.025
         nt.links.new(tex.outputs['Distance'], ramp.inputs['Fac'])
         nt.links.new(ramp.outputs['Color'], bump.inputs['Height'])
         nt.links.new(bump.outputs['Normal'], glass.inputs['Normal'])
@@ -88,11 +88,11 @@ CERAMIC=principled("MM_Ceramic",(0.66,0.10,0.028,1),0.0,0.44)
 CHROME=principled("MM_Chrome",(0.82,0.87,0.96,1),1.0,0.19)
 CRYSTAL=glass_material(
     "MM_Crystal",
-    (0.90,0.98,1.0,1),
+    (0.94,0.99,1.0,1),
     rough=0.010,
     ior=1.49,
-    absorption=(0.06,0.28,0.86,1),
-    density=0.018,
+    absorption=(0.08,0.34,0.88,1),
+    density=0.012,
     faceted=True
 )
 
@@ -241,7 +241,7 @@ rendered.append(str(OUT/"chrome.png"))
 
 # Crystal: physical refraction without internal prop geometry.
 scene.render.engine='CYCLES'
-scene.cycles.samples=40
+scene.cycles.samples=56
 scene.cycles.use_denoising=True
 scene.cycles.max_bounces=10
 scene.cycles.transmission_bounces=10
@@ -253,33 +253,30 @@ set_material(CRYSTAL)
 set_crystal_internals(False)
 set_chrome_strips(False)
 set_backdrop(BACK_CRYSTAL)
-# Keep the floor visible to camera but prevent it from becoming a refracted
-# polygon pile inside the crystal body.
-try:
-    floor.visible_transmission=False
-except Exception:
-    pass
-lights['Key'].data.energy=680
-lights['Fill'].data.energy=920
-lights['Rim'].data.energy=1080
-lights['Under'].data.energy=220
+# Crystal state: remove the floor from the render entirely so no large
+# refracted polygon fragments can appear inside the transparent medallion.
+floor.hide_render=True
+lights['Key'].data.energy=620
+lights['Fill'].data.energy=820
+lights['Rim'].data.energy=980
+lights['Under'].data.energy=120
 scene.render.filepath=str(OUT/"crystal.png")
 bpy.ops.render.render(write_still=True)
 rendered.append(str(OUT/"crystal.png"))
 
 result={
-  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V8_PASS",
+  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V9_PASS",
   "resolution":f"{W}x{H}",
   "renders":rendered,
   "crystal_engine":"CYCLES",
-  "crystal_samples":40,
+  "crystal_samples":56,
   "changes":[
     "removed all reflection-card geometry",
     "chrome uses three narrow area-strip highlights only",
     "removed radial shard and inner crystal ring structure",
-    "crystal removes all internal prop geometry; floor hidden from transmission rays; surface Voronoi facet bump retained"
+    "crystal removes all internal prop geometry; floor hidden entirely during crystal render; Voronoi facet bump softened for cleaner gemstone refraction"
   ],
   "note":"Visual QA stills only. Transition remains blocked until all three states pass."
 }
 (OUT/"result.json").write_text(json.dumps(result,indent=2),encoding="utf-8")
-print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V8_PASS")
+print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V9_PASS")
