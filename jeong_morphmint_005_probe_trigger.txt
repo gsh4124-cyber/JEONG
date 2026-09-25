@@ -1,1 +1,1 @@
-trigger JEONG MorphMint 005 V4 visual QA
+trigger approved branch with current V6 redesign
