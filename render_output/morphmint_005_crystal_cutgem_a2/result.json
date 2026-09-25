@@ -1,0 +1,45 @@
+{
+  "marker": "MORPHMINT_005_CRYSTAL_CUTGEM_A2_RENDER_PASS",
+  "asset": "morphmint_material_shift_005",
+  "stage": "CRYSTAL_STILL_GRAMMAR_QA",
+  "resolution": "540x960",
+  "engine": "CYCLES",
+  "samples": 112,
+  "candidate_comparison": [
+    {
+      "id": "A_TRUE_CUT_GEM_TOPOLOGY",
+      "summary": "Single closed cut-gem body with real table/crown/girdle/pavilion planar facets.",
+      "strength": "Facet grammar is intrinsic to the object, so silhouette, highlight and refraction all agree.",
+      "risk": "Requires disciplined topology and facet count.",
+      "selected": true
+    },
+    {
+      "id": "B_MODULAR_BEVELLED_PRIMITIVES",
+      "summary": "Reusable bevelled wedges/prisms assembled around a transparent core.",
+      "strength": "Fast and deterministic art direction.",
+      "risk": "Can read as decorative gear/jewelry trim instead of premium cut crystal.",
+      "selected": false
+    },
+    {
+      "id": "C_GEOMETRY_NODES_FACET_GRAMMAR",
+      "summary": "Geometry Nodes driven irregular facet/cell system.",
+      "strength": "High variation and transferability.",
+      "risk": "Can drift toward cracked-ice/noise and repeat the procedural-look failure.",
+      "selected": false
+    }
+  ],
+  "selected_method": "A_TRUE_CUT_GEM_TOPOLOGY_A2_OPTICAL_ARCHITECTURE",
+  "visual_grammar": [
+    "A1 optical-card environment rejected after exact-preview visual FAIL",
+    "single closed crystal body; no torus crown/rim/glint overlays",
+    "real table/star/bezel/girdle/pavilion planar facet topology with materially deeper pavilion",
+    "no ray-visible proxy cards; camera-dark set and brighter ray studio are separated",
+    "flat-shaded facets create geometry-native highlight/refraction changes",
+    "central identity bar retained as shallow cut optical insert",
+    "camera-invisible but ray-visible optical cards provide premium crystal gradients",
+    "ceramic/chrome remain untouched PASS_LOCKED"
+  ],
+  "gate": "AI_VISUAL_QA_REQUIRED",
+  "quality_gate_90": "PENDING",
+  "transition_gate": "BLOCKED_UNTIL_CRYSTAL_QUALITY_90"
+}
