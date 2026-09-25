@@ -1,31 +1,27 @@
-name: JEONG MorphMint 005 Remote Probe
+name: JEONG MorphMint 005 Authored Crystal C1 QA
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "global_shorts_render_lab/github_public_runner/morphmint_005_remote_probe.py"
-      - ".github/workflows/jeong-morphmint-005-remote-probe.yml"
-      - "jeong_morphmint_005_probe_trigger.txt"
   pull_request:
     branches: [main]
     paths:
-      - "global_shorts_render_lab/github_public_runner/morphmint_005_remote_probe.py"
+      - "global_shorts_render_lab/github_public_runner/morphmint_005_crystal_authored_c.py"
+      - "global_shorts_render_lab/assets/third_party/raysect_diamond.obj"
+      - "global_shorts_render_lab/assets/third_party/RAYSECT_LICENSE.txt"
+      - "global_shorts_render_lab/assets/third_party/RAYSECT_DIAMOND_ATTRIBUTION.md"
       - ".github/workflows/jeong-morphmint-005-remote-probe.yml"
-      - "jeong_morphmint_005_probe_trigger.txt"
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  probe:
+  authored-crystal:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || 'main' }}
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
 
       - name: Install Blender runtime libraries
         run: |
@@ -38,28 +34,26 @@ jobs:
           curl -L --fail --retry 3 -o .cache/blender/blender.tar.xz https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
           tar -xf .cache/blender/blender.tar.xz -C .cache/blender
 
-      - name: Render MorphMint 005 V21 stills
+      - name: Render authored donor crystal C1 still
         env:
           EGL_PLATFORM: surfaceless
         run: |
-          .cache/blender/blender-5.2.2-linux-x64/blender --background --factory-startup --python global_shorts_render_lab/github_public_runner/morphmint_005_remote_probe.py
+          .cache/blender/blender-5.2.2-linux-x64/blender --background --factory-startup --python global_shorts_render_lab/github_public_runner/morphmint_005_crystal_authored_c.py
 
-      - name: Verify
+      - name: Verify exact still and preview
         run: |
-          test -s render_output/morphmint_005_probe/ceramic.png
-          test -s render_output/morphmint_005_probe/chrome.png
-          test -s render_output/morphmint_005_probe/crystal.png
-          grep -q "MORPHMINT_005_PUBLIC_REMOTE_3STATE_V21_PASS" render_output/morphmint_005_probe/result.json
-          echo "JEONG_MORPHMINT_005_V21_PASS"
+          test -s render_output/morphmint_005_crystal_authored_c1/crystal.png
+          test -s render_output/morphmint_005_crystal_authored_c1/crystal_preview.png
+          grep -q "MORPHMINT_005_CRYSTAL_AUTHORED_C1_RENDER_PASS" render_output/morphmint_005_crystal_authored_c1/result.json
+          echo "JEONG_MORPHMINT_005_CRYSTAL_AUTHORED_C1_RENDER_PASS"
 
-      - name: Persist compact QA proof to PR branch
+      - name: Persist exact QA proof to PR branch
         run: |
           git config user.name "global-shorts-render-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add render_output/morphmint_005_probe/ceramic.png
-          git add render_output/morphmint_005_probe/chrome.png
-          git add render_output/morphmint_005_probe/crystal.png
-          git add render_output/morphmint_005_probe/result.json
+          git add render_output/morphmint_005_crystal_authored_c1/crystal.png
+          git add render_output/morphmint_005_crystal_authored_c1/crystal_preview.png
+          git add render_output/morphmint_005_crystal_authored_c1/result.json
           git diff --cached --quiet && exit 0
-          git commit -m "render: persist JEONG MorphMint 005 V21 QA"
+          git commit -m "render: persist MorphMint 005 authored crystal C1 QA"
           git push
