@@ -1,5 +1,5 @@
 {
-  "marker": "MORPHMINT_005_CRYSTAL_CUTGRAMMAR_A_PASS",
+  "marker": "MORPHMINT_005_CRYSTAL_CUTGRAMMAR_A2_PASS",
   "resolution": "540x960",
   "renders": [
     "render_output/morphmint_005_probe/ceramic.png",
@@ -14,7 +14,8 @@
     "replaced stacked crystal rings with one watertight brilliant-cut medallion mesh",
     "front table, shifted star/bezel facets, real girdle thickness and pavilion/geo depth form the crystal grammar",
     "matching baguette-cut identity bar preserves MorphMint identity",
-    "camera-invisible optical studio panels are enabled for crisp refracted facet highlights"
+    "removed transmission-visible emissive cards that caused torn white streaks",
+    "facet readability now comes from the cut topology, procedural world refraction and real area-light highlights"
   ],
   "note": "Visual QA stills only. Transition remains blocked until all three states pass."
 }
