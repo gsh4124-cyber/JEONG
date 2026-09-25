@@ -2,7 +2,7 @@ import bpy, math, pathlib, json
 from mathutils import Vector
 
 ROOT=pathlib.Path(__file__).resolve().parents[2]
-ASSET=ROOT/"assets"/"third_party"/"raysect_diamond.obj"
+ASSET=ROOT/"global_shorts_render_lab"/"assets"/"third_party"/"raysect_diamond.obj"
 OUT=pathlib.Path("render_output/morphmint_005_crystal_authored_c1")
 OUT.mkdir(parents=True,exist_ok=True)
 W,H=540,960
