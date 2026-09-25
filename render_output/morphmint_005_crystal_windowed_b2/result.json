@@ -1,0 +1,44 @@
+{
+  "marker": "MORPHMINT_005_CRYSTAL_WINDOWED_B2_RENDER_PASS",
+  "asset": "morphmint_material_shift_005",
+  "stage": "CRYSTAL_STILL_GRAMMAR_QA",
+  "resolution": "540x960",
+  "engine": "CYCLES",
+  "samples": 112,
+  "candidate_comparison": [
+    {
+      "id": "A_TRUE_CUT_GEM_TOPOLOGY",
+      "summary": "Single closed cut-gem body with real table/crown/girdle/pavilion planar facets.",
+      "strength": "Facet grammar is intrinsic to the object, so silhouette, highlight and refraction all agree.",
+      "risk": "Requires disciplined topology and facet count.",
+      "selected": false
+    },
+    {
+      "id": "B_WINDOWED_FACETED_EDGE_SOLID",
+      "summary": "Single thick clear crystal solid with a broad flat optical window and geometry-native faceted perimeter.",
+      "strength": "Preserves premium clarity in the center while concentrating sparkle and cut grammar at the edge.",
+      "risk": "Can read as plain glass if the edge cut or thickness is too weak.",
+      "selected": true
+    },
+    {
+      "id": "C_GEOMETRY_NODES_FACET_GRAMMAR",
+      "summary": "Geometry Nodes driven irregular facet/cell system.",
+      "strength": "High variation and transferability.",
+      "risk": "Can drift toward cracked-ice/noise and repeat the procedural-look failure.",
+      "selected": false
+    }
+  ],
+  "selected_method": "B_WINDOWED_FRONT_REAR_PAVILION_B2",
+  "visual_grammar": [
+    "A-family true front faceting rejected below 90 because full-face facet patterns read opaque/fractured",
+    "B1 clean windowed solid improved premium clarity but read too close to plain glass",
+    "B2 keeps a broad flat front optical window and moves complex facet grammar to a real rear pavilion",
+    "rear pavilion is geometry-native and ordered, intended to create a controlled internal starburst through refraction",
+    "32-sided front/girdle preserves a near-round premium silhouette",
+    "central MorphMint bar remains a shallow frosted crystal inset",
+    "ceramic/chrome remain untouched PASS_LOCKED"
+  ],
+  "gate": "AI_VISUAL_QA_REQUIRED",
+  "quality_gate_90": "PENDING",
+  "transition_gate": "BLOCKED_UNTIL_CRYSTAL_QUALITY_90"
+}
