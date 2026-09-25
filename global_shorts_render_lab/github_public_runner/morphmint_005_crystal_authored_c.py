@@ -39,6 +39,13 @@ if len(meshes)>1:
     bpy.ops.object.join()
 gem=bpy.context.view_layer.objects.active
 gem.name="MorphMint_RaysectAuthoredCrystal"
+# Bake OBJ importer axis conversion before envelope retargeting. The donor's
+# broad face is X/Y in source coordinates; Blender import carries that axis
+# conversion on the object transform. Retargeting pre-bake incorrectly crushed
+# the visible face into a blade-like edge.
+bpy.context.view_layer.objects.active=gem
+gem.select_set(True)
+bpy.ops.object.transform_apply(location=False,rotation=True,scale=True)
 
 # Center and retarget object-space vertices.
 xs=[]; ys=[]; zs=[]
