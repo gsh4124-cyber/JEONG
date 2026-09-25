@@ -48,14 +48,14 @@ def glass_material(name, color, rough=0.018, ior=1.46, absorption=(0.12,0.42,0.9
     return m
 
 CERAMIC=principled("MM_Ceramic",(0.66,0.10,0.028,1),0.0,0.44)
-CHROME=principled("MM_Chrome",(0.88,0.92,1.0,1),1.0,0.12)
+CHROME=principled("MM_Chrome",(0.88,0.92,1.0,1),1.0,0.16)
 CRYSTAL=glass_material(
     "MM_Crystal",
-    (0.80,0.94,1.0,1),
-    rough=0.012,
-    ior=1.46,
-    absorption=(0.08,0.34,0.92,1),
-    density=0.035
+    (0.86,0.97,1.0,1),
+    rough=0.010,
+    ior=1.48,
+    absorption=(0.06,0.24,0.82,1),
+    density=0.024
 )
 
 # Main identity geometry
@@ -106,9 +106,9 @@ back.data.materials.append(BACK_DARK)
 
 # Reflection cards stay fully outside camera view.
 for x,z,sx,sz,val in [
-    (-7.5,1.2,1.25,4.4,1.0),
-    ( 7.5,0.5,1.10,4.0,0.72),
-    ( 0.0,7.5,3.6,0.9,0.48)
+    (-7.5,1.2,1.20,4.2,0.72),
+    ( 7.5,0.5,1.05,3.8,0.52),
+    ( 0.0,7.5,3.3,0.9,0.34)
 ]:
     bpy.ops.mesh.primitive_plane_add(size=2, location=(x,-1.0,z))
     card=bpy.context.object
@@ -148,14 +148,14 @@ facet_mat.use_nodes=True
 fbs=facet_mat.node_tree.nodes.get('Principled BSDF')
 fbs.inputs['Base Color'].default_value=(0.22,0.66,1.0,1)
 fbs.inputs['Metallic'].default_value=0.0
-fbs.inputs['Roughness'].default_value=0.08
+fbs.inputs['Roughness'].default_value=0.04
 if 'Transmission Weight' in fbs.inputs:
-    fbs.inputs['Transmission Weight'].default_value=0.80
+    fbs.inputs['Transmission Weight'].default_value=0.92
 if 'IOR' in fbs.inputs:
     fbs.inputs['IOR'].default_value=1.52
 if 'Emission Color' in fbs.inputs:
     fbs.inputs['Emission Color'].default_value=(0.08,0.32,0.95,1)
-    fbs.inputs['Emission Strength'].default_value=0.20
+    fbs.inputs['Emission Strength'].default_value=0.10
 
 facets=[]
 facet_specs=[
@@ -188,14 +188,24 @@ inner_crystal.name="CrystalInnerDepthRing"
 inner_crystal.data.materials.append(facet_mat)
 inner_crystal.hide_render=True
 
-# Thin internal radial shards add depth cues without changing silhouette.
+# Refined internal radial shards: thinner, denser, less toylike.
 shards=[]
-for i,ang in enumerate([-50,-25,0,25,50]):
-    bpy.ops.mesh.primitive_cube_add(location=(0,-0.02,0))
+shard_specs = [
+    (-70, 0.78, 0.018, 0.028),
+    (-48, 0.88, 0.018, 0.026),
+    (-28, 0.98, 0.017, 0.025),
+    (-12, 1.05, 0.016, 0.024),
+    (  8, 1.02, 0.016, 0.024),
+    ( 24, 0.94, 0.017, 0.025),
+    ( 42, 0.86, 0.018, 0.026),
+    ( 62, 0.76, 0.018, 0.028),
+]
+for i,(ang,length,sx,sy) in enumerate(shard_specs):
+    bpy.ops.mesh.primitive_cube_add(location=(0,-0.018,0))
     s=bpy.context.object
     s.name=f"CrystalShard_{i:02d}"
-    s.scale=(0.035,0.035,0.95)
-    s.rotation_euler=(math.radians(90),0,math.radians(ang))
+    s.scale=(sx, sy, length)
+    s.rotation_euler=(math.radians(90), math.radians(2 if i%2==0 else -2), math.radians(ang))
     bpy.ops.object.transform_apply(location=False,rotation=False,scale=True)
     s.data.materials.append(facet_mat)
     s.hide_render=True
@@ -241,46 +251,48 @@ scene.view_settings.look='AgX - High Contrast'
 set_material(CHROME)
 set_crystal_internals(False)
 set_backdrop(BACK_DARK)
-lights['Key'].data.energy=1100
-lights['Fill'].data.energy=700
+lights['Key'].data.energy=980
+lights['Fill'].data.energy=620
+lights['Under'].data.energy=180
+lights['Rim'].data.energy=760
 scene.render.filepath=str(OUT/"chrome.png")
 bpy.ops.render.render(write_still=True)
 rendered.append(str(OUT/"chrome.png"))
 
 # Crystal: use Cycles for real transmission/refraction.
 scene.render.engine='CYCLES'
-scene.cycles.samples=24
+scene.cycles.samples=40
 scene.cycles.use_denoising=True
-scene.cycles.max_bounces=8
-scene.cycles.transmission_bounces=8
-scene.cycles.glossy_bounces=4
+scene.cycles.max_bounces=10
+scene.cycles.transmission_bounces=10
+scene.cycles.glossy_bounces=6
 scene.cycles.diffuse_bounces=3
 scene.view_settings.look='AgX - Medium High Contrast'
 set_material(CRYSTAL)
 set_crystal_internals(True)
 set_backdrop(BACK_CRYSTAL)
-lights['Key'].data.energy=900
-lights['Fill'].data.energy=1100
-lights['Rim'].data.energy=1250
-lights['Under'].data.energy=420
+lights['Key'].data.energy=760
+lights['Fill'].data.energy=980
+lights['Rim'].data.energy=1180
+lights['Under'].data.energy=300
 scene.render.filepath=str(OUT/"crystal.png")
 bpy.ops.render.render(write_still=True)
 rendered.append(str(OUT/"crystal.png"))
 
 result={
-  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V3_PASS",
+  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V4_PASS",
   "resolution":f"{W}x{H}",
   "renders":rendered,
   "crystal_engine":"CYCLES",
-  "crystal_samples":24,
+  "crystal_samples":40,
   "changes":[
     "JEONG native public runner",
     "reflection cards remain outside camera view",
     "chrome reflection intensity reduced",
     "crystal switched to Cycles glass + volume absorption",
-    "larger internal facets and radial shards added"
+    "refined thin radial shards and reduced chrome reflection blowout"
   ],
   "note":"Visual QA stills only. Transition remains blocked until all three states pass."
 }
 (OUT/"result.json").write_text(json.dumps(result,indent=2),encoding="utf-8")
-print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V3_PASS")
+print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V4_PASS")
