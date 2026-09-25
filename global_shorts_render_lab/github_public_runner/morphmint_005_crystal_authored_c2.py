@@ -25,9 +25,9 @@ scene.cycles.glossy_bounces=8
 scene.cycles.diffuse_bounces=3
 scene.view_settings.look="AgX - Medium High Contrast"
 
-# C2: preserve the donor's authored face connectivity, but remap its footprint
-# into MorphMint's canonical round disc. This is not a whole-gem squash and not
-# a procedural facet overlay: authored topology stays, envelope becomes canonical.
+# C2 corrected: lock the MorphMint round envelope as a canonical clear shell
+# and use only the donor's authored front-facet connectivity as shallow optical
+# geometry inside it. The silhouette is no longer inherited from the donor hull.
 src_v=[]
 src_f=[]
 for raw in ASSET.read_text(encoding="utf-8").splitlines():
@@ -36,9 +36,7 @@ for raw in ASSET.read_text(encoding="utf-8").splitlines():
         p=line.split()
         src_v.append((float(p[1]),float(p[2]),float(p[3])))
     elif line.startswith("f "):
-        ids=[]
-        for tok in line.split()[1:]:
-            ids.append(int(tok.split("/")[0])-1)
+        ids=[int(tok.split("/")[0])-1 for tok in line.split()[1:]]
         if len(ids)>=3:
             src_f.append(ids)
 if not src_v or not src_f:
@@ -52,55 +50,71 @@ cy=(min(ys)+max(ys))*0.5
 cz=(min(zs)+max(zs))*0.5
 rmax=max(math.hypot(x-cx,y-cy) for x,y,_ in src_v)
 zhalf=max((max(zs)-min(zs))*0.5,1e-6)
-R=1.52
-HALF_T=0.29
 
-dst_v=[]
-for x,y,z in src_v:
-    dx=x-cx
-    dy=y-cy
-    rho=min(1.0,max(0.0,math.hypot(dx,dy)/rmax))
-    theta=math.atan2(dy,dx)
-    # Preserve authored radial hierarchy while pulling the outer zone toward
-    # a common circular envelope so the same-object MorphMint silhouette holds.
-    if rho>0.62:
-        rho2=0.62+(rho-0.62)*(0.38/(1.0-0.62))
-        rho2=0.78+0.22*((rho2-0.62)/0.38)
-    else:
-        rho2=(rho/0.62)*0.78
-    rr=R*min(1.0,max(0.0,rho2))
-    zn=max(-1.0,min(1.0,(z-cz)/zhalf))
-    taper=0.28+0.72*(1.0-rho**1.55)
-    depth=HALF_T*zn*taper
-    dst_v.append((rr*math.cos(theta),depth,rr*math.sin(theta)))
-
-mesh=bpy.data.meshes.new("MM_C2_AuthoredFacetDiscMesh")
-mesh.from_pydata(dst_v,[],src_f)
-mesh.update()
-gem=bpy.data.objects.new("MorphMint_C2_AuthoredFacetDisc",mesh)
-bpy.context.collection.objects.link(gem)
-
-bm=bmesh.new()
-bm.from_mesh(mesh)
-bmesh.ops.recalc_face_normals(bm,faces=bm.faces)
-bm.to_mesh(mesh)
-bm.free()
-for p in mesh.polygons:
-    p.use_smooth=False
-
-def crystal_mat():
-    m=bpy.data.materials.new("MM_C2_ClearCrystal")
+def glass_mat(name,ior,rough,color):
+    m=bpy.data.materials.new(name)
     m.use_nodes=True
     nt=m.node_tree
     nt.nodes.clear()
     out=nt.nodes.new("ShaderNodeOutputMaterial")
     glass=nt.nodes.new("ShaderNodeBsdfGlass")
-    glass.inputs["Color"].default_value=(0.995,0.998,1.0,1)
-    glass.inputs["Roughness"].default_value=0.012
-    glass.inputs["IOR"].default_value=1.545
+    glass.inputs["Color"].default_value=color
+    glass.inputs["Roughness"].default_value=rough
+    glass.inputs["IOR"].default_value=ior
     nt.links.new(glass.outputs["BSDF"],out.inputs["Surface"])
     return m
-gem.data.materials.append(crystal_mat())
+
+# Canonical same-object MorphMint envelope.
+bpy.ops.mesh.primitive_cylinder_add(
+    vertices=96,
+    radius=1.52,
+    depth=0.46,
+    location=(0,0,0),
+    rotation=(math.radians(90),0,0)
+)
+shell=bpy.context.object
+shell.name="MorphMint_C2_CanonicalCrystalShell"
+shell.data.materials.append(glass_mat("MM_C2_CanonicalShell",1.52,0.010,(0.998,1.0,1.0,1)))
+bev_shell=shell.modifiers.new("CanonicalRimBevel","BEVEL")
+bev_shell.width=0.055
+bev_shell.segments=3
+
+# Keep only authored front/crown faces. They become shallow internal optical
+# planes inside the canonical shell; donor silhouette no longer participates.
+front_faces=[]
+for face in src_f:
+    avgz=sum(src_v[i][2] for i in face)/len(face)
+    if avgz>5.0:
+        front_faces.append(face)
+if len(front_faces)<12:
+    raise RuntimeError("Authored crown extraction too small")
+
+facet_v=[]
+R_IN=1.34
+for x,y,z in src_v:
+    dx=x-cx
+    dy=y-cy
+    rho=min(1.0,max(0.0,math.hypot(dx,dy)/rmax))
+    theta=math.atan2(dy,dx)
+    rr=R_IN*(rho**0.92)
+    zn=max(-1.0,min(1.0,(z-cz)/zhalf))
+    depth=-0.165 + 0.050*zn*(1.0-0.45*rho)
+    facet_v.append((rr*math.cos(theta),depth,rr*math.sin(theta)))
+
+facet_mesh=bpy.data.meshes.new("MM_C2_AuthoredCrownFacetMesh")
+facet_mesh.from_pydata(facet_v,[],front_faces)
+facet_mesh.update()
+facets=bpy.data.objects.new("MorphMint_C2_AuthoredCrownFacets",facet_mesh)
+bpy.context.collection.objects.link(facets)
+
+bm=bmesh.new()
+bm.from_mesh(facet_mesh)
+bmesh.ops.recalc_face_normals(bm,faces=bm.faces)
+bm.to_mesh(facet_mesh)
+bm.free()
+for p in facet_mesh.polygons:
+    p.use_smooth=False
+facets.data.materials.append(glass_mat("MM_C2_AuthoredFacetOptics",1.62,0.006,(0.93,0.985,1.0,1)))
 
 # MorphMint identity stays integrated in the canonical object face.
 m=bpy.data.materials.new("MM_C2_IdentityFrost")
@@ -113,7 +127,7 @@ if "Transmission Weight" in bs.inputs:
 if "IOR" in bs.inputs:
     bs.inputs["IOR"].default_value=1.46
 
-bpy.ops.mesh.primitive_cube_add(location=(0,-0.305,0))
+bpy.ops.mesh.primitive_cube_add(location=(0,-0.235,0))
 bar=bpy.context.object
 bar.name="MorphMint_C2_IdentityBar"
 bar.scale=(0.115,0.018,0.64)
@@ -191,10 +205,10 @@ result={
     "marker":"MORPHMINT_005_CRYSTAL_AUTHORED_C2_RENDER_PASS",
     "asset":"morphmint_material_shift_005",
     "stage":"CRYSTAL_STILL_GRAMMAR_QA",
-    "construction_method":"AUTHORED_FACET_TOPOLOGY_POLAR_DISC_REMAP",
+    "construction_method":"AUTHORED_CROWN_OPTICS_IN_CANONICAL_CIRCULAR_SHELL",
     "donor":{"repository":"raysect/source","path":"demos/resources/diamond.obj","blob_sha":"1d36d81a2f2b89949f342a69a535ce82ae736cfa","license":"BSD-3-Clause"},
-    "preserved":"donor face connectivity / facet adjacency",
-    "canonicalized":"MorphMint round footprint and lens depth envelope",
+    "preserved":"donor authored front-face connectivity / facet adjacency",
+    "canonicalized":"independent MorphMint round clear shell; donor hull removed from silhouette",
     "resolution":f"{W}x{H}",
     "engine":"CYCLES",
     "samples":144,
