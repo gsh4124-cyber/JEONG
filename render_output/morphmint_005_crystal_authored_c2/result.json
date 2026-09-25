@@ -2,15 +2,15 @@
   "marker": "MORPHMINT_005_CRYSTAL_AUTHORED_C2_RENDER_PASS",
   "asset": "morphmint_material_shift_005",
   "stage": "CRYSTAL_STILL_GRAMMAR_QA",
-  "construction_method": "AUTHORED_FACET_TOPOLOGY_POLAR_DISC_REMAP",
+  "construction_method": "AUTHORED_CROWN_OPTICS_IN_CANONICAL_CIRCULAR_SHELL",
   "donor": {
     "repository": "raysect/source",
     "path": "demos/resources/diamond.obj",
     "blob_sha": "1d36d81a2f2b89949f342a69a535ce82ae736cfa",
     "license": "BSD-3-Clause"
   },
-  "preserved": "donor face connectivity / facet adjacency",
-  "canonicalized": "MorphMint round footprint and lens depth envelope",
+  "preserved": "donor authored front-face connectivity / facet adjacency",
+  "canonicalized": "independent MorphMint round clear shell; donor hull removed from silhouette",
   "resolution": "540x960",
   "engine": "CYCLES",
   "samples": 144,
