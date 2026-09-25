@@ -1,1 +1,1 @@
-trigger cut-gem A2 exact-preview readback repair\n
+trigger MorphMint precision-cut crystal A3 QA\n
