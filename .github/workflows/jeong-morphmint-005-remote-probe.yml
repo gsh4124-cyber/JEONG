@@ -1,4 +1,4 @@
-name: JEONG MorphMint 005 Crystal Grammar QA B1
+name: JEONG MorphMint 005 Crystal Grammar QA B2
 
 on:
   pull_request:
@@ -40,21 +40,21 @@ jobs:
 
       - name: Verify exact still and make readable preview proof
         run: |
-          test -s render_output/morphmint_005_crystal_windowed_b1/crystal.png
-          test -s render_output/morphmint_005_crystal_windowed_b1/crystal_preview.png
-          grep -q "MORPHMINT_005_CRYSTAL_WINDOWED_B1_RENDER_PASS" render_output/morphmint_005_crystal_windowed_b1/result.json
-          base64 -w0 render_output/morphmint_005_crystal_windowed_b1/crystal_preview.png > render_output/morphmint_005_crystal_windowed_b1/crystal_preview.b64
-          test -s render_output/morphmint_005_crystal_windowed_b1/crystal_preview.b64
-          echo "JEONG_MORPHMINT_005_CRYSTAL_WINDOWED_B1_RENDER_PASS"
+          test -s render_output/morphmint_005_crystal_windowed_b2/crystal.png
+          test -s render_output/morphmint_005_crystal_windowed_b2/crystal_preview.png
+          grep -q "MORPHMINT_005_CRYSTAL_WINDOWED_B2_RENDER_PASS" render_output/morphmint_005_crystal_windowed_b2/result.json
+          base64 -w0 render_output/morphmint_005_crystal_windowed_b2/crystal_preview.png > render_output/morphmint_005_crystal_windowed_b2/crystal_preview.b64
+          test -s render_output/morphmint_005_crystal_windowed_b2/crystal_preview.b64
+          echo "JEONG_MORPHMINT_005_CRYSTAL_WINDOWED_B2_RENDER_PASS"
 
       - name: Persist exact QA proof to PR branch
         run: |
           git config user.name "global-shorts-render-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add render_output/morphmint_005_crystal_windowed_b1/crystal.png
-          git add render_output/morphmint_005_crystal_windowed_b1/crystal_preview.png
-          git add render_output/morphmint_005_crystal_windowed_b1/crystal_preview.b64
-          git add render_output/morphmint_005_crystal_windowed_b1/result.json
+          git add render_output/morphmint_005_crystal_windowed_b2/crystal.png
+          git add render_output/morphmint_005_crystal_windowed_b2/crystal_preview.png
+          git add render_output/morphmint_005_crystal_windowed_b2/crystal_preview.b64
+          git add render_output/morphmint_005_crystal_windowed_b2/result.json
           git diff --cached --quiet && exit 0
-          git commit -m "render: persist MorphMint 005 windowed crystal B1 QA"
+          git commit -m "render: persist MorphMint 005 windowed rear-pavilion crystal B2 QA"
           git push

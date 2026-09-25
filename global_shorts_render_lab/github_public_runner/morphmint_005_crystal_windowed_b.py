@@ -1,7 +1,7 @@
 import bpy, bmesh, math, pathlib, json
 from mathutils import Vector
 
-OUT = pathlib.Path("render_output/morphmint_005_crystal_windowed_b1")
+OUT = pathlib.Path("render_output/morphmint_005_crystal_windowed_b2")
 OUT.mkdir(parents=True, exist_ok=True)
 W, H = 540, 960
 
@@ -107,34 +107,84 @@ FROSTED_INLAY = frosted_crystal_mat("MM_FrostedCrystalInlay")
 # Unlike V21, this is not a smooth medallion plus torus/ring overlays.
 # The transparent hero body itself is a closed, flat-shaded cut-gem mesh.
 # ------------------------------------------------------------------
-# B1 windowed faceted-edge solid.
-# One coherent crystal body: broad flat optical table, thick real volume,
-# and a one-segment precision chamfer around the perimeter. No overlay rings,
-# no shard props, no internal fracture geometry.
-bpy.ops.mesh.primitive_cylinder_add(
-    vertices=32,
-    radius=1.52,
-    depth=0.54,
-    location=(0.0, 0.0, 0.0),
-    rotation=(math.radians(90), 0.0, 0.0),
-)
-gem = bpy.context.object
-gem.name = "MorphMint_WindowedFacetedCrystal"
+# B2 windowed-front + rear-pavilion crystal solid.
+# The front remains a broad calm optical window. All premium sparkle grammar
+# comes from real geometry on the perimeter and rear pavilion, visible through
+# the clear body as a controlled internal starburst.
+FRONT_SEG = 32
+BACK_SEG = 16
+
+verts = []
+front_table = []
+front_edge = []
+back_edge = []
+back_pavilion = []
+
+for i in range(FRONT_SEG):
+    a = 2.0 * math.pi * i / FRONT_SEG
+    front_table.append(len(verts))
+    verts.append((1.33 * math.cos(a), -0.285, 1.33 * math.sin(a)))
+    front_edge.append(len(verts))
+    verts.append((1.52 * math.cos(a), -0.115, 1.52 * math.sin(a)))
+    back_edge.append(len(verts))
+    verts.append((1.52 * math.cos(a), 0.100, 1.52 * math.sin(a)))
+
+for i in range(BACK_SEG):
+    a = 2.0 * math.pi * i / BACK_SEG
+    back_pavilion.append(len(verts))
+    verts.append((1.03 * math.cos(a), 0.335, 1.03 * math.sin(a)))
+
+culet = len(verts)
+verts.append((0.0, 0.610, 0.0))
+
+faces = []
+faces.append(tuple(front_table))
+
+# Front precision chamfer: readable cut edge without breaking the window.
+for i in range(FRONT_SEG):
+    j = (i + 1) % FRONT_SEG
+    faces.append((front_table[i], front_table[j], front_edge[j], front_edge[i]))
+
+# Thick polished girdle.
+for i in range(FRONT_SEG):
+    j = (i + 1) % FRONT_SEG
+    faces.append((front_edge[i], front_edge[j], back_edge[j], back_edge[i]))
+
+# Rear pavilion: each 22.5-degree main facet family receives two 11.25-degree
+# girdle sectors, producing an ordered starburst visible through the front.
+for i in range(BACK_SEG):
+    j = (i + 1) % BACK_SEG
+    g0 = (2 * i) % FRONT_SEG
+    g1 = (2 * i + 1) % FRONT_SEG
+    g2 = (2 * i + 2) % FRONT_SEG
+    faces.append((back_edge[g0], back_pavilion[i], back_edge[g1]))
+    faces.append((back_edge[g1], back_pavilion[i], back_pavilion[j]))
+    faces.append((back_edge[g1], back_pavilion[j], back_edge[g2]))
+
+for i in range(BACK_SEG):
+    j = (i + 1) % BACK_SEG
+    faces.append((back_pavilion[i], back_pavilion[j], culet))
+
+mesh = bpy.data.meshes.new("MorphMint_WindowedRearPavilion_Mesh")
+mesh.from_pydata(verts, [], faces)
+mesh.update()
+bm = bmesh.new()
+bm.from_mesh(mesh)
+bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+bm.to_mesh(mesh)
+bm.free()
+mesh.validate(verbose=False)
+mesh.update()
+
+gem = bpy.data.objects.new("MorphMint_WindowedRearPavilion", mesh)
+bpy.context.collection.objects.link(gem)
 gem.data.materials.append(CRYSTAL)
-
-edge = gem.modifiers.new("PrecisionEdgeCut", "BEVEL")
-edge.width = 0.18
-edge.segments = 1
-edge.limit_method = "ANGLE"
-bpy.context.view_layer.objects.active = gem
-bpy.ops.object.modifier_apply(modifier=edge.name)
-
 for p in gem.data.polygons:
     p.use_smooth = False
 
 # Preserve MorphMint's central identity bar as a cut optical insert, not a
 # rounded opaque UI bar. It is shallow so the gem facets remain the hero.
-bpy.ops.mesh.primitive_cube_add(location=(0.0, -0.292, 0.0))
+bpy.ops.mesh.primitive_cube_add(location=(0.0, -0.318, 0.0))
 bar = bpy.context.object
 bar.name = "MorphMint_CutCrystalIdentityBar"
 bar.scale = (0.125, 0.026, 0.70)
@@ -231,21 +281,21 @@ img.file_format = "PNG"
 img.save()
 
 result = {
-    "marker": "MORPHMINT_005_CRYSTAL_WINDOWED_B1_RENDER_PASS",
+    "marker": "MORPHMINT_005_CRYSTAL_WINDOWED_B2_RENDER_PASS",
     "asset": "morphmint_material_shift_005",
     "stage": "CRYSTAL_STILL_GRAMMAR_QA",
     "resolution": f"{W}x{H}",
     "engine": "CYCLES",
     "samples": 112,
     "candidate_comparison": CANDIDATES,
-    "selected_method": "B_WINDOWED_FACETED_EDGE_SOLID_B1",
+    "selected_method": "B_WINDOWED_FRONT_REAR_PAVILION_B2",
     "visual_grammar": [
-        "A1 failed: proxy optical cards produced black/white slabs",
-        "A2 failed <90: dense true facets read as fractured ice",
-        "A3 failed <90: cleaner precision facets still produced large opaque-looking patches",
-        "B1 pivots to broad flat optical window plus geometry-native faceted perimeter",
-        "one coherent thick crystal solid; no torus overlays, shards or fracture props",
-        "central MorphMint bar retained as a shallow frosted crystal inset",
+        "A-family true front faceting rejected below 90 because full-face facet patterns read opaque/fractured",
+        "B1 clean windowed solid improved premium clarity but read too close to plain glass",
+        "B2 keeps a broad flat front optical window and moves complex facet grammar to a real rear pavilion",
+        "rear pavilion is geometry-native and ordered, intended to create a controlled internal starburst through refraction",
+        "32-sided front/girdle preserves a near-round premium silhouette",
+        "central MorphMint bar remains a shallow frosted crystal inset",
         "ceramic/chrome remain untouched PASS_LOCKED"
     ],
     "gate": "AI_VISUAL_QA_REQUIRED",
@@ -253,4 +303,4 @@ result = {
     "transition_gate": "BLOCKED_UNTIL_CRYSTAL_QUALITY_90",
 }
 (OUT / "result.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
-print("MORPHMINT_005_CRYSTAL_WINDOWED_B1_RENDER_PASS")
+print("MORPHMINT_005_CRYSTAL_WINDOWED_B2_RENDER_PASS")
