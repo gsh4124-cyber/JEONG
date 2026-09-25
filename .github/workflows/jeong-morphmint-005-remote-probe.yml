@@ -13,8 +13,6 @@ on:
       - "global_shorts_render_lab/github_public_runner/morphmint_005_remote_probe.py"
       - ".github/workflows/jeong-morphmint-005-remote-probe.yml"
       - "jeong_morphmint_005_probe_trigger.txt"
-  schedule:
-    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -40,7 +38,7 @@ jobs:
           curl -L --fail --retry 3 -o .cache/blender/blender.tar.xz https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
           tar -xf .cache/blender/blender.tar.xz -C .cache/blender
 
-      - name: Render MorphMint 005 V9 stills
+      - name: Render MorphMint 005 V10 stills
         env:
           EGL_PLATFORM: surfaceless
         run: |
@@ -51,8 +49,8 @@ jobs:
           test -s render_output/morphmint_005_probe/ceramic.png
           test -s render_output/morphmint_005_probe/chrome.png
           test -s render_output/morphmint_005_probe/crystal.png
-          grep -q "MORPHMINT_005_PUBLIC_REMOTE_3STATE_V9_PASS" render_output/morphmint_005_probe/result.json
-          echo "JEONG_MORPHMINT_005_V9_PASS"
+          grep -q "MORPHMINT_005_PUBLIC_REMOTE_3STATE_V10_PASS" render_output/morphmint_005_probe/result.json
+          echo "JEONG_MORPHMINT_005_V10_PASS"
 
       - name: Persist compact QA proof to PR branch
         run: |
@@ -63,5 +61,5 @@ jobs:
           git add render_output/morphmint_005_probe/crystal.png
           git add render_output/morphmint_005_probe/result.json
           git diff --cached --quiet && exit 0
-          git commit -m "render: persist JEONG MorphMint 005 V2 QA"
+          git commit -m "render: persist JEONG MorphMint 005 V10 QA"
           git push
