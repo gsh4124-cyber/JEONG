@@ -89,20 +89,20 @@ CERAMIC=principled("MM_Ceramic",(0.66,0.10,0.028,1),0.0,0.44)
 CHROME=principled("MM_Chrome",(0.82,0.87,0.96,1),1.0,0.19)
 CRYSTAL=glass_material(
     "MM_Crystal",
-    (0.985,1.0,1.0,1),
-    rough=0.008,
-    ior=1.47,
-    absorption=(0.18,0.52,1.0,1),
-    density=0.00045,
+    (1.0,1.0,1.0,1),
+    rough=0.003,
+    ior=1.52,
+    absorption=(0.55,0.82,1.0,1),
+    density=0.00012,
     faceted=False
 )
 CRYSTAL_EDGE=glass_material(
     "MM_CrystalEdge",
-    (1.0,1.0,1.0,1),
-    rough=0.006,
-    ior=1.50,
-    absorption=(0.24,0.70,1.0,1),
-    density=0.00035,
+    (0.94,0.99,1.0,1),
+    rough=0.004,
+    ior=1.54,
+    absorption=(0.10,0.42,1.0,1),
+    density=0.00022,
     faceted=False
 )
 CRYSTAL_SHELL=glass_material(
@@ -147,38 +147,26 @@ bev2.width=0.06
 bev2.segments=5
 objects=(body,rim,bar)
 
-# Crystal-state V17: clean high-poly glass face + faceted edge rings.
-# The center remains optically clean; gemstone language lives only at the perimeter.
-bpy.ops.mesh.primitive_cylinder_add(vertices=128, radius=1.55, depth=0.34, location=(0,0,0))
+# Crystal-state V21: dedicated crystal asset mesh.
+# Ceramic/chrome remain locked; crystal uses a thin optical body plus cut crown/ring/bar.
+
+# Thin optical body: mostly invisible, preserving the medallion identity without a flat acrylic look.
+bpy.ops.mesh.primitive_cylinder_add(vertices=128, radius=1.48, depth=0.16, location=(0,0,0))
 crystal_body=bpy.context.object
 crystal_body.name="MorphMint_CrystalBody"
 crystal_body.rotation_euler=(math.radians(90),0,0)
 crystal_body.data.materials.append(CRYSTAL)
 crystal_body.hide_render=True
 cb=crystal_body.modifiers.new("CrystalBodyBevel","BEVEL")
-cb.width=0.075
+cb.width=0.035
 cb.segments=3
 bpy.ops.object.shade_smooth()
 
-# Primary faceted inner rim.
+# 24-facet outer crown.
 bpy.ops.mesh.primitive_torus_add(
-    major_radius=1.20, minor_radius=0.105,
-    major_segments=32, minor_segments=6,
-    location=(0,-0.195,0),
-    rotation=(math.radians(90),0,0)
-)
-crystal_rim=bpy.context.object
-crystal_rim.name="MorphMint_CrystalRim"
-crystal_rim.data.materials.append(CRYSTAL_EDGE)
-crystal_rim.hide_render=True
-for poly in crystal_rim.data.polygons:
-    poly.use_smooth=False
-
-# Outer crown ring catches multiple cut-gem highlights without touching the center.
-bpy.ops.mesh.primitive_torus_add(
-    major_radius=1.43, minor_radius=0.090,
-    major_segments=32, minor_segments=6,
-    location=(0,-0.175,0),
+    major_radius=1.43, minor_radius=0.125,
+    major_segments=24, minor_segments=6,
+    location=(0,-0.105,0),
     rotation=(math.radians(90),0,0)
 )
 crystal_crown=bpy.context.object
@@ -188,17 +176,45 @@ crystal_crown.hide_render=True
 for poly in crystal_crown.data.polygons:
     poly.use_smooth=False
 
+# 24-facet inner ring.
+bpy.ops.mesh.primitive_torus_add(
+    major_radius=1.16, minor_radius=0.085,
+    major_segments=24, minor_segments=6,
+    location=(0,-0.135,0),
+    rotation=(math.radians(90),0,0)
+)
+crystal_rim=bpy.context.object
+crystal_rim.name="MorphMint_CrystalRim"
+crystal_rim.data.materials.append(CRYSTAL_EDGE)
+crystal_rim.hide_render=True
+for poly in crystal_rim.data.polygons:
+    poly.use_smooth=False
+
 # Separate cut-crystal center bar.
-bpy.ops.mesh.primitive_cube_add(location=(0,-0.235,0))
+bpy.ops.mesh.primitive_cube_add(location=(0,-0.160,0))
 crystal_bar=bpy.context.object
 crystal_bar.name="MorphMint_CrystalIdentityBar"
-crystal_bar.scale=(0.13,0.07,0.70)
+crystal_bar.scale=(0.135,0.085,0.70)
 bpy.ops.object.transform_apply(location=False,rotation=False,scale=True)
 crystal_bar.data.materials.append(CRYSTAL_EDGE)
 crystal_bar.hide_render=True
 cbb=crystal_bar.modifiers.new("CrystalBarBevel","BEVEL")
-cbb.width=0.055
+cbb.width=0.070
 cbb.segments=1
+
+# Small crown bevel ring just inside the outer edge to split highlights.
+bpy.ops.mesh.primitive_torus_add(
+    major_radius=1.31, minor_radius=0.040,
+    major_segments=24, minor_segments=4,
+    location=(0,-0.120,0),
+    rotation=(math.radians(90),0,0)
+)
+crystal_glint=bpy.context.object
+crystal_glint.name="MorphMint_CrystalGlintRing"
+crystal_glint.data.materials.append(CRYSTAL_EDGE)
+crystal_glint.hide_render=True
+for poly in crystal_glint.data.polygons:
+    poly.use_smooth=False
 
 # Ground and backdrop
 bpy.ops.mesh.primitive_plane_add(size=30, location=(0,2,-2.25))
@@ -210,7 +226,7 @@ bpy.ops.mesh.primitive_plane_add(size=18, location=(0,2.8,1.2), rotation=(math.r
 back=bpy.context.object
 back.name="Backdrop"
 BACK_DARK=principled("BackdropDark",(0.006,0.012,0.028,1),0.0,0.48)
-BACK_CRYSTAL=principled("BackdropCrystal",(0.0025,0.006,0.018,1),0.0,0.64)
+BACK_CRYSTAL=principled("BackdropCrystal",(0.0015,0.004,0.012,1),0.0,0.68)
 back.data.materials.append(BACK_DARK)
 
 # General lighting
@@ -378,6 +394,8 @@ def set_crystal_shell(enabled):
     crystal_body.hide_render=not enabled
     crystal_rim.hide_render=not enabled
     crystal_crown.hide_render=not enabled
+    crystal_rim.hide_render=not enabled
+    crystal_glint.hide_render=not enabled
     crystal_bar.hide_render=not enabled
 
 def set_light_transmission_visibility(visible):
@@ -431,7 +449,7 @@ rendered.append(str(OUT/"chrome.png"))
 
 # Crystal: physical refraction without internal prop geometry.
 scene.render.engine='CYCLES'
-scene.cycles.samples=80
+scene.cycles.samples=96
 scene.cycles.use_denoising=True
 scene.cycles.max_bounces=10
 scene.cycles.transmission_bounces=10
@@ -448,33 +466,33 @@ set_light_transmission_visibility(False)
 set_backdrop(BACK_CRYSTAL)
 set_world_crystal_env(True)
 set_backdrop_transmission(False)
-chrome_strips['ChromeStripL'].data.energy=170
-chrome_strips['ChromeStripR'].data.energy=145
-chrome_strips['ChromeStripTop'].data.energy=110
+chrome_strips['ChromeStripL'].data.energy=120
+chrome_strips['ChromeStripR'].data.energy=105
+chrome_strips['ChromeStripTop'].data.energy=85
 # Crystal state: remove the floor from the render entirely so no large
 # refracted polygon fragments can appear inside the transparent medallion.
 floor.hide_render=True
-lights['Key'].data.energy=560
-lights['Fill'].data.energy=640
-lights['Rim'].data.energy=1380
+lights['Key'].data.energy=430
+lights['Fill'].data.energy=520
+lights['Rim'].data.energy=1720
 lights['Under'].data.energy=0
 scene.render.filepath=str(OUT/"crystal.png")
 bpy.ops.render.render(write_still=True)
 rendered.append(str(OUT/"crystal.png"))
 
 result={
-  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V20_PASS",
+  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V21_PASS",
   "resolution":f"{W}x{H}",
   "renders":rendered,
   "crystal_engine":"CYCLES",
-  "crystal_samples":80,
+  "crystal_samples":96,
   "changes":[
     "removed all reflection-card geometry",
     "chrome uses three narrow area-strip highlights only",
     "removed radial shard and inner crystal ring structure",
-    "all three states use the same subtle three-quarter product camera to reveal thickness; crystal keeps clean glass center, faceted edge materials and procedural hidden world refraction"
+    "crystal uses dedicated asset geometry: thin optical body, 24-facet outer crown, 24-facet inner ring, glint ring and separate cut crystal identity bar"
   ],
   "note":"Visual QA stills only. Transition remains blocked until all three states pass."
 }
 (OUT/"result.json").write_text(json.dumps(result,indent=2),encoding="utf-8")
-print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V20_PASS")
+print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V21_PASS")
