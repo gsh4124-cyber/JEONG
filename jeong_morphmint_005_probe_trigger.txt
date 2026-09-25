@@ -1,1 +1,3 @@
 trigger JEONG MorphMint 005 crystal facet-laminate B1 QA sync
+
+trigger MorphMint 005 authored crystal C1 QA
