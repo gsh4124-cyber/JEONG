@@ -29,7 +29,7 @@ def principled(name, base, metallic=0.0, rough=0.35, transmission=0.0, ior=1.45)
         bsdf.inputs['IOR'].default_value=ior
     return m
 
-def glass_material(name, color, rough=0.018, ior=1.46, absorption=(0.12,0.42,0.95,1), density=0.045):
+def glass_material(name, color, rough=0.018, ior=1.46, absorption=(0.12,0.42,0.95,1), density=0.045, faceted=False):
     m=bpy.data.materials.new(name)
     m.use_nodes=True
     nt=m.node_tree
@@ -40,6 +40,23 @@ def glass_material(name, color, rough=0.018, ior=1.46, absorption=(0.12,0.42,0.9
     glass.inputs['Color'].default_value=color
     glass.inputs['Roughness'].default_value=rough
     glass.inputs['IOR'].default_value=ior
+
+    if faceted:
+        tex=nt.nodes.new('ShaderNodeTexVoronoi')
+        tex.voronoi_dimensions='3D'
+        tex.distance='EUCLIDEAN'
+        tex.feature='DISTANCE_TO_EDGE'
+        tex.inputs['Scale'].default_value=3.2
+        ramp=nt.nodes.new('ShaderNodeValToRGB')
+        ramp.color_ramp.elements[0].position=0.035
+        ramp.color_ramp.elements[1].position=0.18
+        bump=nt.nodes.new('ShaderNodeBump')
+        bump.inputs['Strength'].default_value=0.18
+        bump.inputs['Distance'].default_value=0.08
+        nt.links.new(tex.outputs['Distance'], ramp.inputs['Fac'])
+        nt.links.new(ramp.outputs['Color'], bump.inputs['Height'])
+        nt.links.new(bump.outputs['Normal'], glass.inputs['Normal'])
+
     vol=nt.nodes.new('ShaderNodeVolumeAbsorption')
     vol.inputs['Color'].default_value=absorption
     vol.inputs['Density'].default_value=density
@@ -72,10 +89,11 @@ CHROME=principled("MM_Chrome",(0.82,0.87,0.96,1),1.0,0.19)
 CRYSTAL=glass_material(
     "MM_Crystal",
     (0.90,0.98,1.0,1),
-    rough=0.008,
+    rough=0.010,
     ior=1.49,
     absorption=(0.06,0.28,0.86,1),
-    density=0.020
+    density=0.018,
+    faceted=True
 )
 
 # Main identity geometry
@@ -162,48 +180,28 @@ for loc,energy,size_x,size_y,color,name in [
 # Crystal internal fracture material
 fracture_mat=glass_material(
     "CrystalFracture",
-    (0.72,0.92,1.0,1),
-    rough=0.018,
-    ior=1.56,
-    absorption=(0.10,0.44,0.95,1),
-    density=0.010
+    (0.78,0.94,1.0,1),
+    rough=0.025,
+    ior=1.54,
+    absorption=(0.10,0.40,0.92,1),
+    density=0.007
 )
 
 # Irregular, asymmetric internal fracture cluster. No radial/star layout.
 fractures=[]
 fracture_specs=[
-    ((-0.78,-0.02, 0.52),(0.30,0.08,0.46),( 18,-11, 27)),
-    (( 0.64,-0.04, 0.62),(0.22,0.07,0.38),(-16, 19,-31)),
-    ((-0.48,-0.01,-0.66),(0.27,0.08,0.34),( 11, 27,-12)),
-    (( 0.71,-0.03,-0.42),(0.24,0.07,0.42),(-22,-14, 23)),
-    ((-0.18,-0.07, 0.82),(0.18,0.06,0.31),( 33,  8, 14)),
-    (( 0.20,-0.02,-0.82),(0.17,0.06,0.30),(-27,-17,-19)),
-    ((-0.90,-0.05,-0.10),(0.18,0.05,0.30),( 12, 41,  8)),
-    (( 0.92,-0.04, 0.04),(0.16,0.05,0.28),(-10,-36,-17)),
-    ((-0.40,-0.10, 0.14),(0.13,0.05,0.25),( 44,  6, 36)),
-    (( 0.42,-0.09,-0.06),(0.12,0.05,0.24),(-38, 11,-29)),
+    ((-0.72,-0.04, 0.50),(0.22,0.06,0.34),( 21,-13, 31)),
+    (( 0.60,-0.05, 0.58),(0.18,0.055,0.29),(-18, 23,-36)),
+    ((-0.44,-0.04,-0.58),(0.20,0.06,0.30),( 13, 31,-17)),
+    (( 0.66,-0.05,-0.38),(0.19,0.055,0.31),(-24,-17, 26)),
+    ((-0.08,-0.08, 0.76),(0.14,0.045,0.23),( 37, 10, 18)),
+    (( 0.18,-0.07,-0.72),(0.13,0.045,0.22),(-31,-20,-23)),
 ]
 for i,(loc,scale,rot) in enumerate(fracture_specs):
     fractures.append(make_tetra(f"CrystalFracture_{i:02d}",loc,scale,rot,fracture_mat))
 
-# A few very thin fracture planes, irregularly placed.
-plane_mat=principled("FractureGlint",(0.15,0.60,1.0,1),0.0,0.12,0.72,1.52)
+# No explicit fracture planes in V6; surface facet bump carries fine structure.
 fracture_planes=[]
-plane_specs=[
-    ((-0.28,-0.10, 0.36),(0.55,0.018,0.12),( 70, 8, 24)),
-    (( 0.34,-0.12,-0.28),(0.42,0.016,0.10),( 62,-7,-38)),
-    (( 0.08,-0.13, 0.05),(0.50,0.015,0.08),( 82, 3, 11)),
-]
-for i,(loc,scale,rot) in enumerate(plane_specs):
-    bpy.ops.mesh.primitive_cube_add(location=loc)
-    p=bpy.context.object
-    p.name=f"CrystalFracturePlane_{i:02d}"
-    p.scale=scale
-    p.rotation_euler=tuple(math.radians(v) for v in rot)
-    bpy.ops.object.transform_apply(location=False,rotation=False,scale=True)
-    p.data.materials.append(plane_mat)
-    p.hide_render=True
-    fracture_planes.append(p)
 
 # Camera
 bpy.ops.object.camera_add(location=(0,-10.2,0.45))
@@ -285,7 +283,7 @@ bpy.ops.render.render(write_still=True)
 rendered.append(str(OUT/"crystal.png"))
 
 result={
-  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V5_PASS",
+  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V6_PASS",
   "resolution":f"{W}x{H}",
   "renders":rendered,
   "crystal_engine":"CYCLES",
@@ -294,9 +292,9 @@ result={
     "removed all reflection-card geometry",
     "chrome uses three narrow area-strip highlights only",
     "removed radial shard and inner crystal ring structure",
-    "crystal uses asymmetric tetra fracture cluster plus thin irregular glint planes"
+    "crystal uses subtle asymmetric internal fragments plus Voronoi surface facet bump; explicit fracture planes removed"
   ],
   "note":"Visual QA stills only. Transition remains blocked until all three states pass."
 }
 (OUT/"result.json").write_text(json.dumps(result,indent=2),encoding="utf-8")
-print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V5_PASS")
+print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V6_PASS")
