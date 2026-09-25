@@ -1,5 +1,5 @@
 {
-  "marker": "MORPHMINT_005_PUBLIC_REMOTE_3STATE_V19_PASS",
+  "marker": "MORPHMINT_005_PUBLIC_REMOTE_3STATE_V20_PASS",
   "resolution": "540x960",
   "renders": [
     "render_output/morphmint_005_probe/ceramic.png",
@@ -12,7 +12,7 @@
     "removed all reflection-card geometry",
     "chrome uses three narrow area-strip highlights only",
     "removed radial shard and inner crystal ring structure",
-    "crystal uses a clean high-poly center with faceted edge materials while refracting a procedural camera-hidden world environment; no visible stripe-card props"
+    "all three states use the same subtle three-quarter product camera to reveal thickness; crystal keeps clean glass center, faceted edge materials and procedural hidden world refraction"
   ],
   "note": "Visual QA stills only. Transition remains blocked until all three states pass."
 }
