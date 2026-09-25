@@ -1,7 +1,7 @@
 import bpy, bmesh, math, pathlib, json
 from mathutils import Vector
 
-OUT = pathlib.Path("render_output/morphmint_005_crystal_cutgem_a")
+OUT = pathlib.Path("render_output/morphmint_005_crystal_cutgem_a2")
 OUT.mkdir(parents=True, exist_ok=True)
 W, H = 540, 960
 
@@ -58,8 +58,8 @@ def principled(name, base, metallic=0.0, rough=0.35):
     bsdf.inputs["Roughness"].default_value = rough
     return m
 
-def glass_mat(name, color=(0.985, 1.0, 1.0, 1), rough=0.006, ior=1.545,
-              absorption=(0.36, 0.78, 1.0, 1), density=0.0022):
+def glass_mat(name, color=(0.985, 1.0, 1.0, 1), rough=0.012, ior=1.545,
+              absorption=(0.36, 0.78, 1.0, 1), density=0.00055):
     m = bpy.data.materials.new(name)
     m.use_nodes = True
     nt = m.node_tree
@@ -83,7 +83,7 @@ CRYSTAL_ACCENT = glass_mat(
     rough=0.004,
     ior=1.57,
     absorption=(0.15, 0.64, 1.0, 1),
-    density=0.004,
+    density=0.0012,
 )
 
 # ------------------------------------------------------------------
@@ -96,12 +96,12 @@ CRYSTAL_ACCENT = glass_mat(
 SEG = 24
 rings = [
     # name, radius, y-depth, angular offset
-    ("table",     0.74, -0.235, 0.0),
-    ("star",      1.02, -0.190, math.pi / SEG),
-    ("bezel",     1.31, -0.105, 0.0),
-    ("girdle_f",  1.52, -0.028, math.pi / SEG),
-    ("girdle_b",  1.52,  0.032, math.pi / SEG),
-    ("pavilion",  1.08,  0.155, 0.0),
+    ("table",     0.72, -0.340, 0.0),
+    ("star",      1.00, -0.285, math.pi / SEG),
+    ("bezel",     1.30, -0.175, 0.0),
+    ("girdle_f",  1.52, -0.060, math.pi / SEG),
+    ("girdle_b",  1.52,  0.060, math.pi / SEG),
+    ("pavilion",  1.04,  0.410, 0.0),
 ]
 
 verts = []
@@ -115,7 +115,7 @@ for name, radius, y, offset in rings:
     ring_idx[name] = ids
 
 culet_idx = len(verts)
-verts.append((0.0, 0.285, 0.0))
+verts.append((0.0, 0.700, 0.0))
 
 faces = []
 
@@ -170,7 +170,7 @@ for p in gem.data.polygons:
 
 # Preserve MorphMint's central identity bar as a cut optical insert, not a
 # rounded opaque UI bar. It is shallow so the gem facets remain the hero.
-bpy.ops.mesh.primitive_cube_add(location=(0.0, -0.255, 0.0))
+bpy.ops.mesh.primitive_cube_add(location=(0.0, -0.370, 0.0))
 bar = bpy.context.object
 bar.name = "MorphMint_CutCrystalIdentityBar"
 bar.scale = (0.125, 0.026, 0.70)
@@ -183,7 +183,7 @@ bev.segments = 1
 # Small octagonal optical seal gives the center a controlled focal glint.
 bpy.ops.mesh.primitive_cylinder_add(
     vertices=8, radius=0.19, depth=0.035,
-    location=(0.0, -0.286, 0.0),
+    location=(0.0, -0.407, 0.0),
     rotation=(math.radians(90), 0.0, 0.0),
 )
 seal = bpy.context.object
@@ -229,46 +229,33 @@ def add_area(name, loc, energy, size, color, rectangle=None):
     l.rotation_euler = (Vector((0,0,0)) - l.location).to_track_quat("-Z","Y").to_euler()
     return l
 
-add_area("SoftKey", (-3.7,-4.4,5.0), 1080, 4.0, (1.0,0.76,0.58))
-add_area("CoolFill", (4.0,-3.2,1.1), 760, 3.2, (0.38,0.65,1.0))
-add_area("TopRim", (0.1,0.2,5.6), 1450, 2.5, (0.62,0.86,1.0))
-add_area("SideCut", (-4.8,-0.8,-0.2), 470, 2.0, (0.35,0.80,1.0), rectangle=(0.30,3.7))
+add_area("SoftKey", (-3.7,-4.4,5.0), 860, 4.6, (1.0,0.90,0.78))
+add_area("CoolFill", (4.0,-3.2,1.1), 620, 3.8, (0.56,0.76,1.0))
+add_area("TopRim", (0.1,0.2,5.6), 920, 3.0, (0.76,0.90,1.0))
+add_area("SideCut", (-4.8,-0.8,-0.2), 260, 2.0, (0.48,0.78,1.0), rectangle=(0.52,3.8))
 
-# Camera-invisible optical cards: unlike V21's hidden_render cards, these stay
-# in the ray scene so transmission/reflection receives crisp premium gradients.
-def emissive_card(name, loc, scale, rz, color, strength):
-    bpy.ops.mesh.primitive_cube_add(location=loc)
-    p = bpy.context.object
-    p.name = name
-    p.scale = scale
-    p.rotation_euler = (0.0, 0.0, math.radians(rz))
-    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+# Crystal optical environment A2.
+# A1 proved that narrow ray-visible cards create giant black/white slabs inside
+# the transparent object. A2 removes proxy-card geometry entirely.
+# Camera sees the dark physical set; glossy/transmission rays are allowed to
+# see a brighter neutral studio world so the real facets, not hidden props,
+# generate the crystal pattern.
+world = scene.world
+world.use_nodes = True
+wnt = world.node_tree
+wnt.nodes.clear()
+wout = wnt.nodes.new("ShaderNodeOutputWorld")
+wbg = wnt.nodes.new("ShaderNodeBackground")
+wbg.inputs["Color"].default_value = (0.16, 0.23, 0.34, 1)
+wbg.inputs["Strength"].default_value = 0.72
+wnt.links.new(wbg.outputs["Background"], wout.inputs["Surface"])
 
-    m = bpy.data.materials.new(name + "_Mat")
-    m.use_nodes = True
-    nt = m.node_tree
-    bs = nt.nodes.get("Principled BSDF")
-    bs.inputs["Base Color"].default_value = color
-    bs.inputs["Roughness"].default_value = 0.32
-    if "Emission Color" in bs.inputs:
-        bs.inputs["Emission Color"].default_value = color
-        bs.inputs["Emission Strength"].default_value = strength
-    p.data.materials.append(m)
-
+for obj in (floor, back):
     try:
-        p.visible_camera = False
-        p.visible_diffuse = False
-        p.visible_shadow = False
-        p.visible_glossy = True
-        p.visible_transmission = True
+        obj.visible_transmission = False
+        obj.visible_glossy = False
     except Exception:
         pass
-    return p
-
-emissive_card("OpticalWarm", (-1.45, 1.30, 0.28), (0.11,0.025,1.80), -13, (1.0,0.66,0.34,1), 4.8)
-emissive_card("OpticalIceA", (-0.46, 1.38,-0.08), (0.075,0.025,2.10),  7, (0.68,0.92,1.0,1), 5.2)
-emissive_card("OpticalIceB", ( 0.48, 1.32,0.20), (0.090,0.025,1.90), -9, (0.24,0.70,1.0,1), 4.7)
-emissive_card("OpticalWhite",( 1.42, 1.24,-0.18), (0.090,0.025,1.65), 16, (1.0,1.0,1.0,1), 4.2)
 
 # Existing MorphMint 3Q product camera is retained so this tests asset grammar,
 # not a camera rescue.
@@ -292,17 +279,19 @@ img.file_format = "PNG"
 img.save()
 
 result = {
-    "marker": "MORPHMINT_005_CRYSTAL_CUTGEM_A_RENDER_PASS",
+    "marker": "MORPHMINT_005_CRYSTAL_CUTGEM_A2_RENDER_PASS",
     "asset": "morphmint_material_shift_005",
     "stage": "CRYSTAL_STILL_GRAMMAR_QA",
     "resolution": f"{W}x{H}",
     "engine": "CYCLES",
     "samples": 112,
     "candidate_comparison": CANDIDATES,
-    "selected_method": "A_TRUE_CUT_GEM_TOPOLOGY",
+    "selected_method": "A_TRUE_CUT_GEM_TOPOLOGY_A2_OPTICAL_ARCHITECTURE",
     "visual_grammar": [
+        "A1 optical-card environment rejected after exact-preview visual FAIL",
         "single closed crystal body; no torus crown/rim/glint overlays",
-        "real table/star/bezel/girdle/pavilion planar facet topology",
+        "real table/star/bezel/girdle/pavilion planar facet topology with materially deeper pavilion",
+        "no ray-visible proxy cards; camera-dark set and brighter ray studio are separated",
         "flat-shaded facets create geometry-native highlight/refraction changes",
         "central identity bar retained as shallow cut optical insert",
         "camera-invisible but ray-visible optical cards provide premium crystal gradients",
@@ -313,4 +302,4 @@ result = {
     "transition_gate": "BLOCKED_UNTIL_CRYSTAL_QUALITY_90",
 }
 (OUT / "result.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
-print("MORPHMINT_005_CRYSTAL_CUTGEM_A_RENDER_PASS")
+print("MORPHMINT_005_CRYSTAL_CUTGEM_A2_RENDER_PASS")
