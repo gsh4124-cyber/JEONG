@@ -9,7 +9,6 @@ bpy.ops.object.select_all(action='SELECT')
 bpy.ops.object.delete(use_global=False)
 
 scene=bpy.context.scene
-scene.render.engine='BLENDER_EEVEE'
 scene.render.resolution_x=W
 scene.render.resolution_y=H
 scene.render.resolution_percentage=100
@@ -30,38 +29,34 @@ def principled(name, base, metallic=0.0, rough=0.35, transmission=0.0, ior=1.45)
         bsdf.inputs['IOR'].default_value=ior
     return m
 
-def crystal_material():
-    m=bpy.data.materials.new("MM_Crystal")
+def glass_material(name, color, rough=0.018, ior=1.46, absorption=(0.12,0.42,0.95,1), density=0.045):
+    m=bpy.data.materials.new(name)
     m.use_nodes=True
     nt=m.node_tree
-    bsdf=nt.nodes.get('Principled BSDF')
-    bsdf.inputs['Base Color'].default_value=(0.72,0.90,1.0,1)
-    bsdf.inputs['Metallic'].default_value=0.0
-    bsdf.inputs['Roughness'].default_value=0.035
-    if 'Transmission Weight' in bsdf.inputs:
-        bsdf.inputs['Transmission Weight'].default_value=1.0
-    if 'IOR' in bsdf.inputs:
-        bsdf.inputs['IOR'].default_value=1.46
-    if 'Coat Weight' in bsdf.inputs:
-        bsdf.inputs['Coat Weight'].default_value=0.25
-    if 'Coat Roughness' in bsdf.inputs:
-        bsdf.inputs['Coat Roughness'].default_value=0.04
-
+    for n in list(nt.nodes):
+        nt.nodes.remove(n)
+    out=nt.nodes.new('ShaderNodeOutputMaterial')
+    glass=nt.nodes.new('ShaderNodeBsdfGlass')
+    glass.inputs['Color'].default_value=color
+    glass.inputs['Roughness'].default_value=rough
+    glass.inputs['IOR'].default_value=ior
     vol=nt.nodes.new('ShaderNodeVolumeAbsorption')
-    vol.inputs['Color'].default_value=(0.05,0.32,0.95,1)
-    vol.inputs['Density'].default_value=0.16
-    nt.links.new(vol.outputs['Volume'], nt.nodes['Material Output'].inputs['Volume'])
-
-    # Blender 4+/5+ hashed/dithered surface behavior if available.
-    try:
-        m.surface_render_method='DITHERED'
-    except Exception:
-        pass
+    vol.inputs['Color'].default_value=absorption
+    vol.inputs['Density'].default_value=density
+    nt.links.new(glass.outputs['BSDF'], out.inputs['Surface'])
+    nt.links.new(vol.outputs['Volume'], out.inputs['Volume'])
     return m
 
 CERAMIC=principled("MM_Ceramic",(0.66,0.10,0.028,1),0.0,0.44)
-CHROME=principled("MM_Chrome",(0.78,0.84,0.95,1),1.0,0.085)
-CRYSTAL=crystal_material()
+CHROME=principled("MM_Chrome",(0.88,0.92,1.0,1),1.0,0.12)
+CRYSTAL=glass_material(
+    "MM_Crystal",
+    (0.80,0.94,1.0,1),
+    rough=0.012,
+    ior=1.46,
+    absorption=(0.08,0.34,0.92,1),
+    density=0.035
+)
 
 # Main identity geometry
 bpy.ops.mesh.primitive_cylinder_add(vertices=128, radius=1.55, depth=0.42, location=(0,0,0))
@@ -93,7 +88,6 @@ bar.data.materials.append(CERAMIC)
 bev2=bar.modifiers.new("BarBevel","BEVEL")
 bev2.width=0.06
 bev2.segments=5
-
 objects=(body,rim,bar)
 
 # Ground
@@ -102,17 +96,19 @@ floor=bpy.context.object
 floor.name="MorphMint_Floor"
 floor.data.materials.append(principled("FloorMat",(0.015,0.020,0.035,1),0.10,0.30))
 
-# Dark vertical backdrop behind object, gives crystal refractive contrast.
+# Backdrop material changes slightly for crystal readability.
 bpy.ops.mesh.primitive_plane_add(size=18, location=(0,2.8,1.2), rotation=(math.radians(90),0,0))
 back=bpy.context.object
 back.name="Backdrop"
-back.data.materials.append(principled("BackdropMat",(0.006,0.012,0.03,1),0.0,0.42))
+BACK_DARK=principled("BackdropDark",(0.006,0.012,0.03,1),0.0,0.42)
+BACK_CRYSTAL=principled("BackdropCrystal",(0.035,0.10,0.24,1),0.0,0.36)
+back.data.materials.append(BACK_DARK)
 
-# Reflection cards: far outside camera frustum, used only as environment reflections.
+# Reflection cards stay fully outside camera view.
 for x,z,sx,sz,val in [
-    (-7.0,1.2,1.4,4.8,1.0),
-    ( 7.0,0.5,1.2,4.2,0.72),
-    ( 0.0,7.0,4.0,1.0,0.55)
+    (-7.5,1.2,1.25,4.4,1.0),
+    ( 7.5,0.5,1.10,4.0,0.72),
+    ( 0.0,7.5,3.6,0.9,0.48)
 ]:
     bpy.ops.mesh.primitive_plane_add(size=2, location=(x,-1.0,z))
     card=bpy.context.object
@@ -121,21 +117,21 @@ for x,z,sx,sz,val in [
     card.rotation_euler=(math.radians(90),0,0)
     em=bpy.data.materials.new(f"CardMat_{x}_{z}")
     em.use_nodes=True
-    nt=em.node_tree
-    bs=nt.nodes.get('Principled BSDF')
+    bs=em.node_tree.nodes.get('Principled BSDF')
     bs.inputs['Base Color'].default_value=(val,val,val,1)
-    bs.inputs['Roughness'].default_value=0.25
+    bs.inputs['Roughness'].default_value=0.35
     if 'Emission Color' in bs.inputs:
         bs.inputs['Emission Color'].default_value=(val,val,val,1)
-        bs.inputs['Emission Strength'].default_value=1.6
+        bs.inputs['Emission Strength'].default_value=1.0
     card.data.materials.append(em)
 
-# Key/fill/rim lighting
+# Lighting
+lights={}
 for loc,energy,size,color,name in [
-    ((-3.6,-4.5,5.2),1500,4.0,(1.0,0.60,0.38),"Key"),
-    (( 4.2,-3.5,1.4),1150,3.5,(0.25,0.52,1.0),"Fill"),
-    (( 0.0, 2.0,5.6),1000,2.5,(0.45,0.78,1.0),"Rim"),
-    (( 0.0,-1.6,-1.6), 420,2.2,(0.15,0.30,0.75),"Under")
+    ((-3.6,-4.5,5.2),1350,4.0,(1.0,0.60,0.38),"Key"),
+    (( 4.2,-3.5,1.4), 900,3.2,(0.25,0.52,1.0),"Fill"),
+    (( 0.0, 2.0,5.6), 900,2.5,(0.45,0.78,1.0),"Rim"),
+    (( 0.0,-1.6,-1.6), 280,2.2,(0.15,0.30,0.75),"Under")
 ]:
     bpy.ops.object.light_add(type='AREA',location=loc)
     l=bpy.context.object
@@ -144,27 +140,31 @@ for loc,energy,size,color,name in [
     l.data.size=size
     l.data.color=color
     l.rotation_euler=(Vector((0,0,0))-l.location).to_track_quat('-Z','Y').to_euler()
+    lights[name]=l
 
-# Crystal internal facets: hidden for ceramic/chrome, visible only for crystal.
+# Internal crystal geometry: larger, brighter, physically translucent.
 facet_mat=bpy.data.materials.new("CrystalFacetMat")
 facet_mat.use_nodes=True
 fbs=facet_mat.node_tree.nodes.get('Principled BSDF')
-fbs.inputs['Base Color'].default_value=(0.28,0.72,1.0,1)
-fbs.inputs['Metallic'].default_value=0.05
-fbs.inputs['Roughness'].default_value=0.10
+fbs.inputs['Base Color'].default_value=(0.22,0.66,1.0,1)
+fbs.inputs['Metallic'].default_value=0.0
+fbs.inputs['Roughness'].default_value=0.08
 if 'Transmission Weight' in fbs.inputs:
-    fbs.inputs['Transmission Weight'].default_value=0.65
+    fbs.inputs['Transmission Weight'].default_value=0.80
 if 'IOR' in fbs.inputs:
     fbs.inputs['IOR'].default_value=1.52
+if 'Emission Color' in fbs.inputs:
+    fbs.inputs['Emission Color'].default_value=(0.08,0.32,0.95,1)
+    fbs.inputs['Emission Strength'].default_value=0.20
 
 facets=[]
 facet_specs=[
-    (-0.72,-0.02,0.58,0.24,0.08,0.55, 18,-12, 22),
-    ( 0.68, 0.00,0.46,0.20,0.07,0.48,-14, 10,-18),
-    (-0.48,-0.01,-0.62,0.22,0.08,0.42, 12, 22,-14),
-    ( 0.52, 0.01,-0.58,0.18,0.07,0.50,-18,-16, 20),
-    ( 0.00, 0.05,0.78,0.16,0.06,0.36, 26,  8, 12),
-    ( 0.05, 0.02,-0.78,0.15,0.06,0.34,-24, -8,-16),
+    (-0.72,-0.04, 0.58,0.32,0.10,0.62, 18,-12, 22),
+    ( 0.68,-0.03, 0.46,0.28,0.10,0.55,-14, 10,-18),
+    (-0.48,-0.04,-0.62,0.30,0.10,0.50, 12, 22,-14),
+    ( 0.52,-0.03,-0.58,0.26,0.10,0.58,-18,-16, 20),
+    ( 0.00,-0.05, 0.78,0.22,0.09,0.44, 26,  8, 12),
+    ( 0.05,-0.04,-0.78,0.22,0.09,0.42,-24, -8,-16),
 ]
 for i,(x,y,z,sx,sy,sz,rx,ry,rz) in enumerate(facet_specs):
     bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=1.0, location=(x,y,z))
@@ -177,17 +177,29 @@ for i,(x,y,z,sx,sy,sz,rx,ry,rz) in enumerate(facet_specs):
     f.hide_render=True
     facets.append(f)
 
-# Subtle crystal inner ring shell to reinforce depth while preserving silhouette.
 bpy.ops.mesh.primitive_torus_add(
-    major_radius=0.88, minor_radius=0.035,
+    major_radius=0.88, minor_radius=0.045,
     major_segments=96, minor_segments=16,
-    location=(0,0.02,0),
+    location=(0,-0.03,0),
     rotation=(math.radians(90),0,0)
 )
 inner_crystal=bpy.context.object
 inner_crystal.name="CrystalInnerDepthRing"
 inner_crystal.data.materials.append(facet_mat)
 inner_crystal.hide_render=True
+
+# Thin internal radial shards add depth cues without changing silhouette.
+shards=[]
+for i,ang in enumerate([-50,-25,0,25,50]):
+    bpy.ops.mesh.primitive_cube_add(location=(0,-0.02,0))
+    s=bpy.context.object
+    s.name=f"CrystalShard_{i:02d}"
+    s.scale=(0.035,0.035,0.95)
+    s.rotation_euler=(math.radians(90),0,math.radians(ang))
+    bpy.ops.object.transform_apply(location=False,rotation=False,scale=True)
+    s.data.materials.append(facet_mat)
+    s.hide_render=True
+    shards.append(s)
 
 # Camera
 bpy.ops.object.camera_add(location=(0,-10.2,0.45))
@@ -203,39 +215,72 @@ def set_material(mat):
         obj.data.materials.append(mat)
 
 def set_crystal_internals(enabled):
-    for f in facets:
+    for f in facets+shards:
         f.hide_render=not enabled
     inner_crystal.hide_render=not enabled
 
-states=[("ceramic",CERAMIC),("chrome",CHROME),("crystal",CRYSTAL)]
+def set_backdrop(mat):
+    back.data.materials.clear()
+    back.data.materials.append(mat)
+
 rendered=[]
-for name,mat in states:
-    set_material(mat)
-    set_crystal_internals(name=="crystal")
 
-    # Tune lights per state without changing object identity.
-    if name=="ceramic":
-        scene.view_settings.look='AgX - Medium High Contrast'
-    elif name=="chrome":
-        scene.view_settings.look='AgX - High Contrast'
-    else:
-        scene.view_settings.look='AgX - Medium High Contrast'
+# Ceramic
+scene.render.engine='BLENDER_EEVEE'
+scene.view_settings.look='AgX - Medium High Contrast'
+set_material(CERAMIC)
+set_crystal_internals(False)
+set_backdrop(BACK_DARK)
+scene.render.filepath=str(OUT/"ceramic.png")
+bpy.ops.render.render(write_still=True)
+rendered.append(str(OUT/"ceramic.png"))
 
-    scene.render.filepath=str(OUT/f"{name}.png")
-    bpy.ops.render.render(write_still=True)
-    rendered.append(str(OUT/f"{name}.png"))
+# Chrome: reduce blown white reflection by lowering reflection-card emission influence.
+scene.render.engine='BLENDER_EEVEE'
+scene.view_settings.look='AgX - High Contrast'
+set_material(CHROME)
+set_crystal_internals(False)
+set_backdrop(BACK_DARK)
+lights['Key'].data.energy=1100
+lights['Fill'].data.energy=700
+scene.render.filepath=str(OUT/"chrome.png")
+bpy.ops.render.render(write_still=True)
+rendered.append(str(OUT/"chrome.png"))
+
+# Crystal: use Cycles for real transmission/refraction.
+scene.render.engine='CYCLES'
+scene.cycles.samples=24
+scene.cycles.use_denoising=True
+scene.cycles.max_bounces=8
+scene.cycles.transmission_bounces=8
+scene.cycles.glossy_bounces=4
+scene.cycles.diffuse_bounces=3
+scene.view_settings.look='AgX - Medium High Contrast'
+set_material(CRYSTAL)
+set_crystal_internals(True)
+set_backdrop(BACK_CRYSTAL)
+lights['Key'].data.energy=900
+lights['Fill'].data.energy=1100
+lights['Rim'].data.energy=1250
+lights['Under'].data.energy=420
+scene.render.filepath=str(OUT/"crystal.png")
+bpy.ops.render.render(write_still=True)
+rendered.append(str(OUT/"crystal.png"))
 
 result={
-  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V2_PASS",
+  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V3_PASS",
   "resolution":f"{W}x{H}",
-  "engine":scene.render.engine,
   "renders":rendered,
+  "crystal_engine":"CYCLES",
+  "crystal_samples":24,
   "changes":[
-    "reflection cards moved outside camera frustum",
-    "crystal transmission + IOR + volume absorption",
-    "internal crystal facets and inner depth ring added only in crystal state"
+    "JEONG native public runner",
+    "reflection cards remain outside camera view",
+    "chrome reflection intensity reduced",
+    "crystal switched to Cycles glass + volume absorption",
+    "larger internal facets and radial shards added"
   ],
-  "note":"Visual QA stills. Transition remains blocked until all 3 states pass."
+  "note":"Visual QA stills only. Transition remains blocked until all three states pass."
 }
 (OUT/"result.json").write_text(json.dumps(result,indent=2),encoding="utf-8")
-print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V2_PASS")
+print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V3_PASS")
