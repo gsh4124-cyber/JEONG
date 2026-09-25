@@ -492,18 +492,20 @@ bpy.ops.render.render(write_still=True)
 rendered.append(str(OUT/"crystal.png"))
 
 result={
-  "marker":"MORPHMINT_005_CRYSTAL_BRILLIANT57_A5_PASS",
+  "marker":"MORPHMINT_005_CRYSTAL_FACET_LAMINATE_B1_PASS",
   "resolution":f"{W}x{H}",
   "renders":rendered,
   "crystal_engine":"CYCLES",
   "crystal_samples":128,
   "changes":[
-    "removed all reflection-card geometry",
-    "chrome uses three narrow area-strip highlights only",
-    "removed radial shard and inner crystal ring structure",
-    "crystal uses dedicated asset geometry: thin optical body, 24-facet outer crown, 24-facet inner ring, glint ring and separate cut crystal identity bar"
+    "ceramic/chrome PASS_LOCKED binaries preserved and not re-rendered",
+    "crystal uses a thin optical core plus separate art-directed crown and girdle facet layers",
+    "facet families split into clear / ice / flash optical roles instead of one thick glass shader",
+    "large transmission-visible reflection cards disabled",
+    "small point-source jewelry lights create localized scintillation instead of rectangular white slabs"
   ],
+  "crystal_method":"ART_DIRECTED_FACET_LAMINATE_B1",
   "note":"Visual QA stills only. Transition remains blocked until all three states pass."
 }
 (OUT/"result.json").write_text(json.dumps(result,indent=2),encoding="utf-8")
-print("MORPHMINT_005_CRYSTAL_BRILLIANT57_A5_PASS")
+print("MORPHMINT_005_CRYSTAL_FACET_LAMINATE_B1_PASS")
