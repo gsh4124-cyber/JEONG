@@ -147,74 +147,94 @@ bev2.width=0.06
 bev2.segments=5
 objects=(body,rim,bar)
 
-# Crystal-state V21: dedicated crystal asset mesh.
-# Ceramic/chrome remain locked; crystal uses a thin optical body plus cut crown/ring/bar.
+# Crystal-state V22: topology-first cut-gem asset.
+# This is not a numeric retune of the V21 torus stack. It replaces the crystal
+# construction grammar with one coherent watertight faceted gem body.
+def make_cut_gem_disc(name, segments=24):
+    # Coordinate convention: face lies in X/Z, depth runs on Y.
+    # Camera sits on negative Y, so front/crown uses negative Y.
+    rings = [
+        # label, radius, y, angular phase
+        ("table", 0.58, -0.235, 0.0),
+        ("star",  0.93, -0.205, math.pi/segments),
+        ("bezel", 1.24, -0.145, 0.0),
+        ("girdle_front", 1.48, -0.055, math.pi/segments),
+        ("girdle_back",  1.48,  0.055, 0.0),
+        ("pavilion", 1.10,  0.155, math.pi/segments),
+    ]
 
-# Thin optical body: mostly invisible, preserving the medallion identity without a flat acrylic look.
-bpy.ops.mesh.primitive_cylinder_add(vertices=128, radius=1.48, depth=0.16, location=(0,0,0))
-crystal_body=bpy.context.object
-crystal_body.name="MorphMint_CrystalBody"
-crystal_body.rotation_euler=(math.radians(90),0,0)
-crystal_body.data.materials.append(CRYSTAL)
-crystal_body.hide_render=True
-cb=crystal_body.modifiers.new("CrystalBodyBevel","BEVEL")
-cb.width=0.035
-cb.segments=3
-bpy.ops.object.shade_smooth()
+    verts=[]
+    ring_ids=[]
+    for _label,r,y,phase in rings:
+        ids=[]
+        for i in range(segments):
+            a=(2.0*math.pi*i/segments)+phase
+            ids.append(len(verts))
+            verts.append((r*math.cos(a),y,r*math.sin(a)))
+        ring_ids.append(ids)
 
-# 24-facet outer crown.
-bpy.ops.mesh.primitive_torus_add(
-    major_radius=1.43, minor_radius=0.125,
-    major_segments=24, minor_segments=6,
-    location=(0,-0.105,0),
-    rotation=(math.radians(90),0,0)
-)
-crystal_crown=bpy.context.object
-crystal_crown.name="MorphMint_CrystalCrown"
-crystal_crown.data.materials.append(CRYSTAL_EDGE)
-crystal_crown.hide_render=True
-for poly in crystal_crown.data.polygons:
-    poly.use_smooth=False
+    # Front table center and rear culet create large coherent facet families.
+    front_center=len(verts)
+    verts.append((0.0,-0.245,0.0))
+    rear_culet=len(verts)
+    verts.append((0.0,0.255,0.0))
 
-# 24-facet inner ring.
-bpy.ops.mesh.primitive_torus_add(
-    major_radius=1.16, minor_radius=0.085,
-    major_segments=24, minor_segments=6,
-    location=(0,-0.135,0),
-    rotation=(math.radians(90),0,0)
-)
-crystal_rim=bpy.context.object
-crystal_rim.name="MorphMint_CrystalRim"
-crystal_rim.data.materials.append(CRYSTAL_EDGE)
-crystal_rim.hide_render=True
-for poly in crystal_rim.data.polygons:
-    poly.use_smooth=False
+    faces=[]
 
-# Separate cut-crystal center bar.
-bpy.ops.mesh.primitive_cube_add(location=(0,-0.160,0))
+    # Table: triangular fan into first ring.
+    r0=ring_ids[0]
+    for i in range(segments):
+        j=(i+1)%segments
+        faces.append((front_center,r0[i],r0[j]))
+
+    # Crown / girdle / pavilion bands.
+    # Alternating diagonals stop the object reading as a smooth torus.
+    for band in range(len(ring_ids)-1):
+        ra=ring_ids[band]
+        rb=ring_ids[band+1]
+        for i in range(segments):
+            j=(i+1)%segments
+            if (i+band)%2==0:
+                faces.append((ra[i],rb[i],rb[j]))
+                faces.append((ra[i],rb[j],ra[j]))
+            else:
+                faces.append((ra[i],rb[i],ra[j]))
+                faces.append((ra[j],rb[i],rb[j]))
+
+    # Back pavilion to culet.
+    rb=ring_ids[-1]
+    for i in range(segments):
+        j=(i+1)%segments
+        faces.append((rb[j],rb[i],rear_culet))
+
+    mesh=bpy.data.meshes.new(name+"_Mesh")
+    mesh.from_pydata(verts,[],faces)
+    mesh.update()
+    obj=bpy.data.objects.new(name,mesh)
+    bpy.context.collection.objects.link(obj)
+    obj.data.materials.append(CRYSTAL_EDGE)
+    obj.hide_render=True
+    for poly in obj.data.polygons:
+        poly.use_smooth=False
+    return obj
+
+crystal_gem=make_cut_gem_disc("MorphMint_CutGem",segments=24)
+
+# Brand identity remains a distinct optical element, but it is now a chamfered
+# crystal insert sitting over the table instead of another circular ring.
+bpy.ops.mesh.primitive_cube_add(location=(0,-0.285,0))
 crystal_bar=bpy.context.object
 crystal_bar.name="MorphMint_CrystalIdentityBar"
-crystal_bar.scale=(0.135,0.085,0.70)
+crystal_bar.scale=(0.13,0.045,0.67)
 bpy.ops.object.transform_apply(location=False,rotation=False,scale=True)
 crystal_bar.data.materials.append(CRYSTAL_EDGE)
 crystal_bar.hide_render=True
 cbb=crystal_bar.modifiers.new("CrystalBarBevel","BEVEL")
-cbb.width=0.070
+cbb.width=0.055
 cbb.segments=1
 
-# Small crown bevel ring just inside the outer edge to split highlights.
-bpy.ops.mesh.primitive_torus_add(
-    major_radius=1.31, minor_radius=0.040,
-    major_segments=24, minor_segments=4,
-    location=(0,-0.120,0),
-    rotation=(math.radians(90),0,0)
-)
-crystal_glint=bpy.context.object
-crystal_glint.name="MorphMint_CrystalGlintRing"
-crystal_glint.data.materials.append(CRYSTAL_EDGE)
-crystal_glint.hide_render=True
-for poly in crystal_glint.data.polygons:
-    poly.use_smooth=False
+# No detached torus crown/rim/glint objects in the new grammar.
+# All radial highlight breaks come from real planar facets in crystal_gem.
 
 # Ground and backdrop
 bpy.ops.mesh.primitive_plane_add(size=30, location=(0,2,-2.25))
@@ -391,11 +411,7 @@ def set_crystal_shell(enabled):
     body.hide_render=enabled
     rim.hide_render=enabled
     bar.hide_render=enabled
-    crystal_body.hide_render=not enabled
-    crystal_rim.hide_render=not enabled
-    crystal_crown.hide_render=not enabled
-    crystal_rim.hide_render=not enabled
-    crystal_glint.hide_render=not enabled
+    crystal_gem.hide_render=not enabled
     crystal_bar.hide_render=not enabled
 
 def set_light_transmission_visibility(visible):
@@ -459,12 +475,12 @@ scene.view_settings.look='AgX - Medium High Contrast'
 scene.world.color=(0.0015,0.004,0.012)
 set_material(CRYSTAL)
 set_crystal_internals(False)
-set_crystal_environment(False)
+set_crystal_environment(True)
 set_crystal_shell(True)
 set_chrome_strips(True)
 set_light_transmission_visibility(False)
 set_backdrop(BACK_CRYSTAL)
-set_world_crystal_env(True)
+set_world_crystal_env(False)
 set_backdrop_transmission(False)
 chrome_strips['ChromeStripL'].data.energy=120
 chrome_strips['ChromeStripR'].data.energy=105
@@ -481,18 +497,20 @@ bpy.ops.render.render(write_still=True)
 rendered.append(str(OUT/"crystal.png"))
 
 result={
-  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V21_PASS",
+  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V22_PASS",
   "resolution":f"{W}x{H}",
   "renders":rendered,
   "crystal_engine":"CYCLES",
   "crystal_samples":96,
   "changes":[
-    "removed all reflection-card geometry",
-    "chrome uses three narrow area-strip highlights only",
-    "removed radial shard and inner crystal ring structure",
-    "crystal uses dedicated asset geometry: thin optical body, 24-facet outer crown, 24-facet inner ring, glint ring and separate cut crystal identity bar"
+    "ceramic and chrome remain locked",
+    "crystal construction replaced with one watertight topology-first cut-gem body",
+    "front table, star, bezel, girdle and rear pavilion facet families are explicit planar geometry",
+    "detached torus crown/rim/glint grammar removed",
+    "camera-invisible optical stripe environment enabled for coherent refraction"
   ],
+  "crystal_method":"WATERTIGHT_CUT_GEM_TOPOLOGY",
   "note":"Visual QA stills only. Transition remains blocked until all three states pass."
 }
 (OUT/"result.json").write_text(json.dumps(result,indent=2),encoding="utf-8")
-print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V21_PASS")
+print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V22_PASS")
