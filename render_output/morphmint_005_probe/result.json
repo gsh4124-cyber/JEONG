@@ -1,5 +1,5 @@
 {
-  "marker": "MORPHMINT_005_PUBLIC_REMOTE_3STATE_V9_PASS",
+  "marker": "MORPHMINT_005_PUBLIC_REMOTE_3STATE_V10_PASS",
   "resolution": "540x960",
   "renders": [
     "render_output/morphmint_005_probe/ceramic.png",
@@ -12,7 +12,7 @@
     "removed all reflection-card geometry",
     "chrome uses three narrow area-strip highlights only",
     "removed radial shard and inner crystal ring structure",
-    "crystal removes all internal prop geometry; floor hidden entirely during crystal render; Voronoi facet bump softened for cleaner gemstone refraction"
+    "crystal uses real low-poly faceted body/rim shell; floor hidden; area lights hidden from transmission rays; softened surface facet bump retained on identity bar"
   ],
   "note": "Visual QA stills only. Transition remains blocked until all three states pass."
 }
