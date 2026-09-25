@@ -1,0 +1,16 @@
+{
+  "marker": "MORPHMINT_005_PUBLIC_REMOTE_3STATE_V2_PASS",
+  "resolution": "540x960",
+  "engine": "BLENDER_EEVEE",
+  "renders": [
+    "render_output/morphmint_005_probe/ceramic.png",
+    "render_output/morphmint_005_probe/chrome.png",
+    "render_output/morphmint_005_probe/crystal.png"
+  ],
+  "changes": [
+    "reflection cards moved outside camera frustum",
+    "crystal transmission + IOR + volume absorption",
+    "internal crystal facets and inner depth ring added only in crystal state"
+  ],
+  "note": "Visual QA stills. Transition remains blocked until all 3 states pass."
+}
