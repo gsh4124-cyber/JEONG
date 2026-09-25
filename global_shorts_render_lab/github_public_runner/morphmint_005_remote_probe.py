@@ -138,7 +138,7 @@ bpy.ops.mesh.primitive_plane_add(size=18, location=(0,2.8,1.2), rotation=(math.r
 back=bpy.context.object
 back.name="Backdrop"
 BACK_DARK=principled("BackdropDark",(0.006,0.012,0.028,1),0.0,0.48)
-BACK_CRYSTAL=principled("BackdropCrystal",(0.055,0.14,0.30,1),0.0,0.42)
+BACK_CRYSTAL=principled("BackdropCrystal",(0.035,0.095,0.22,1),0.0,0.46)
 back.data.materials.append(BACK_DARK)
 
 # General lighting
@@ -190,12 +190,10 @@ fracture_mat=glass_material(
 # Irregular, asymmetric internal fracture cluster. No radial/star layout.
 fractures=[]
 fracture_specs=[
-    ((-0.72,-0.04, 0.50),(0.22,0.06,0.34),( 21,-13, 31)),
-    (( 0.60,-0.05, 0.58),(0.18,0.055,0.29),(-18, 23,-36)),
-    ((-0.44,-0.04,-0.58),(0.20,0.06,0.30),( 13, 31,-17)),
-    (( 0.66,-0.05,-0.38),(0.19,0.055,0.31),(-24,-17, 26)),
-    ((-0.08,-0.08, 0.76),(0.14,0.045,0.23),( 37, 10, 18)),
-    (( 0.18,-0.07,-0.72),(0.13,0.045,0.22),(-31,-20,-23)),
+    ((-0.72,-0.05, 0.46),(0.16,0.045,0.24),( 24,-16, 34)),
+    (( 0.64,-0.05, 0.56),(0.15,0.045,0.22),(-20, 26,-39)),
+    ((-0.86,-0.04,-0.04),(0.12,0.040,0.18),( 15, 39, 12)),
+    (( 0.84,-0.04, 0.02),(0.11,0.040,0.17),(-12,-34,-18)),
 ]
 for i,(loc,scale,rot) in enumerate(fracture_specs):
     fractures.append(make_tetra(f"CrystalFracture_{i:02d}",loc,scale,rot,fracture_mat))
@@ -269,7 +267,7 @@ scene.cycles.transmission_bounces=10
 scene.cycles.glossy_bounces=6
 scene.cycles.diffuse_bounces=3
 scene.view_settings.look='AgX - Medium High Contrast'
-scene.world.color=(0.014,0.035,0.085)
+scene.world.color=(0.010,0.024,0.060)
 set_material(CRYSTAL)
 set_crystal_internals(True)
 set_chrome_strips(False)
@@ -283,7 +281,7 @@ bpy.ops.render.render(write_still=True)
 rendered.append(str(OUT/"crystal.png"))
 
 result={
-  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V6_PASS",
+  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V7_PASS",
   "resolution":f"{W}x{H}",
   "renders":rendered,
   "crystal_engine":"CYCLES",
@@ -292,9 +290,9 @@ result={
     "removed all reflection-card geometry",
     "chrome uses three narrow area-strip highlights only",
     "removed radial shard and inner crystal ring structure",
-    "crystal uses subtle asymmetric internal fragments plus Voronoi surface facet bump; explicit fracture planes removed"
+    "crystal keeps only four sparse edge fragments plus Voronoi surface facet bump; lower fragment pile removed"
   ],
   "note":"Visual QA stills only. Transition remains blocked until all three states pass."
 }
 (OUT/"result.json").write_text(json.dumps(result,indent=2),encoding="utf-8")
-print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V6_PASS")
+print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V7_PASS")
