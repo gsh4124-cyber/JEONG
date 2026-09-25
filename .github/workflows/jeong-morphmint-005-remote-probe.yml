@@ -1,10 +1,10 @@
-name: JEONG MorphMint 005 Crystal Grammar QA A3
+name: JEONG MorphMint 005 Crystal Grammar QA B1
 
 on:
   pull_request:
     branches: [main]
     paths:
-      - "global_shorts_render_lab/github_public_runner/morphmint_005_crystal_cutgem_a.py"
+      - "global_shorts_render_lab/github_public_runner/morphmint_005_crystal_windowed_b.py"
       - ".github/workflows/jeong-morphmint-005-remote-probe.yml"
       - "jeong_morphmint_005_crystal_cutgem_a_trigger.txt"
   workflow_dispatch:
@@ -40,12 +40,12 @@ jobs:
 
       - name: Verify exact still and make readable preview proof
         run: |
-          test -s render_output/morphmint_005_crystal_cutgem_a3/crystal.png
+          test -s render_output/morphmint_005_crystal_windowed_b1/crystal.png
           test -s render_output/morphmint_005_crystal_cutgem_a3/crystal_preview.png
-          grep -q "MORPHMINT_005_CRYSTAL_CUTGEM_A3_RENDER_PASS" render_output/morphmint_005_crystal_cutgem_a3/result.json
+          grep -q "MORPHMINT_005_CRYSTAL_WINDOWED_B1_RENDER_PASS" render_output/morphmint_005_crystal_cutgem_a3/result.json
           base64 -w0 render_output/morphmint_005_crystal_cutgem_a3/crystal_preview.png > render_output/morphmint_005_crystal_cutgem_a3/crystal_preview.b64
           test -s render_output/morphmint_005_crystal_cutgem_a3/crystal_preview.b64
-          echo "JEONG_MORPHMINT_005_CRYSTAL_CUTGEM_A3_RENDER_PASS"
+          echo "JEONG_MORPHMINT_005_CRYSTAL_WINDOWED_B1_RENDER_PASS"
 
       - name: Persist exact QA proof to PR branch
         run: |
@@ -56,5 +56,5 @@ jobs:
           git add render_output/morphmint_005_crystal_cutgem_a3/crystal_preview.b64
           git add render_output/morphmint_005_crystal_cutgem_a3/result.json
           git diff --cached --quiet && exit 0
-          git commit -m "render: persist MorphMint 005 cut-gem A3 QA"
+          git commit -m "render: persist MorphMint 005 windowed crystal B1 QA"
           git push
