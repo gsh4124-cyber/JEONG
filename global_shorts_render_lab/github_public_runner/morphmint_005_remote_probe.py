@@ -92,17 +92,17 @@ CRYSTAL=glass_material(
     (1.0,1.0,1.0,1),
     rough=0.003,
     ior=1.52,
-    absorption=(0.55,0.82,1.0,1),
-    density=0.00012,
+    absorption=(0.90,0.96,1.0,1),
+    density=0.00004,
     faceted=False
 )
 CRYSTAL_EDGE=glass_material(
     "MM_CrystalEdge",
-    (0.94,0.99,1.0,1),
+    (1.0,1.0,1.0,1),
     rough=0.004,
     ior=1.54,
-    absorption=(0.10,0.42,1.0,1),
-    density=0.00022,
+    absorption=(0.86,0.94,1.0,1),
+    density=0.00005,
     faceted=False
 )
 CRYSTAL_SHELL=glass_material(
@@ -163,9 +163,9 @@ def _recalc_outside_normals(obj):
     obj.select_set(False)
 
 def build_cut_gem_medallion(name, material, accent_material):
-    # Brilliant-cut-inspired visual grammar:
-    # 1 table + 8 star + 8 bezel/kite + 16 upper-girdle crown facets,
-    # a thin 16-sided girdle, then a deliberately symmetric pavilion family.
+    # BRILLIANT57-inspired topology (visual grammar, not a jewelry grading model):
+    # 1 table + 8 star + 8 bezel/kite + 16 upper girdle +
+    # 16 lower girdle + 8 pavilion mains. A thin 16-sided girdle connects them.
     crown_n=8
     girdle_n=16
 
@@ -178,22 +178,25 @@ def build_cut_gem_medallion(name, material, accent_material):
             verts.append((radius*math.cos(ang),depth,radius*math.sin(ang)))
         return ids
 
-    table=add_ring(crown_n,0.58,-0.345,0.0)
-    stars=add_ring(crown_n,0.92,-0.255,math.pi/crown_n)
-    girdle_front=add_ring(girdle_n,1.52,-0.035,0.0)
+    # Crown proportions: a readable table with distinct star/bezel families.
+    table=add_ring(crown_n,0.82,-0.345,0.0)
+    stars=add_ring(crown_n,1.04,-0.245,math.pi/crown_n)
+    girdle_front=add_ring(girdle_n,1.52,-0.025,0.0)
     girdle_back=add_ring(girdle_n,1.52,0.085,0.0)
-    pavilion=add_ring(crown_n,0.68,0.315,0.0)
+
+    # Pavilion mirrors the crown grammar: 16 lower-girdle triangles feed
+    # eight pavilion mains converging on one culet point.
+    lower=add_ring(crown_n,0.72,0.325,math.pi/crown_n)
     culet=len(verts)
-    verts.append((0.0,0.455,0.0))
+    verts.append((0.0,0.535,0.0))
 
     faces=[]
     mats=[]
 
-    # Table.
+    # 1 table.
     faces.append(tuple(table))
     mats.append(0)
 
-    # Crown: intentional 8-fold facet hierarchy.
     for i in range(crown_n):
         ni=(i+1)%crown_n
         pi=(i-1)%crown_n
@@ -201,42 +204,41 @@ def build_cut_gem_medallion(name, material, accent_material):
         go=(2*i+1)%girdle_n
         gn=(2*i+2)%girdle_n
 
-        # 8 star facets around the table.
+        # 8 star facets.
         faces.append((table[i],table[ni],stars[i]))
         mats.append(0)
 
-        # 8 large bezel/kite facets: the dominant premium-cut read.
+        # 8 dominant bezel/kite facets.
         faces.append((table[i],stars[i],girdle_front[ge],stars[pi]))
         mats.append(0)
 
-        # 16 upper-girdle facets: narrower sparkle facets at the edge.
+        # 16 upper-girdle facets.
         faces.append((stars[i],girdle_front[ge],girdle_front[go]))
         mats.append(1)
         faces.append((stars[i],girdle_front[go],girdle_front[gn]))
         mats.append(1)
 
-    # Thin, crisp girdle.
+    # Thin crisp girdle.
     for j in range(girdle_n):
         nj=(j+1)%girdle_n
         faces.append((girdle_front[j],girdle_front[nj],girdle_back[nj],girdle_back[j]))
         mats.append(1)
 
-    # Pavilion: symmetric lower facets feeding eight deep pavilion mains.
     for i in range(crown_n):
         ni=(i+1)%crown_n
+        pi=(i-1)%crown_n
         ge=(2*i)%girdle_n
         go=(2*i+1)%girdle_n
         gn=(2*i+2)%girdle_n
 
-        faces.append((girdle_back[ge],girdle_back[go],pavilion[i]))
+        # 16 lower-girdle facets.
+        faces.append((girdle_back[ge],girdle_back[go],lower[i]))
         mats.append(0)
-        faces.append((girdle_back[go],pavilion[ni],pavilion[i]))
-        mats.append(0)
-        faces.append((girdle_back[go],girdle_back[gn],pavilion[ni]))
+        faces.append((girdle_back[go],girdle_back[gn],lower[i]))
         mats.append(0)
 
-        # 8 pavilion mains converge to the culet.
-        faces.append((pavilion[i],pavilion[ni],culet))
+        # 8 pavilion mains.
+        faces.append((girdle_back[ge],lower[i],culet,lower[pi]))
         mats.append(0)
 
     mesh=bpy.data.meshes.new(name+"_Mesh")
@@ -418,13 +420,13 @@ def set_world_crystal_env(enabled):
     ramp=nt.nodes.new('ShaderNodeValToRGB')
     cr=ramp.color_ramp
     cr.elements[0].position=0.18
-    cr.elements[0].color=(0.003,0.007,0.018,1)
+    cr.elements[0].color=(0.002,0.003,0.007,1)
     cr.elements[1].position=0.82
-    cr.elements[1].color=(0.88,0.96,1.0,1)
+    cr.elements[1].color=(0.98,0.995,1.0,1)
     mid=cr.elements.new(0.48)
-    mid.color=(0.025,0.10,0.22,1)
+    mid.color=(0.025,0.035,0.055,1)
     hi=cr.elements.new(0.68)
-    hi.color=(0.26,0.56,0.82,1)
+    hi.color=(0.45,0.62,0.82,1)
 
     nt.links.new(texcoord.outputs['Normal'],noise.inputs['Vector'])
     nt.links.new(noise.outputs['Fac'],ramp.inputs['Fac'])
@@ -523,7 +525,7 @@ scene.render.filepath=str(OUT/"chrome.png")
 bpy.ops.render.render(write_still=True)
 rendered.append(str(OUT/"chrome.png"))
 
-# Crystal grammar A3: deliberate brilliant-cut facet families + facet-lighting studio.
+# Crystal grammar A4: BRILLIANT57-inspired facet topology + neutral facet-lighting studio.
 scene.render.engine='CYCLES'
 scene.cycles.samples=96
 scene.cycles.use_denoising=True
@@ -556,14 +558,14 @@ lights['Fill'].data.energy=380
 lights['Rim'].data.energy=980
 lights['Under'].data.energy=0
 lights['Key'].data.color=(1.0,0.96,0.92)
-lights['Fill'].data.color=(0.74,0.86,1.0)
+lights['Fill'].data.color=(0.90,0.95,1.0)
 lights['Rim'].data.color=(1.0,1.0,1.0)
 scene.render.filepath=str(OUT/"crystal.png")
 bpy.ops.render.render(write_still=True)
 rendered.append(str(OUT/"crystal.png"))
 
 result={
-  "marker":"MORPHMINT_005_CRYSTAL_CUTGRAMMAR_A3_PASS",
+  "marker":"MORPHMINT_005_CRYSTAL_BRILLIANT57_A4_PASS",
   "resolution":f"{W}x{H}",
   "renders":rendered,
   "crystal_engine":"CYCLES",
@@ -572,7 +574,7 @@ result={
     "removed all reflection-card geometry",
     "chrome uses three narrow area-strip highlights only",
     "replaced stacked crystal rings with one watertight brilliant-cut medallion mesh",
-    "deliberate brilliant-cut facet families: table, 8 star, 8 bezel/kite, 16 upper-girdle facets, crisp girdle and symmetric pavilion",
+    "BRILLIANT57-inspired topology: 1 table, 8 star, 8 bezel/kite, 16 upper girdle, 16 lower girdle and 8 pavilion-main facets",
     "matching baguette-cut identity bar preserves MorphMint identity",
     "removed transmission-visible emissive cards that caused torn white streaks",
     "facet readability now comes from the cut topology, procedural world refraction and real area-light highlights"
@@ -580,4 +582,4 @@ result={
   "note":"Visual QA stills only. Transition remains blocked until all three states pass."
 }
 (OUT/"result.json").write_text(json.dumps(result,indent=2),encoding="utf-8")
-print("MORPHMINT_005_CRYSTAL_CUTGRAMMAR_A3_PASS")
+print("MORPHMINT_005_CRYSTAL_BRILLIANT57_A4_PASS")
