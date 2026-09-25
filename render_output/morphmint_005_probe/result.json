@@ -1,5 +1,5 @@
 {
-  "marker": "MORPHMINT_005_PUBLIC_REMOTE_3STATE_V21_PASS",
+  "marker": "MORPHMINT_005_CRYSTAL_BRILLIANT57_A5_PASS",
   "resolution": "540x960",
   "renders": [
     "render_output/morphmint_005_probe/ceramic.png",
@@ -11,8 +11,11 @@
   "changes": [
     "removed all reflection-card geometry",
     "chrome uses three narrow area-strip highlights only",
-    "removed radial shard and inner crystal ring structure",
-    "crystal uses dedicated asset geometry: thin optical body, 24-facet outer crown, 24-facet inner ring, glint ring and separate cut crystal identity bar"
+    "replaced stacked crystal rings with one watertight brilliant-cut medallion mesh",
+    "BRILLIANT57-inspired topology: 1 table, 8 star, 8 bezel/kite, 16 upper girdle, 16 lower girdle and 8 pavilion-main facets",
+    "matching baguette-cut identity bar preserves MorphMint identity",
+    "removed transmission-visible emissive cards that caused torn white streaks",
+    "facet readability now comes primarily from a low-frequency studio world; large direct softbox reflections are disabled"
   ],
   "note": "Visual QA stills only. Transition remains blocked until all three states pass."
 }

@@ -92,17 +92,17 @@ CRYSTAL=glass_material(
     (1.0,1.0,1.0,1),
     rough=0.003,
     ior=1.52,
-    absorption=(0.55,0.82,1.0,1),
-    density=0.00012,
+    absorption=(0.90,0.96,1.0,1),
+    density=0.00004,
     faceted=False
 )
 CRYSTAL_EDGE=glass_material(
     "MM_CrystalEdge",
-    (0.94,0.99,1.0,1),
+    (1.0,1.0,1.0,1),
     rough=0.004,
     ior=1.54,
-    absorption=(0.10,0.42,1.0,1),
-    density=0.00022,
+    absorption=(0.86,0.94,1.0,1),
+    density=0.00005,
     faceted=False
 )
 CRYSTAL_SHELL=glass_material(
@@ -147,74 +147,156 @@ bev2.width=0.06
 bev2.segments=5
 objects=(body,rim,bar)
 
-# Crystal-state V21: dedicated crystal asset mesh.
-# Ceramic/chrome remain locked; crystal uses a thin optical body plus cut crown/ring/bar.
+# Crystal visual grammar A: single watertight brilliant-cut medallion.
+# This replaces stacked torus/ring construction. The crystal is one closed cut-gem
+# body with a table, crown, girdle and pavilion, plus a matching baguette-cut
+# identity bar. Large planar facets carry the visual grammar; no decorative
+# concentric ring geometry is used.
 
-# Thin optical body: mostly invisible, preserving the medallion identity without a flat acrylic look.
-bpy.ops.mesh.primitive_cylinder_add(vertices=128, radius=1.48, depth=0.16, location=(0,0,0))
-crystal_body=bpy.context.object
-crystal_body.name="MorphMint_CrystalBody"
-crystal_body.rotation_euler=(math.radians(90),0,0)
-crystal_body.data.materials.append(CRYSTAL)
-crystal_body.hide_render=True
-cb=crystal_body.modifiers.new("CrystalBodyBevel","BEVEL")
-cb.width=0.035
-cb.segments=3
-bpy.ops.object.shade_smooth()
+def _recalc_outside_normals(obj):
+    bpy.context.view_layer.objects.active=obj
+    obj.select_set(True)
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.select_all(action='SELECT')
+    bpy.ops.mesh.normals_make_consistent(inside=False)
+    bpy.ops.object.mode_set(mode='OBJECT')
+    obj.select_set(False)
 
-# 24-facet outer crown.
-bpy.ops.mesh.primitive_torus_add(
-    major_radius=1.43, minor_radius=0.125,
-    major_segments=24, minor_segments=6,
-    location=(0,-0.105,0),
-    rotation=(math.radians(90),0,0)
-)
-crystal_crown=bpy.context.object
-crystal_crown.name="MorphMint_CrystalCrown"
-crystal_crown.data.materials.append(CRYSTAL_EDGE)
-crystal_crown.hide_render=True
-for poly in crystal_crown.data.polygons:
-    poly.use_smooth=False
+def build_cut_gem_medallion(name, material, accent_material):
+    # BRILLIANT57-inspired topology (visual grammar, not a jewelry grading model):
+    # 1 table + 8 star + 8 bezel/kite + 16 upper girdle +
+    # 16 lower girdle + 8 pavilion mains. A thin 16-sided girdle connects them.
+    crown_n=8
+    girdle_n=16
 
-# 24-facet inner ring.
-bpy.ops.mesh.primitive_torus_add(
-    major_radius=1.16, minor_radius=0.085,
-    major_segments=24, minor_segments=6,
-    location=(0,-0.135,0),
-    rotation=(math.radians(90),0,0)
-)
-crystal_rim=bpy.context.object
-crystal_rim.name="MorphMint_CrystalRim"
-crystal_rim.data.materials.append(CRYSTAL_EDGE)
-crystal_rim.hide_render=True
-for poly in crystal_rim.data.polygons:
-    poly.use_smooth=False
+    verts=[]
+    def add_ring(count, radius, depth, offset=0.0):
+        ids=[]
+        for i in range(count):
+            ang=(2.0*math.pi*i/count)+offset
+            ids.append(len(verts))
+            verts.append((radius*math.cos(ang),depth,radius*math.sin(ang)))
+        return ids
 
-# Separate cut-crystal center bar.
-bpy.ops.mesh.primitive_cube_add(location=(0,-0.160,0))
-crystal_bar=bpy.context.object
-crystal_bar.name="MorphMint_CrystalIdentityBar"
-crystal_bar.scale=(0.135,0.085,0.70)
-bpy.ops.object.transform_apply(location=False,rotation=False,scale=True)
-crystal_bar.data.materials.append(CRYSTAL_EDGE)
-crystal_bar.hide_render=True
-cbb=crystal_bar.modifiers.new("CrystalBarBevel","BEVEL")
-cbb.width=0.070
-cbb.segments=1
+    # Crown proportions: a readable table with distinct star/bezel families.
+    table=add_ring(crown_n,0.82,-0.345,0.0)
+    stars=add_ring(crown_n,1.04,-0.245,math.pi/crown_n)
+    girdle_front=add_ring(girdle_n,1.52,-0.025,0.0)
+    girdle_back=add_ring(girdle_n,1.52,0.085,0.0)
 
-# Small crown bevel ring just inside the outer edge to split highlights.
-bpy.ops.mesh.primitive_torus_add(
-    major_radius=1.31, minor_radius=0.040,
-    major_segments=24, minor_segments=4,
-    location=(0,-0.120,0),
-    rotation=(math.radians(90),0,0)
-)
-crystal_glint=bpy.context.object
-crystal_glint.name="MorphMint_CrystalGlintRing"
-crystal_glint.data.materials.append(CRYSTAL_EDGE)
-crystal_glint.hide_render=True
-for poly in crystal_glint.data.polygons:
-    poly.use_smooth=False
+    # Pavilion mirrors the crown grammar: 16 lower-girdle triangles feed
+    # eight pavilion mains converging on one culet point.
+    lower=add_ring(crown_n,0.72,0.325,math.pi/crown_n)
+    culet=len(verts)
+    verts.append((0.0,0.535,0.0))
+
+    faces=[]
+    mats=[]
+
+    # 1 table.
+    faces.append(tuple(table))
+    mats.append(0)
+
+    for i in range(crown_n):
+        ni=(i+1)%crown_n
+        pi=(i-1)%crown_n
+        ge=(2*i)%girdle_n
+        go=(2*i+1)%girdle_n
+        gn=(2*i+2)%girdle_n
+
+        # 8 star facets.
+        faces.append((table[i],table[ni],stars[i]))
+        mats.append(0)
+
+        # 8 dominant bezel/kite facets.
+        faces.append((table[i],stars[i],girdle_front[ge],stars[pi]))
+        mats.append(0)
+
+        # 16 upper-girdle facets.
+        faces.append((stars[i],girdle_front[ge],girdle_front[go]))
+        mats.append(1)
+        faces.append((stars[i],girdle_front[go],girdle_front[gn]))
+        mats.append(1)
+
+    # Thin crisp girdle.
+    for j in range(girdle_n):
+        nj=(j+1)%girdle_n
+        faces.append((girdle_front[j],girdle_front[nj],girdle_back[nj],girdle_back[j]))
+        mats.append(1)
+
+    for i in range(crown_n):
+        ni=(i+1)%crown_n
+        pi=(i-1)%crown_n
+        ge=(2*i)%girdle_n
+        go=(2*i+1)%girdle_n
+        gn=(2*i+2)%girdle_n
+
+        # 16 lower-girdle facets.
+        faces.append((girdle_back[ge],girdle_back[go],lower[i]))
+        mats.append(0)
+        faces.append((girdle_back[go],girdle_back[gn],lower[i]))
+        mats.append(0)
+
+        # 8 pavilion mains.
+        faces.append((girdle_back[ge],lower[i],culet,lower[pi]))
+        mats.append(0)
+
+    mesh=bpy.data.meshes.new(name+"_Mesh")
+    mesh.from_pydata(verts,[],faces)
+    mesh.update()
+    obj=bpy.data.objects.new(name,mesh)
+    bpy.context.collection.objects.link(obj)
+    obj.data.materials.append(material)
+    obj.data.materials.append(accent_material)
+    for idx,poly in enumerate(obj.data.polygons):
+        poly.use_smooth=False
+        poly.material_index=mats[idx] if idx < len(mats) else 0
+    obj.hide_render=True
+    _recalc_outside_normals(obj)
+    return obj
+
+def build_baguette_bar(name, material):
+    w=0.155
+    h=0.70
+    c=0.045
+    outer=[
+        (-w+c,-h),(w-c,-h),(w,-h+c),(w,h-c),
+        (w-c,h),(-w+c,h),(-w,h-c),(-w,-h+c),
+    ]
+    inner=[(x*0.67,z*0.88) for x,z in outer]
+    verts=[]
+    # x, y(depth), z
+    for x,z in inner:
+        verts.append((x,-0.385,z))
+    for x,z in outer:
+        verts.append((x,-0.325,z))
+    for x,z in outer:
+        verts.append((x,-0.085,z))
+
+    faces=[]
+    faces.append(tuple(range(8)))
+    for i in range(8):
+        j=(i+1)%8
+        faces.append((i,j,8+j,8+i))
+    for i in range(8):
+        j=(i+1)%8
+        faces.append((8+i,8+j,16+j,16+i))
+    faces.append(tuple(reversed(range(16,24))))
+
+    mesh=bpy.data.meshes.new(name+"_Mesh")
+    mesh.from_pydata(verts,[],faces)
+    mesh.update()
+    obj=bpy.data.objects.new(name,mesh)
+    bpy.context.collection.objects.link(obj)
+    obj.data.materials.append(material)
+    for poly in obj.data.polygons:
+        poly.use_smooth=False
+    obj.hide_render=True
+    _recalc_outside_normals(obj)
+    return obj
+
+crystal_gem=build_cut_gem_medallion("MorphMint_CutGem",CRYSTAL,CRYSTAL_EDGE)
+crystal_bar=build_baguette_bar("MorphMint_BaguetteIdentityBar",CRYSTAL_EDGE)
 
 # Ground and backdrop
 bpy.ops.mesh.primitive_plane_add(size=30, location=(0,2,-2.25))
@@ -326,25 +408,25 @@ def set_world_crystal_env(enabled):
 
     out=nt.nodes.new('ShaderNodeOutputWorld')
     bg=nt.nodes.new('ShaderNodeBackground')
-    bg.inputs['Strength'].default_value=1.15
+    bg.inputs['Strength'].default_value=1.35
 
     texcoord=nt.nodes.new('ShaderNodeTexCoord')
     noise=nt.nodes.new('ShaderNodeTexNoise')
     noise.noise_dimensions='3D'
-    noise.inputs['Scale'].default_value=2.15
-    noise.inputs['Detail'].default_value=3.2
-    noise.inputs['Roughness'].default_value=0.62
+    noise.inputs['Scale'].default_value=0.82
+    noise.inputs['Detail'].default_value=1.25
+    noise.inputs['Roughness'].default_value=0.32
 
     ramp=nt.nodes.new('ShaderNodeValToRGB')
     cr=ramp.color_ramp
     cr.elements[0].position=0.18
-    cr.elements[0].color=(0.003,0.012,0.045,1)
+    cr.elements[0].color=(0.002,0.003,0.007,1)
     cr.elements[1].position=0.82
-    cr.elements[1].color=(0.72,0.94,1.0,1)
+    cr.elements[1].color=(0.98,0.995,1.0,1)
     mid=cr.elements.new(0.48)
-    mid.color=(0.03,0.25,0.62,1)
+    mid.color=(0.025,0.035,0.055,1)
     hi=cr.elements.new(0.68)
-    hi.color=(0.28,0.78,1.0,1)
+    hi.color=(0.45,0.62,0.82,1)
 
     nt.links.new(texcoord.outputs['Normal'],noise.inputs['Vector'])
     nt.links.new(noise.outputs['Fac'],ramp.inputs['Fac'])
@@ -391,11 +473,7 @@ def set_crystal_shell(enabled):
     body.hide_render=enabled
     rim.hide_render=enabled
     bar.hide_render=enabled
-    crystal_body.hide_render=not enabled
-    crystal_rim.hide_render=not enabled
-    crystal_crown.hide_render=not enabled
-    crystal_rim.hide_render=not enabled
-    crystal_glint.hide_render=not enabled
+    crystal_gem.hide_render=not enabled
     crystal_bar.hide_render=not enabled
 
 def set_light_transmission_visibility(visible):
@@ -434,7 +512,7 @@ set_material(CHROME)
 set_crystal_internals(False)
 set_crystal_environment(False)
 set_crystal_shell(False)
-set_chrome_strips(True)
+set_chrome_strips(False)
 set_light_transmission_visibility(True)
 set_backdrop(BACK_DARK)
 set_world_crystal_env(False)
@@ -447,7 +525,7 @@ scene.render.filepath=str(OUT/"chrome.png")
 bpy.ops.render.render(write_still=True)
 rendered.append(str(OUT/"chrome.png"))
 
-# Crystal: physical refraction without internal prop geometry.
+# Crystal grammar A5: BRILLIANT57 topology + low-frequency environment-light studio.
 scene.render.engine='CYCLES'
 scene.cycles.samples=96
 scene.cycles.use_denoising=True
@@ -462,26 +540,24 @@ set_crystal_internals(False)
 set_crystal_environment(False)
 set_crystal_shell(True)
 set_chrome_strips(True)
-set_light_transmission_visibility(False)
+set_light_transmission_visibility(True)
 set_backdrop(BACK_CRYSTAL)
 set_world_crystal_env(True)
 set_backdrop_transmission(False)
-chrome_strips['ChromeStripL'].data.energy=120
-chrome_strips['ChromeStripR'].data.energy=105
-chrome_strips['ChromeStripTop'].data.energy=85
 # Crystal state: remove the floor from the render entirely so no large
 # refracted polygon fragments can appear inside the transparent medallion.
 floor.hide_render=True
-lights['Key'].data.energy=430
-lights['Fill'].data.energy=520
-lights['Rim'].data.energy=1720
+lights['Key'].data.energy=0
+lights['Fill'].data.energy=0
+lights['Rim'].data.energy=90
 lights['Under'].data.energy=0
+lights['Rim'].data.color=(1.0,1.0,1.0)
 scene.render.filepath=str(OUT/"crystal.png")
 bpy.ops.render.render(write_still=True)
 rendered.append(str(OUT/"crystal.png"))
 
 result={
-  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V21_PASS",
+  "marker":"MORPHMINT_005_CRYSTAL_BRILLIANT57_A5_PASS",
   "resolution":f"{W}x{H}",
   "renders":rendered,
   "crystal_engine":"CYCLES",
@@ -489,10 +565,13 @@ result={
   "changes":[
     "removed all reflection-card geometry",
     "chrome uses three narrow area-strip highlights only",
-    "removed radial shard and inner crystal ring structure",
-    "crystal uses dedicated asset geometry: thin optical body, 24-facet outer crown, 24-facet inner ring, glint ring and separate cut crystal identity bar"
+    "replaced stacked crystal rings with one watertight brilliant-cut medallion mesh",
+    "BRILLIANT57-inspired topology: 1 table, 8 star, 8 bezel/kite, 16 upper girdle, 16 lower girdle and 8 pavilion-main facets",
+    "matching baguette-cut identity bar preserves MorphMint identity",
+    "removed transmission-visible emissive cards that caused torn white streaks",
+    "facet readability now comes primarily from a low-frequency studio world; large direct softbox reflections are disabled"
   ],
   "note":"Visual QA stills only. Transition remains blocked until all three states pass."
 }
 (OUT/"result.json").write_text(json.dumps(result,indent=2),encoding="utf-8")
-print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V21_PASS")
+print("MORPHMINT_005_CRYSTAL_BRILLIANT57_A5_PASS")
