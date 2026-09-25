@@ -85,89 +85,16 @@ def make_tetra(name, loc, scale, rot, material):
     return obj
 
 
-def make_cut_disc(name, material, segments=40):
-    # V16: closed cut-gem medallion with a clean central face.
-    # Facets exist only between concentric rings so no radial spoke pattern appears.
-    radii=[0.46,0.86,1.18,1.42,1.55]
-    base_front=[-0.265,-0.252,-0.272,-0.220,-0.158]
-    base_back =[ 0.265, 0.252, 0.272, 0.220, 0.158]
-    verts=[]
-    faces=[]
-
-    front_rings=[]
-    for k,(r,base_y) in enumerate(zip(radii,base_front)):
-        ring=[]
-        for i in range(segments):
-            a=2*math.pi*i/segments
-            wave=(0.008*math.sin(3*a+0.55*k) +
-                  0.006*math.cos(5*a-0.35*k) +
-                  (0.004 if (i+k)%2==0 else -0.004))
-            ring.append(len(verts))
-            verts.append((r*math.cos(a),base_y+wave,r*math.sin(a)))
-        front_rings.append(ring)
-
-    back_rings=[]
-    for k,(r,base_y) in enumerate(zip(radii,base_back)):
-        ring=[]
-        for i in range(segments):
-            a=2*math.pi*i/segments
-            wave=(0.007*math.sin(4*a-0.45*k) +
-                  0.005*math.cos(6*a+0.25*k) +
-                  (-0.003 if (i+k)%2==0 else 0.003))
-            ring.append(len(verts))
-            verts.append((r*math.cos(a),base_y+wave,r*math.sin(a)))
-        back_rings.append(ring)
-
-    # Clean center faces: n-gons, no radial fan triangles.
-    faces.append(tuple(reversed(front_rings[0])))
-    faces.append(tuple(back_rings[0]))
-
-    # Front annular facets. Mostly quads, occasional diagonal split in outer rings only.
-    for k in range(len(front_rings)-1):
-        ra,rb=front_rings[k],front_rings[k+1]
-        for i in range(segments):
-            j=(i+1)%segments
-            if k >= 2 and (i+k)%3==0:
-                faces.append((ra[i],rb[i],rb[j]))
-                faces.append((ra[i],rb[j],ra[j]))
-            else:
-                faces.append((ra[i],rb[i],rb[j],ra[j]))
-
-    # Back annular surfaces.
-    for k in range(len(back_rings)-1):
-        ra,rb=back_rings[k],back_rings[k+1]
-        for i in range(segments):
-            j=(i+1)%segments
-            faces.append((ra[j],rb[j],rb[i],ra[i]))
-
-    # Outer wall.
-    rf=front_rings[-1]
-    rb=back_rings[-1]
-    for i in range(segments):
-        j=(i+1)%segments
-        faces.append((rf[i],rb[i],rb[j],rf[j]))
-
-    mesh=bpy.data.meshes.new(name+"_Mesh")
-    mesh.from_pydata(verts,[],faces)
-    mesh.update()
-    obj=bpy.data.objects.new(name,mesh)
-    bpy.context.collection.objects.link(obj)
-    obj.data.materials.append(material)
-    obj.hide_render=True
-    for poly in obj.data.polygons:
-        poly.use_smooth=False
-    return obj
-
 CERAMIC=principled("MM_Ceramic",(0.66,0.10,0.028,1),0.0,0.44)
 CHROME=principled("MM_Chrome",(0.82,0.87,0.96,1),1.0,0.19)
 CRYSTAL=glass_material(
     "MM_Crystal",
     (0.985,1.0,1.0,1),
-    rough=0.012,
-    ior=1.48,
-    absorption=(0.22,0.62,1.0,1),
-    density=0.0009,
-    faceted=True
+    rough=0.016,
+    ior=1.47,
+    absorption=(0.18,0.52,1.0,1),
+    density=0.0011,
+    faceted=False
 )
 CRYSTAL_SHELL=glass_material(
     "MM_CrystalShell",
@@ -211,13 +138,24 @@ bev2.width=0.06
 bev2.segments=5
 objects=(body,rim,bar)
 
-# Crystal-state V14 cut-gem shell. Same medallion identity and round silhouette.
-crystal_body=make_cut_disc("MorphMint_CrystalBody", CRYSTAL, segments=40)
+# Crystal-state V17: clean high-poly glass face + faceted edge rings.
+# The center remains optically clean; gemstone language lives only at the perimeter.
+bpy.ops.mesh.primitive_cylinder_add(vertices=128, radius=1.55, depth=0.34, location=(0,0,0))
+crystal_body=bpy.context.object
+crystal_body.name="MorphMint_CrystalBody"
+crystal_body.rotation_euler=(math.radians(90),0,0)
+crystal_body.data.materials.append(CRYSTAL)
+crystal_body.hide_render=True
+cb=crystal_body.modifiers.new("CrystalBodyBevel","BEVEL")
+cb.width=0.075
+cb.segments=3
+bpy.ops.object.shade_smooth()
 
+# Primary faceted inner rim.
 bpy.ops.mesh.primitive_torus_add(
     major_radius=1.20, minor_radius=0.105,
-    major_segments=40, minor_segments=10,
-    location=(0,-0.245,0),
+    major_segments=32, minor_segments=6,
+    location=(0,-0.195,0),
     rotation=(math.radians(90),0,0)
 )
 crystal_rim=bpy.context.object
@@ -227,17 +165,31 @@ crystal_rim.hide_render=True
 for poly in crystal_rim.data.polygons:
     poly.use_smooth=False
 
-# Separate crystal bar so ceramic/chrome geometry stays locked.
-bpy.ops.mesh.primitive_cube_add(location=(0,-0.285,0))
+# Outer crown ring catches multiple cut-gem highlights without touching the center.
+bpy.ops.mesh.primitive_torus_add(
+    major_radius=1.43, minor_radius=0.090,
+    major_segments=32, minor_segments=6,
+    location=(0,-0.175,0),
+    rotation=(math.radians(90),0,0)
+)
+crystal_crown=bpy.context.object
+crystal_crown.name="MorphMint_CrystalCrown"
+crystal_crown.data.materials.append(CRYSTAL)
+crystal_crown.hide_render=True
+for poly in crystal_crown.data.polygons:
+    poly.use_smooth=False
+
+# Separate cut-crystal center bar.
+bpy.ops.mesh.primitive_cube_add(location=(0,-0.235,0))
 crystal_bar=bpy.context.object
 crystal_bar.name="MorphMint_CrystalIdentityBar"
-crystal_bar.scale=(0.13,0.08,0.70)
+crystal_bar.scale=(0.13,0.07,0.70)
 bpy.ops.object.transform_apply(location=False,rotation=False,scale=True)
 crystal_bar.data.materials.append(CRYSTAL)
 crystal_bar.hide_render=True
-crystal_bar_bevel=crystal_bar.modifiers.new("CrystalBarBevel","BEVEL")
-crystal_bar_bevel.width=0.055
-crystal_bar_bevel.segments=1
+cbb=crystal_bar.modifiers.new("CrystalBarBevel","BEVEL")
+cbb.width=0.055
+cbb.segments=1
 
 # Ground and backdrop
 bpy.ops.mesh.primitive_plane_add(size=30, location=(0,2,-2.25))
@@ -288,8 +240,8 @@ for loc,energy,size_x,size_y,color,name in [
     l.hide_render=True
     chrome_strips[name]=l
 
-# V13: no explicit internal fracture geometry.
-# Crystal readability comes from angular shell geometry + stronger facet normals.
+# V17: no explicit internal fracture geometry.
+# Crystal readability comes from clean glass center + faceted perimeter rings.
 fractures=[]
 fracture_planes=[]
 
@@ -324,6 +276,7 @@ def set_crystal_shell(enabled):
     bar.hide_render=enabled
     crystal_body.hide_render=not enabled
     crystal_rim.hide_render=not enabled
+    crystal_crown.hide_render=not enabled
     crystal_bar.hide_render=not enabled
 
 def set_light_transmission_visibility(visible):
@@ -382,22 +335,25 @@ scene.world.color=(0.006,0.016,0.045)
 set_material(CRYSTAL)
 set_crystal_internals(False)
 set_crystal_shell(True)
-set_chrome_strips(False)
+set_chrome_strips(True)
 set_light_transmission_visibility(False)
 set_backdrop(BACK_CRYSTAL)
+chrome_strips['ChromeStripL'].data.energy=220
+chrome_strips['ChromeStripR'].data.energy=180
+chrome_strips['ChromeStripTop'].data.energy=140
 # Crystal state: remove the floor from the render entirely so no large
 # refracted polygon fragments can appear inside the transparent medallion.
 floor.hide_render=True
-lights['Key'].data.energy=540
-lights['Fill'].data.energy=620
-lights['Rim'].data.energy=1180
+lights['Key'].data.energy=500
+lights['Fill'].data.energy=560
+lights['Rim'].data.energy=1220
 lights['Under'].data.energy=0
 scene.render.filepath=str(OUT/"crystal.png")
 bpy.ops.render.render(write_still=True)
 rendered.append(str(OUT/"crystal.png"))
 
 result={
-  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V16_PASS",
+  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V17_PASS",
   "resolution":f"{W}x{H}",
   "renders":rendered,
   "crystal_engine":"CYCLES",
@@ -406,9 +362,9 @@ result={
     "removed all reflection-card geometry",
     "chrome uses three narrow area-strip highlights only",
     "removed radial shard and inner crystal ring structure",
-    "crystal uses clean-center concentric cut-disc geometry with ring-only irregular facets, avoiding radial spoke artifacts"
+    "crystal uses a clean high-poly glass center with two flat-shaded faceted perimeter rings and a one-segment cut crystal identity bar; no radial geometry or procedural facet bump"
   ],
   "note":"Visual QA stills only. Transition remains blocked until all three states pass."
 }
 (OUT/"result.json").write_text(json.dumps(result,indent=2),encoding="utf-8")
-print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V16_PASS")
+print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V17_PASS")
