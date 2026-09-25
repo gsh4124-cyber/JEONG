@@ -1,1 +1,1 @@
-trigger upstream cut-gem crystal grammar QA\n
+trigger upstream cut-gem crystal grammar A2 optical architecture QA\n
