@@ -1,5 +1,5 @@
 {
-  "marker": "MORPHMINT_005_PUBLIC_REMOTE_3STATE_V13_PASS",
+  "marker": "MORPHMINT_005_PUBLIC_REMOTE_3STATE_V14_PASS",
   "resolution": "540x960",
   "renders": [
     "render_output/morphmint_005_probe/ceramic.png",
@@ -12,7 +12,7 @@
     "removed all reflection-card geometry",
     "chrome uses three narrow area-strip highlights only",
     "removed radial shard and inner crystal ring structure",
-    "crystal uses angular low-segment glass shell/rim plus stronger faceted shader normals; no internal props or fracture lines"
+    "crystal uses closed concentric cut-disc geometry, angular inner ring and separate one-segment cut crystal identity bar; no internal props or fracture lines"
   ],
   "note": "Visual QA stills only. Transition remains blocked until all three states pass."
 }
