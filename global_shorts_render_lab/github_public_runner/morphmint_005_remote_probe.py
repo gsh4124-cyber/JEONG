@@ -177,28 +177,9 @@ for loc,energy,size_x,size_y,color,name in [
     l.hide_render=True
     chrome_strips[name]=l
 
-# Crystal internal fracture material
-fracture_mat=glass_material(
-    "CrystalFracture",
-    (0.78,0.94,1.0,1),
-    rough=0.025,
-    ior=1.54,
-    absorption=(0.10,0.40,0.92,1),
-    density=0.007
-)
-
-# Irregular, asymmetric internal fracture cluster. No radial/star layout.
+# V8: no explicit internal fracture geometry.
+# The crystal reads through physical glass/refraction plus subtle surface facet bump.
 fractures=[]
-fracture_specs=[
-    ((-0.72,-0.05, 0.46),(0.16,0.045,0.24),( 24,-16, 34)),
-    (( 0.64,-0.05, 0.56),(0.15,0.045,0.22),(-20, 26,-39)),
-    ((-0.86,-0.04,-0.04),(0.12,0.040,0.18),( 15, 39, 12)),
-    (( 0.84,-0.04, 0.02),(0.11,0.040,0.17),(-12,-34,-18)),
-]
-for i,(loc,scale,rot) in enumerate(fracture_specs):
-    fractures.append(make_tetra(f"CrystalFracture_{i:02d}",loc,scale,rot,fracture_mat))
-
-# No explicit fracture planes in V6; surface facet bump carries fine structure.
 fracture_planes=[]
 
 # Camera
@@ -258,7 +239,7 @@ scene.render.filepath=str(OUT/"chrome.png")
 bpy.ops.render.render(write_still=True)
 rendered.append(str(OUT/"chrome.png"))
 
-# Crystal: physical refraction + irregular fracture cluster.
+# Crystal: physical refraction without internal prop geometry.
 scene.render.engine='CYCLES'
 scene.cycles.samples=40
 scene.cycles.use_denoising=True
@@ -269,9 +250,15 @@ scene.cycles.diffuse_bounces=3
 scene.view_settings.look='AgX - Medium High Contrast'
 scene.world.color=(0.010,0.024,0.060)
 set_material(CRYSTAL)
-set_crystal_internals(True)
+set_crystal_internals(False)
 set_chrome_strips(False)
 set_backdrop(BACK_CRYSTAL)
+# Keep the floor visible to camera but prevent it from becoming a refracted
+# polygon pile inside the crystal body.
+try:
+    floor.visible_transmission=False
+except Exception:
+    pass
 lights['Key'].data.energy=680
 lights['Fill'].data.energy=920
 lights['Rim'].data.energy=1080
@@ -281,7 +268,7 @@ bpy.ops.render.render(write_still=True)
 rendered.append(str(OUT/"crystal.png"))
 
 result={
-  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V7_PASS",
+  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V8_PASS",
   "resolution":f"{W}x{H}",
   "renders":rendered,
   "crystal_engine":"CYCLES",
@@ -290,9 +277,9 @@ result={
     "removed all reflection-card geometry",
     "chrome uses three narrow area-strip highlights only",
     "removed radial shard and inner crystal ring structure",
-    "crystal keeps only four sparse edge fragments plus Voronoi surface facet bump; lower fragment pile removed"
+    "crystal removes all internal prop geometry; floor hidden from transmission rays; surface Voronoi facet bump retained"
   ],
   "note":"Visual QA stills only. Transition remains blocked until all three states pass."
 }
 (OUT/"result.json").write_text(json.dumps(result,indent=2),encoding="utf-8")
-print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V7_PASS")
+print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V8_PASS")
