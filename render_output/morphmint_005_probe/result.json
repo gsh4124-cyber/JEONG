@@ -1,5 +1,5 @@
 {
-  "marker": "MORPHMINT_005_CRYSTAL_BRILLIANT57_A5_PASS",
+  "marker": "MORPHMINT_005_CRYSTAL_FACET_LAMINATE_B1_PASS",
   "resolution": "540x960",
   "renders": [
     "render_output/morphmint_005_probe/ceramic.png",
@@ -8,11 +8,18 @@
   ],
   "crystal_engine": "CYCLES",
   "crystal_samples": 128,
-  "changes": [
-    "removed all reflection-card geometry",
-    "chrome uses three narrow area-strip highlights only",
-    "removed radial shard and inner crystal ring structure",
-    "crystal uses dedicated asset geometry: thin optical body, 24-facet outer crown, 24-facet inner ring, glint ring and separate cut crystal identity bar"
+  "crystal_method": "ART_DIRECTED_FACET_LAMINATE_B1",
+  "locked_artifacts": {
+    "ceramic_git_blob": "704a60f435bf9f29b8c93a4678e15bec5bc2362d",
+    "chrome_git_blob": "20d88389b99f5c8a8fd618f6f23ca636068c3198"
+  },
+  "visual_qa": "FAIL",
+  "quality_gate_90": "NOT_MET",
+  "transition_gate": "BLOCKED",
+  "failure_evidence": [
+    "radial black/white wedges read as graphic starburst or sawblade rather than premium cut crystal",
+    "central table remains flat and cloudy",
+    "localized facet contrast improved but coherent gemstone depth/refraction/scintillation is not achieved"
   ],
-  "note": "Visual QA stills only. Transition remains blocked until all three states pass."
+  "note": "Second production-method proof in this baseline cycle. Stop further cosmetic rerenders; BASELINE_RND_HOLD applies."
 }
