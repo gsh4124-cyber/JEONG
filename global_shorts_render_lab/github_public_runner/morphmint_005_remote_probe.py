@@ -90,10 +90,10 @@ CHROME=principled("MM_Chrome",(0.82,0.87,0.96,1),1.0,0.19)
 CRYSTAL=glass_material(
     "MM_Crystal",
     (0.985,1.0,1.0,1),
-    rough=0.016,
+    rough=0.010,
     ior=1.47,
     absorption=(0.18,0.52,1.0,1),
-    density=0.0011,
+    density=0.00065,
     faceted=False
 )
 CRYSTAL_SHELL=glass_material(
@@ -201,7 +201,7 @@ bpy.ops.mesh.primitive_plane_add(size=18, location=(0,2.8,1.2), rotation=(math.r
 back=bpy.context.object
 back.name="Backdrop"
 BACK_DARK=principled("BackdropDark",(0.006,0.012,0.028,1),0.0,0.48)
-BACK_CRYSTAL=principled("BackdropCrystal",(0.010,0.028,0.075,1),0.0,0.58)
+BACK_CRYSTAL=principled("BackdropCrystal",(0.0025,0.006,0.018,1),0.0,0.64)
 back.data.materials.append(BACK_DARK)
 
 # General lighting
@@ -240,8 +240,48 @@ for loc,energy,size_x,size_y,color,name in [
     l.hide_render=True
     chrome_strips[name]=l
 
-# V17: no explicit internal fracture geometry.
-# Crystal readability comes from clean glass center + faceted perimeter rings.
+# Crystal refraction environment.
+# These emissive panels are invisible to the camera but visible through
+# transmission/glossy rays, giving the glass real optical information to bend.
+crystal_env=[]
+env_specs=[
+    ((-1.00,1.20, 0.30),(0.11,0.02,1.65),-16,(1.0,0.82,0.62,1),3.2,"WarmStripe"),
+    ((-0.36,1.30,-0.10),(0.08,0.02,1.90),  8,(0.75,0.94,1.0,1),4.0,"IceStripeA"),
+    (( 0.42,1.25, 0.18),(0.10,0.02,1.80),-10,(0.40,0.78,1.0,1),3.6,"IceStripeB"),
+    (( 1.06,1.18,-0.24),(0.09,0.02,1.55), 18,(1.0,1.0,1.0,1),2.8,"WhiteStripe"),
+]
+for loc,scale,rz,color,strength,name in env_specs:
+    bpy.ops.mesh.primitive_cube_add(location=loc)
+    p=bpy.context.object
+    p.name=f"CrystalEnv_{name}"
+    p.scale=scale
+    p.rotation_euler=(0,0,math.radians(rz))
+    bpy.ops.object.transform_apply(location=False,rotation=False,scale=True)
+
+    em=bpy.data.materials.new(f"CrystalEnvMat_{name}")
+    em.use_nodes=True
+    bs=em.node_tree.nodes.get('Principled BSDF')
+    bs.inputs['Base Color'].default_value=color
+    bs.inputs['Roughness'].default_value=0.45
+    if 'Emission Color' in bs.inputs:
+        bs.inputs['Emission Color'].default_value=color
+        bs.inputs['Emission Strength'].default_value=strength
+    p.data.materials.append(em)
+
+    try:
+        p.visible_camera=False
+        p.visible_diffuse=False
+        p.visible_shadow=False
+        p.visible_glossy=True
+        p.visible_transmission=True
+    except Exception:
+        pass
+    p.hide_render=True
+    crystal_env.append(p)
+
+# V18: no explicit internal fracture geometry.
+# Crystal readability comes from clean glass center + faceted perimeter rings
+# refracting a camera-invisible optical environment.
 fractures=[]
 fracture_planes=[]
 
@@ -260,6 +300,10 @@ def set_material(mat):
 
 def set_crystal_internals(enabled):
     for obj in fractures+fracture_planes:
+        obj.hide_render=not enabled
+
+def set_crystal_environment(enabled):
+    for obj in crystal_env:
         obj.hide_render=not enabled
 
 def set_backdrop(mat):
@@ -293,6 +337,7 @@ scene.render.engine='BLENDER_EEVEE'
 scene.view_settings.look='AgX - Medium High Contrast'
 set_material(CERAMIC)
 set_crystal_internals(False)
+set_crystal_environment(False)
 set_crystal_shell(False)
 set_chrome_strips(False)
 set_light_transmission_visibility(True)
@@ -310,6 +355,7 @@ scene.render.engine='BLENDER_EEVEE'
 scene.view_settings.look='AgX - High Contrast'
 set_material(CHROME)
 set_crystal_internals(False)
+set_crystal_environment(False)
 set_crystal_shell(False)
 set_chrome_strips(True)
 set_light_transmission_visibility(True)
@@ -324,16 +370,17 @@ rendered.append(str(OUT/"chrome.png"))
 
 # Crystal: physical refraction without internal prop geometry.
 scene.render.engine='CYCLES'
-scene.cycles.samples=56
+scene.cycles.samples=72
 scene.cycles.use_denoising=True
 scene.cycles.max_bounces=10
 scene.cycles.transmission_bounces=10
 scene.cycles.glossy_bounces=6
 scene.cycles.diffuse_bounces=3
 scene.view_settings.look='AgX - Medium High Contrast'
-scene.world.color=(0.006,0.016,0.045)
+scene.world.color=(0.0015,0.004,0.012)
 set_material(CRYSTAL)
 set_crystal_internals(False)
+set_crystal_environment(True)
 set_crystal_shell(True)
 set_chrome_strips(True)
 set_light_transmission_visibility(False)
@@ -344,27 +391,27 @@ chrome_strips['ChromeStripTop'].data.energy=140
 # Crystal state: remove the floor from the render entirely so no large
 # refracted polygon fragments can appear inside the transparent medallion.
 floor.hide_render=True
-lights['Key'].data.energy=500
-lights['Fill'].data.energy=560
-lights['Rim'].data.energy=1220
+lights['Key'].data.energy=560
+lights['Fill'].data.energy=640
+lights['Rim'].data.energy=1380
 lights['Under'].data.energy=0
 scene.render.filepath=str(OUT/"crystal.png")
 bpy.ops.render.render(write_still=True)
 rendered.append(str(OUT/"crystal.png"))
 
 result={
-  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V17_PASS",
+  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V18_PASS",
   "resolution":f"{W}x{H}",
   "renders":rendered,
   "crystal_engine":"CYCLES",
-  "crystal_samples":56,
+  "crystal_samples":72,
   "changes":[
     "removed all reflection-card geometry",
     "chrome uses three narrow area-strip highlights only",
     "removed radial shard and inner crystal ring structure",
-    "crystal uses a clean high-poly glass center with two flat-shaded faceted perimeter rings and a one-segment cut crystal identity bar; no radial geometry or procedural facet bump"
+    "crystal keeps a clean high-poly center and faceted perimeter rings while refracting camera-invisible emissive environment stripes for real optical depth"
   ],
   "note":"Visual QA stills only. Transition remains blocked until all three states pass."
 }
 (OUT/"result.json").write_text(json.dumps(result,indent=2),encoding="utf-8")
-print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V17_PASS")
+print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V18_PASS")
