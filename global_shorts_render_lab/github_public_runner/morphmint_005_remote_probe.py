@@ -90,10 +90,19 @@ CHROME=principled("MM_Chrome",(0.82,0.87,0.96,1),1.0,0.19)
 CRYSTAL=glass_material(
     "MM_Crystal",
     (0.985,1.0,1.0,1),
-    rough=0.010,
+    rough=0.008,
     ior=1.47,
     absorption=(0.18,0.52,1.0,1),
-    density=0.00065,
+    density=0.00045,
+    faceted=False
+)
+CRYSTAL_EDGE=glass_material(
+    "MM_CrystalEdge",
+    (1.0,1.0,1.0,1),
+    rough=0.006,
+    ior=1.50,
+    absorption=(0.24,0.70,1.0,1),
+    density=0.00035,
     faceted=False
 )
 CRYSTAL_SHELL=glass_material(
@@ -160,7 +169,7 @@ bpy.ops.mesh.primitive_torus_add(
 )
 crystal_rim=bpy.context.object
 crystal_rim.name="MorphMint_CrystalRim"
-crystal_rim.data.materials.append(CRYSTAL)
+crystal_rim.data.materials.append(CRYSTAL_EDGE)
 crystal_rim.hide_render=True
 for poly in crystal_rim.data.polygons:
     poly.use_smooth=False
@@ -174,7 +183,7 @@ bpy.ops.mesh.primitive_torus_add(
 )
 crystal_crown=bpy.context.object
 crystal_crown.name="MorphMint_CrystalCrown"
-crystal_crown.data.materials.append(CRYSTAL)
+crystal_crown.data.materials.append(CRYSTAL_EDGE)
 crystal_crown.hide_render=True
 for poly in crystal_crown.data.polygons:
     poly.use_smooth=False
@@ -185,7 +194,7 @@ crystal_bar=bpy.context.object
 crystal_bar.name="MorphMint_CrystalIdentityBar"
 crystal_bar.scale=(0.13,0.07,0.70)
 bpy.ops.object.transform_apply(location=False,rotation=False,scale=True)
-crystal_bar.data.materials.append(CRYSTAL)
+crystal_bar.data.materials.append(CRYSTAL_EDGE)
 crystal_bar.hide_render=True
 cbb=crystal_bar.modifiers.new("CrystalBarBevel","BEVEL")
 cbb.width=0.055
@@ -285,6 +294,53 @@ for loc,scale,rz,color,strength,name in env_specs:
 fractures=[]
 fracture_planes=[]
 
+# Procedural optical environment for crystal reflections/refractions.
+# The physical backdrop stays visible to the camera but is hidden from transmission
+# rays during crystal rendering, letting this irregular environment appear only through glass.
+def set_world_crystal_env(enabled):
+    if not enabled:
+        scene.world.use_nodes=False
+        scene.world.color=(0.008,0.012,0.025)
+        return
+
+    world=scene.world
+    world.use_nodes=True
+    nt=world.node_tree
+    nt.nodes.clear()
+
+    out=nt.nodes.new('ShaderNodeOutputWorld')
+    bg=nt.nodes.new('ShaderNodeBackground')
+    bg.inputs['Strength'].default_value=1.15
+
+    texcoord=nt.nodes.new('ShaderNodeTexCoord')
+    noise=nt.nodes.new('ShaderNodeTexNoise')
+    noise.noise_dimensions='3D'
+    noise.inputs['Scale'].default_value=2.15
+    noise.inputs['Detail'].default_value=3.2
+    noise.inputs['Roughness'].default_value=0.62
+
+    ramp=nt.nodes.new('ShaderNodeValToRGB')
+    cr=ramp.color_ramp
+    cr.elements[0].position=0.18
+    cr.elements[0].color=(0.003,0.012,0.045,1)
+    cr.elements[1].position=0.82
+    cr.elements[1].color=(0.72,0.94,1.0,1)
+    mid=cr.elements.new(0.48)
+    mid.color=(0.03,0.25,0.62,1)
+    hi=cr.elements.new(0.68)
+    hi.color=(0.28,0.78,1.0,1)
+
+    nt.links.new(texcoord.outputs['Normal'],noise.inputs['Vector'])
+    nt.links.new(noise.outputs['Fac'],ramp.inputs['Fac'])
+    nt.links.new(ramp.outputs['Color'],bg.inputs['Color'])
+    nt.links.new(bg.outputs['Background'],out.inputs['Surface'])
+
+def set_backdrop_transmission(visible):
+    try:
+        back.visible_transmission=visible
+    except Exception:
+        pass
+
 # Camera
 bpy.ops.object.camera_add(location=(0,-10.2,0.45))
 cam=bpy.context.object
@@ -342,6 +398,8 @@ set_crystal_shell(False)
 set_chrome_strips(False)
 set_light_transmission_visibility(True)
 set_backdrop(BACK_DARK)
+set_world_crystal_env(False)
+set_backdrop_transmission(True)
 lights['Key'].data.energy=1300
 lights['Fill'].data.energy=760
 lights['Rim'].data.energy=820
@@ -360,6 +418,8 @@ set_crystal_shell(False)
 set_chrome_strips(True)
 set_light_transmission_visibility(True)
 set_backdrop(BACK_DARK)
+set_world_crystal_env(False)
+set_backdrop_transmission(True)
 lights['Key'].data.energy=520
 lights['Fill'].data.energy=360
 lights['Rim'].data.energy=420
@@ -370,7 +430,7 @@ rendered.append(str(OUT/"chrome.png"))
 
 # Crystal: physical refraction without internal prop geometry.
 scene.render.engine='CYCLES'
-scene.cycles.samples=72
+scene.cycles.samples=80
 scene.cycles.use_denoising=True
 scene.cycles.max_bounces=10
 scene.cycles.transmission_bounces=10
@@ -380,14 +440,16 @@ scene.view_settings.look='AgX - Medium High Contrast'
 scene.world.color=(0.0015,0.004,0.012)
 set_material(CRYSTAL)
 set_crystal_internals(False)
-set_crystal_environment(True)
+set_crystal_environment(False)
 set_crystal_shell(True)
 set_chrome_strips(True)
 set_light_transmission_visibility(False)
 set_backdrop(BACK_CRYSTAL)
-chrome_strips['ChromeStripL'].data.energy=220
-chrome_strips['ChromeStripR'].data.energy=180
-chrome_strips['ChromeStripTop'].data.energy=140
+set_world_crystal_env(True)
+set_backdrop_transmission(False)
+chrome_strips['ChromeStripL'].data.energy=170
+chrome_strips['ChromeStripR'].data.energy=145
+chrome_strips['ChromeStripTop'].data.energy=110
 # Crystal state: remove the floor from the render entirely so no large
 # refracted polygon fragments can appear inside the transparent medallion.
 floor.hide_render=True
@@ -400,18 +462,18 @@ bpy.ops.render.render(write_still=True)
 rendered.append(str(OUT/"crystal.png"))
 
 result={
-  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V18_PASS",
+  "marker":"MORPHMINT_005_PUBLIC_REMOTE_3STATE_V19_PASS",
   "resolution":f"{W}x{H}",
   "renders":rendered,
   "crystal_engine":"CYCLES",
-  "crystal_samples":72,
+  "crystal_samples":80,
   "changes":[
     "removed all reflection-card geometry",
     "chrome uses three narrow area-strip highlights only",
     "removed radial shard and inner crystal ring structure",
-    "crystal keeps a clean high-poly center and faceted perimeter rings while refracting camera-invisible emissive environment stripes for real optical depth"
+    "crystal uses a clean high-poly center with faceted edge materials while refracting a procedural camera-hidden world environment; no visible stripe-card props"
   ],
   "note":"Visual QA stills only. Transition remains blocked until all three states pass."
 }
 (OUT/"result.json").write_text(json.dumps(result,indent=2),encoding="utf-8")
-print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V18_PASS")
+print("MORPHMINT_005_PUBLIC_REMOTE_3STATE_V19_PASS")
