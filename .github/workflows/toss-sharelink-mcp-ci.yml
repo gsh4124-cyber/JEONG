@@ -1,0 +1,28 @@
+name: Toss Sharelink MCP CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "integrations/toss-sharelink-mcp/**"
+      - ".github/workflows/toss-sharelink-mcp-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: integrations/toss-sharelink-mcp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: npm install
+      - name: Build TypeScript
+        run: npm run build
