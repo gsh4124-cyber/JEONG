@@ -1,12 +1,11 @@
 name: Toss Sharelink MCP CI
 
 on:
-  pull_request:
+  pull_request_target:
     branches: [main]
     paths:
       - "integrations/toss-sharelink-mcp/**"
       - ".github/workflows/toss-sharelink-mcp-ci.yml"
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -19,6 +18,8 @@ jobs:
         working-directory: integrations/toss-sharelink-mcp
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
