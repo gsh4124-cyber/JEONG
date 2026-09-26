@@ -1,0 +1,67 @@
+name: JEONG MorphMint 005 Gem Designer G1 QA
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "global_shorts_render_lab/github_public_runner/morphmint_005_gem_designer_g1.py"
+      - ".github/workflows/jeong-morphmint-005-gem-designer-g1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  gem-designer-g1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
+
+      - name: Install Blender runtime libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libgl1 libxrender1 libxi6 libxkbcommon0 libxfixes3 libxxf86vm1
+
+      - name: Download Blender 5.2.2
+        run: |
+          mkdir -p .cache/blender
+          curl -L --fail --retry 3 -o .cache/blender/blender.tar.xz https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
+          tar -xf .cache/blender/blender.tar.xz -C .cache/blender
+
+      - name: Fetch pinned Blender Gem Designer 1.0.1 source
+        run: |
+          mkdir -p .cache/gem_designer
+          curl -L --fail --retry 3 -o .cache/gem-designer.tar.gz https://github.com/Dekker3D/Blender-Gem-Designer/archive/5ccbb18f95b15ce32a354beaeb9fa503ad7688d3.tar.gz
+          tar -xzf .cache/gem-designer.tar.gz -C .cache/gem_designer
+          mv .cache/gem_designer/Blender-Gem-Designer-5ccbb18f95b15ce32a354beaeb9fa503ad7688d3 .cache/gem_designer/blender_gem_designer
+          test -s .cache/gem_designer/blender_gem_designer/gem_tier_cutter.blend
+          test -s .cache/gem_designer/blender_gem_designer/LICENSE.txt
+
+      - name: Render MorphMint 005 Gem Designer G1 still
+        env:
+          EGL_PLATFORM: surfaceless
+        run: |
+          .cache/blender/blender-5.2.2-linux-x64/blender --background --factory-startup --python global_shorts_render_lab/github_public_runner/morphmint_005_gem_designer_g1.py
+
+      - name: Verify exact still and preview
+        run: |
+          test -s render_output/morphmint_005_gem_designer_g1/crystal.png
+          test -s render_output/morphmint_005_gem_designer_g1/crystal_preview.png
+          test -s render_output/morphmint_005_gem_designer_g1/crystal_preview.b64
+          grep -q "MORPHMINT_005_GEM_DESIGNER_G1_RENDER_PASS" render_output/morphmint_005_gem_designer_g1/result.json
+          echo "JEONG_MORPHMINT_005_GEM_DESIGNER_G1_RENDER_PASS"
+
+      - name: Persist exact QA proof to PR branch
+        run: |
+          git config user.name "global-shorts-render-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add render_output/morphmint_005_gem_designer_g1/crystal.png
+          git add render_output/morphmint_005_gem_designer_g1/crystal_preview.png
+          git add render_output/morphmint_005_gem_designer_g1/crystal_preview.b64
+          git add render_output/morphmint_005_gem_designer_g1/result.json
+          git diff --cached --quiet && exit 0
+          git commit -m "render: persist MorphMint 005 Gem Designer G1 QA"
+          git push
