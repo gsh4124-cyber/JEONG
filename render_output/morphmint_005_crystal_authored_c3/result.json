@@ -1,0 +1,35 @@
+{
+  "marker": "MORPHMINT_005_CRYSTAL_AUTHORED_C3_RENDER_PASS",
+  "asset": "morphmint_material_shift_005",
+  "stage": "CRYSTAL_STILL_GRAMMAR_QA",
+  "construction_method": "AUTHORED_ROUND_DIAMOND_GLTF_RETARGET",
+  "donor": {
+    "creator": "HanSoloSnipe",
+    "title": "Diamond [Low-Poly]",
+    "source": "https://sketchfab.com/3d-models/diamond-low-poly-405cc8175019452daa01999fd1466731",
+    "license": "Creative Commons Attribution",
+    "runtime_transport_repo": "gkjohnson/3d-demo-data",
+    "runtime_transport_path": "models/diamond/diamond.glb",
+    "runtime_transport_blob": "b6e5fe60258450cd5d2f803bef2acd59c36cd242"
+  },
+  "auto_axes": {
+    "face_axes": [
+      0,
+      1
+    ],
+    "depth_axis": 2,
+    "source_extents": [
+      1.9826589822769165,
+      1.982653796672821,
+      1.1062808334827423
+    ]
+  },
+  "retarget": "round-face axes normalized to 3.04 x 3.04; depth axis compressed to 0.58",
+  "resolution": "540x960",
+  "engine": "CYCLES",
+  "samples": 160,
+  "ceramic": "PASS_LOCKED_UNTOUCHED",
+  "chrome": "PASS_LOCKED_UNTOUCHED",
+  "quality_gate_90": "PENDING_AI_VISUAL_QA",
+  "transition_gate": "BLOCKED_UNTIL_CRYSTAL_QUALITY_90"
+}
