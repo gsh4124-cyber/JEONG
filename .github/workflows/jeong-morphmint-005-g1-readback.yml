@@ -28,18 +28,18 @@ jobs:
           fi
           ffmpeg -y -loglevel error \
             -i render_output/morphmint_005_gem_designer_g1/crystal_preview.png \
-            -vf scale=135:-1 -q:v 14 \
-            render_output/morphmint_005_gem_designer_g1/qa_thumb.jpg
-          base64 -w0 render_output/morphmint_005_gem_designer_g1/qa_thumb.jpg \
-            > render_output/morphmint_005_gem_designer_g1/qa_thumb.b64
-          test -s render_output/morphmint_005_gem_designer_g1/qa_thumb.b64
+            -vf scale=48:-1 -q:v 20 \
+            render_output/morphmint_005_gem_designer_g1/qa_micro.jpg
+          base64 -w0 render_output/morphmint_005_gem_designer_g1/qa_micro.jpg \
+            > render_output/morphmint_005_gem_designer_g1/qa_micro.b64
+          test -s render_output/morphmint_005_gem_designer_g1/qa_micro.b64
 
       - name: Persist QA readback
         run: |
           git config user.name "global-shorts-render-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add render_output/morphmint_005_gem_designer_g1/qa_thumb.jpg
-          git add render_output/morphmint_005_gem_designer_g1/qa_thumb.b64
+          git add render_output/morphmint_005_gem_designer_g1/qa_micro.jpg
+          git add render_output/morphmint_005_gem_designer_g1/qa_micro.b64
           git diff --cached --quiet && exit 0
-          git commit -m "qa: persist MorphMint 005 G1 visual thumbnail"
+          git commit -m "qa: persist MorphMint 005 G1 micro visual thumbnail"
           git push
