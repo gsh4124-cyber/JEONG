@@ -1,0 +1,37 @@
+{
+  "marker": "MORPHMINT_005_GEM_DESIGNER_G3_RENDER_PASS",
+  "asset": "morphmint_material_shift_005",
+  "stage": "CRYSTAL_GEM_DESIGNER_G3_FINAL_POC",
+  "route": "BLENDER_GEM_DESIGNER",
+  "addon": {
+    "repository": "Dekker3D/Blender-Gem-Designer",
+    "commit": "5ccbb18f95b15ce32a354beaeb9fa503ad7688d3",
+    "license": "GPL-3.0",
+    "version": "1.0.1"
+  },
+  "design": {
+    "source": "GemCad manual Standard Round Brilliant fixture",
+    "gear": 96,
+    "tiers": 7,
+    "construction": "Gem Designer ASC importer + Geometry Nodes tier cutter, baked for integrated engraving"
+  },
+  "material": {
+    "preset": "Diamond",
+    "ior": 2.417,
+    "dispersion": 0.044,
+    "render_dispersion": "Full Dispersion"
+  },
+  "g3_changes": [
+    "balanced neutral midtone jewelry lighting",
+    "no packed HDRI",
+    "no separate identity material/object",
+    "shallow boolean identity engraving into gem surface"
+  ],
+  "engine": "CYCLES",
+  "samples": 144,
+  "resolution": "540x960",
+  "ceramic": "PASS_LOCKED_UNTOUCHED",
+  "chrome": "PASS_LOCKED_UNTOUCHED",
+  "quality_gate_90": "PENDING_AI_VISUAL_QA",
+  "transition_gate": "BLOCKED_UNTIL_CRYSTAL_QUALITY_90"
+}
