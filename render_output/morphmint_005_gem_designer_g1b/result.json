@@ -1,0 +1,24 @@
+{
+  "marker": "MORPHMINT_005_GEM_DESIGNER_G1B_RENDER_PASS",
+  "asset": "morphmint_material_shift_005",
+  "stage": "CRYSTAL_GEM_DESIGNER_STRUCTURAL_FIX_QA",
+  "route": "BLENDER_GEM_DESIGNER",
+  "construction": "Gem Designer ASC importer + Geometry Nodes tier cutter",
+  "design": "GemCad manual Standard Round Brilliant 7-tier",
+  "material": {
+    "preset": "Diamond",
+    "ior": 2.417,
+    "dispersion": 0.044,
+    "render_dispersion": "Full Dispersion"
+  },
+  "structural_fixes": [
+    "REMOVE_WORKSHOP_HDRI",
+    "CLEAN_JEWELRY_STUDIO",
+    "SUBTABLE_FROSTED_IDENTITY",
+    "WIDER_PRODUCT_CAMERA"
+  ],
+  "ceramic": "PASS_LOCKED_UNTOUCHED",
+  "chrome": "PASS_LOCKED_UNTOUCHED",
+  "quality_gate_90": "PENDING_AI_VISUAL_QA",
+  "transition_gate": "BLOCKED_UNTIL_CRYSTAL_QUALITY_90"
+}
