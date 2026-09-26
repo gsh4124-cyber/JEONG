@@ -1,0 +1,29 @@
+name: JEONG G1 Preview Artifact
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/jeong-g1-preview-artifact.yml"
+  workflow_dispatch:
+
+jobs:
+  package-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
+      - name: Verify persisted preview exists
+        run: |
+          test -s render_output/morphmint_005_gem_designer_g1/crystal_preview.png
+          test -s render_output/morphmint_005_gem_designer_g1/result.json
+      - name: Upload G1 QA preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: morphmint-005-g1-preview
+          path: |
+            render_output/morphmint_005_gem_designer_g1/crystal_preview.png
+            render_output/morphmint_005_gem_designer_g1/result.json
+          if-no-files-found: error
+          retention-days: 1
