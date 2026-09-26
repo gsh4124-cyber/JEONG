@@ -19,16 +19,30 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
+      - name: Check persisted G3 proof
+        id: persisted
+        run: |
+          if test -s render_output/morphmint_005_gem_designer_g3/crystal.png \
+             && test -s render_output/morphmint_005_gem_designer_g3/crystal_preview.png \
+             && test -s render_output/morphmint_005_gem_designer_g3/qa_mini.jpg \
+             && test -s render_output/morphmint_005_gem_designer_g3/result.json; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Install Blender runtime libraries
+        if: steps.persisted.outputs.exists != 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y libegl1 libgl1 libxrender1 libxi6 libxkbcommon0 libxfixes3 libxxf86vm1
       - name: Download Blender 5.2.2
+        if: steps.persisted.outputs.exists != 'true'
         run: |
           mkdir -p .cache/blender
           curl -L --fail --retry 3 -o .cache/blender/blender.tar.xz https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
           tar -xf .cache/blender/blender.tar.xz -C .cache/blender
       - name: Fetch pinned Blender Gem Designer 1.0.1 source
+        if: steps.persisted.outputs.exists != 'true'
         run: |
           mkdir -p .cache/gem_designer
           curl -L --fail --retry 3 -o .cache/gem-designer.tar.gz https://github.com/Dekker3D/Blender-Gem-Designer/archive/5ccbb18f95b15ce32a354beaeb9fa503ad7688d3.tar.gz
@@ -36,6 +50,7 @@ jobs:
           mv .cache/gem_designer/Blender-Gem-Designer-5ccbb18f95b15ce32a354beaeb9fa503ad7688d3 .cache/gem_designer/blender_gem_designer
           test -s .cache/gem_designer/blender_gem_designer/gem_tier_cutter.blend
       - name: Render MorphMint 005 Gem Designer G3 still
+        if: steps.persisted.outputs.exists != 'true'
         env:
           EGL_PLATFORM: surfaceless
         run: |
@@ -61,3 +76,13 @@ jobs:
           git diff --cached --quiet && exit 0
           git commit -m "render: persist MorphMint 005 Gem Designer G3 QA"
           git push
+      - name: Upload G3 QA preview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: morphmint-005-g3-preview
+          path: |
+            render_output/morphmint_005_gem_designer_g3/crystal_preview.png
+            render_output/morphmint_005_gem_designer_g3/qa_mini.jpg
+            render_output/morphmint_005_gem_designer_g3/result.json
+          if-no-files-found: error
+          retention-days: 1
