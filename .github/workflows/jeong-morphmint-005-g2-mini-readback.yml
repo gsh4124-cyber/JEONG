@@ -1,0 +1,39 @@
+name: JEONG MorphMint 005 G2 Mini Readback
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/jeong-morphmint-005-g2-mini-readback.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  mini-readback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
+      - name: Build ultra-light QA image
+        run: |
+          test -s render_output/morphmint_005_gem_designer_g2/qa_thumb.jpg
+          if ! command -v ffmpeg >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y ffmpeg
+          fi
+          ffmpeg -y -loglevel error -i render_output/morphmint_005_gem_designer_g2/qa_thumb.jpg -vf scale=54:96 -q:v 28 render_output/morphmint_005_gem_designer_g2/qa_mini.jpg
+          base64 -w0 render_output/morphmint_005_gem_designer_g2/qa_mini.jpg > render_output/morphmint_005_gem_designer_g2/qa_mini.b64
+          test -s render_output/morphmint_005_gem_designer_g2/qa_mini.b64
+      - name: Persist mini QA readback
+        run: |
+          git config user.name "global-shorts-render-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add render_output/morphmint_005_gem_designer_g2/qa_mini.jpg
+          git add render_output/morphmint_005_gem_designer_g2/qa_mini.b64
+          git diff --cached --quiet && exit 0
+          git commit -m "qa: persist MorphMint 005 G2 mini thumbnail"
+          git push
