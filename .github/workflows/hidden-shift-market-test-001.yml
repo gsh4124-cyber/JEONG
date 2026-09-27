@@ -1,0 +1,39 @@
+name: Hidden Shift Market Test 001
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'global_shorts_render_lab/hidden_shift/**'
+      - '.github/workflows/hidden-shift-market-test-001.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  render-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libgl1 libxrender1 libxi6 libxkbcommon0 libxfixes3 libxxf86vm1
+      - name: Download Blender 5.2.2
+        run: |
+          mkdir -p .cache/blender
+          curl -L --fail --retry 3 -o .cache/blender/blender.tar.xz https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
+          tar -xf .cache/blender/blender.tar.xz -C .cache/blender
+      - name: Render representative frames
+        env:
+          EGL_PLATFORM: surfaceless
+        run: .cache/blender/blender-5.2.2-linux-x64/blender --background --factory-startup --python global_shorts_render_lab/hidden_shift/hidden_shift_001.py
+      - name: Verify deterministic proof
+        run: |
+          test -s /tmp/hidden_shift_001/before.png
+          test -s /tmp/hidden_shift_001/after.png
+          grep -q HIDDEN_SHIFT_001_RENDER_PASS /tmp/hidden_shift_001/result.json
+      - name: Upload QA proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: hidden-shift-001-qa-proof
+          path: /tmp/hidden_shift_001/
