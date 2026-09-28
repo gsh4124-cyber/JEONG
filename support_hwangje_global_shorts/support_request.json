@@ -1,7 +1,0 @@
-{
-  "primary_repository":"gsh4124-cyber/hwangje-vault",
-  "primary_blocker_evidence":"Actions run 36388942111 failed before any step/runner; other hwangje-vault workflows also show recent immediate failures",
-  "support_scope":"temporary_support",
-  "purpose":"validate migrated Global Shorts primary contract/router/Blender runtime without claiming JEONG ownership",
-  "return_to_primary_plan":"keep validated assets in hwangje-vault, record primary Actions blocker, delete this temporary support bundle after evidence is read"
-}
