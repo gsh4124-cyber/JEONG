@@ -1,0 +1,10 @@
+{
+  "project": "global_shorts_quality_factory",
+  "version": 4,
+  "role": "HWANGJE_PRIMARY_EXECUTION",
+  "primary_repository": "gsh4124-cyber/hwangje-vault",
+  "support_repository": "gsh4124-cyber/JEONG",
+  "portfolio": {"core":["motion-logic-lab","loop-foundry","oddfactory","scaleshift"],"premium_challenger":"dream-rooms","control_backup":"hidden-shift"},
+  "pipeline": ["00","01","02","03","03.5","04","05T","05C","06","07","00"],
+  "rules": {"hwangje_is_primary":true,"jeong_is_primary":false,"market_evidence_required":true,"visual_proof_required_before_full_render":true,"technical_qa_required":true,"commercial_qa_required":true,"publish_requires_both_qa_pass":true,"publish_requires_platform_readback":true,"daily_zero_publish_is_normal":false,"daily_recovery_loop_required_if_no_pass":true,"quality_gate_lowering_for_quota_forbidden":true,"jeong_fallback_requires_verified_primary_blocker":true,"return_to_hwangje_after_recovery_required":true,"user_manual_relay_forbidden":true}
+}
