@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: Validate 8-stage factory contract
+      - name: Validate quality-factory contract
         run: python global_shorts_factory/factory_selfcheck.py
       - name: Verify production adapters exist
         run: |
@@ -35,18 +35,24 @@ jobs:
           mkdir -p /tmp/global_shorts_factory
           cat > /tmp/global_shorts_factory/readiness.json <<'EOF'
           {
-            "marker": "GLOBAL_SHORTS_FACTORY_CONTRACT_PASS",
-            "pipeline": "00>01>02>03>04>05>06>07>00",
+            "marker": "GLOBAL_SHORTS_QUALITY_FACTORY_CONTRACT_PASS",
+            "portfolio": "CORE4_PLUS_PREMIUM1_PLUS_CONTROL1",
+            "pipeline": "00>01>02>03>03.5>04>05T>05C>06>07>00",
+            "visual_proof_before_full_render": true,
+            "technical_and_commercial_qa": true,
+            "publish_requires_readback": true,
+            "daily_minimum_publish_target": 1,
+            "zero_publish_normal": false,
+            "quality_gate_lowering_for_quota": false,
             "stage_00_03": "ChatGPT/web/vidIQ orchestration",
-            "stage_04_05": "JEONG/GitHub Actions production+QA",
+            "stage_04_05": "JEONG/GitHub Actions production+technical QA plus commercial QA",
             "stage_06": "publishing connector",
             "stage_07": "YouTube/vidIQ performance retrieval",
-            "schedule": "NOT_SET_BY_USER",
             "autonomous_timer": false
           }
           EOF
           cat /tmp/global_shorts_factory/readiness.json
       - uses: actions/upload-artifact@v4
         with:
-          name: global-shorts-factory-readiness
+          name: global-shorts-quality-factory-readiness
           path: /tmp/global_shorts_factory/readiness.json
