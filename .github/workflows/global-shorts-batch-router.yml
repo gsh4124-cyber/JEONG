@@ -6,7 +6,7 @@ on:
     paths:
       - "global_shorts_factory/channel_registry.json"
       - "global_shorts_factory/queue_router.py"
-      - "global_shorts_factory/batch_*.json"
+      - "global_shorts_factory/batch_quality_factory_smoke.json"
       - ".github/workflows/global-shorts-batch-router.yml"
   workflow_dispatch:
 
@@ -18,24 +18,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Route first 10-channel batch
+      - name: Route five active quality slots
         run: |
-          python global_shorts_factory/queue_router.py global_shorts_factory/batch_2026-09-28.json > routed_batch.json
-      - name: Verify all ten channels are uniquely assigned
+          python global_shorts_factory/queue_router.py global_shorts_factory/batch_quality_factory_smoke.json > routed_batch.json
+      - name: Verify active-slot routing
         run: |
           python - <<'PY'
           import json
           d=json.load(open('routed_batch.json'))
           jobs=d['jobs']
-          assert len(jobs)==10, len(jobs)
+          assert len(jobs)==5, len(jobs)
           profiles=[j['target_channel'] for j in jobs]
-          assert len(set(profiles))==10, profiles
+          assert len(set(profiles))==5, profiles
+          slot_types=[j['slot_type'] for j in jobs]
+          assert slot_types.count('CORE')==4, slot_types
+          assert slot_types.count('PREMIUM_CHALLENGER')==1, slot_types
           assert all(j['next_stage']=='01' for j in jobs)
-          print('GLOBAL_SHORTS_10_CHANNEL_ROUTER_PASS')
+          print('GLOBAL_SHORTS_5_SLOT_ROUTER_PASS')
           for j in jobs:
-              print(j['job_id'], '->', j['target_channel'])
+              print(j['job_id'], '->', j['target_channel'], j['slot_type'])
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: global-shorts-routed-batch
+          name: global-shorts-quality-routed-batch
           path: routed_batch.json
