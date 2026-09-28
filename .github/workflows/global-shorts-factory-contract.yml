@@ -1,58 +1,52 @@
-name: Global Shorts Factory Contract
+name: JEONG Global Shorts Support Contract Check
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "global_shorts_factory/**"
-      - ".github/workflows/global-shorts-factory-contract.yml"
-  pull_request:
-    branches: [main]
-    paths:
-      - "global_shorts_factory/**"
-      - ".github/workflows/global-shorts-factory-contract.yml"
-      - "global_shorts_render_lab/**"
   workflow_dispatch:
+    inputs:
+      primary_blocker_evidence:
+        description: 'Verified hwangje-vault Actions blocker evidence / reference'
+        required: true
+        type: string
+      support_scope:
+        description: 'diagnostic | recovery | temporary_support'
+        required: true
+        type: choice
+        options:
+          - diagnostic
+          - recovery
+          - temporary_support
+      return_to_primary_plan:
+        description: 'How the result returns to hwangje-vault primary'
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 jobs:
-  contract:
+  support-contract:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: Validate quality-factory contract
+      - name: Validate JEONG support-only contract
         run: python global_shorts_factory/factory_selfcheck.py
-      - name: Verify production adapters exist
+      - name: Record support invocation context
         run: |
-          test -f global_shorts_render_lab/github_public_runner/smoke_scene.py
-          test -f .github/workflows/jeong-public-blender-smoke.yml
-          echo "PRODUCTION_ADAPTERS_PRESENT"
-      - name: Emit factory readiness proof
-        run: |
-          mkdir -p /tmp/global_shorts_factory
-          cat > /tmp/global_shorts_factory/readiness.json <<'EOF'
+          mkdir -p /tmp/jeong_support
+          cat > /tmp/jeong_support/support_context.json <<EOF
           {
-            "marker": "GLOBAL_SHORTS_QUALITY_FACTORY_CONTRACT_PASS",
-            "portfolio": "CORE4_PLUS_PREMIUM1_PLUS_CONTROL1",
-            "pipeline": "00>01>02>03>03.5>04>05T>05C>06>07>00",
-            "visual_proof_before_full_render": true,
-            "technical_and_commercial_qa": true,
-            "publish_requires_readback": true,
-            "daily_minimum_publish_target": 1,
-            "zero_publish_normal": false,
-            "quality_gate_lowering_for_quota": false,
-            "stage_00_03": "ChatGPT/web/vidIQ orchestration",
-            "stage_04_05": "JEONG/GitHub Actions production+technical QA plus commercial QA",
-            "stage_06": "publishing connector",
-            "stage_07": "YouTube/vidIQ performance retrieval",
-            "autonomous_timer": false
+            "marker": "JEONG_GLOBAL_SHORTS_SUPPORT_CONTRACT_PASS",
+            "role": "SUPPORT_RECOVERY_FALLBACK_ONLY",
+            "primary_repository": "gsh4124-cyber/hwangje-vault",
+            "primary_blocker_evidence": "${{ inputs.primary_blocker_evidence }}",
+            "support_scope": "${{ inputs.support_scope }}",
+            "return_to_primary_plan": "${{ inputs.return_to_primary_plan }}",
+            "production_owner_claimed": false
           }
           EOF
-          cat /tmp/global_shorts_factory/readiness.json
+          cat /tmp/jeong_support/support_context.json
       - uses: actions/upload-artifact@v4
         with:
-          name: global-shorts-quality-factory-readiness
-          path: /tmp/global_shorts_factory/readiness.json
+          name: jeong-global-shorts-support-context
+          path: /tmp/jeong_support/support_context.json
