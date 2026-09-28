@@ -1,0 +1,27 @@
+{
+  "project": "global_shorts",
+  "version": 1,
+  "stages": [
+    {"id":"00","name":"orchestrator","owner":"chatgpt","requires":["job_id","current_stage","status","next_stage"]},
+    {"id":"01","name":"market_scout","owner":"chatgpt_web_vidiq","requires":["benchmark_source","benchmark_evidence"]},
+    {"id":"02","name":"benchmark_reverse_engineering","owner":"chatgpt","requires":["format_dna"]},
+    {"id":"03","name":"production_design","owner":"chatgpt","requires":["target_channel","production_spec","qa_checkpoints"]},
+    {"id":"04","name":"production","owner":"jeong_github_actions","requires":["production_spec","output_assets"]},
+    {"id":"05","name":"qa","owner":"jeong_github_actions_plus_chatgpt","requires":["qa_state","qa_evidence"]},
+    {"id":"06","name":"publish","owner":"upload_connector","requires":["publish_state","platform_proof"]},
+    {"id":"07","name":"performance","owner":"chatgpt_vidiq_youtube","requires":["performance"]}
+  ],
+  "status_values": ["READY","PASS","FAIL","BLOCKED","HOLD"],
+  "handoff_required": [
+    "job_id","target_channel","benchmark_source","benchmark_evidence","format_dna","current_stage",
+    "input_assets","output_assets","status","failure_reason","next_stage","next_action","human_gate"
+  ],
+  "rules": {
+    "external_market_first": true,
+    "internal_tournament_required": false,
+    "qa_separate_from_production": true,
+    "publish_requires_qa_pass": true,
+    "publish_success_requires_readback": true,
+    "user_manual_relay_forbidden": true
+  }
+}
