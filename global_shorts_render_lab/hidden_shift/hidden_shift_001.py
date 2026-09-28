@@ -10,6 +10,8 @@ scene.render.resolution_x=1080; scene.render.resolution_y=1920; scene.render.res
 scene.render.image_settings.file_format='PNG'
 scene.render.fps=30
 scene.frame_start=1; scene.frame_end=300
+if scene.world is None:
+ scene.world=bpy.data.worlds.new('World')
 scene.world.color=(0.025,0.03,0.04)
 
 def mat(name,c,metal=0.0,rough=.45):
