@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "channels": [
+    {"profile":"motion-logic-lab","handle":"@motionlogiclab","lane":"prediction_physics","keywords":["physics","prediction","path","cause-effect"]},
+    {"profile":"morphmint","handle":"@morphmintstudio","lane":"satisfying_transformation","keywords":["transform","material","morph","satisfying"]},
+    {"profile":"pip-pock","handle":"@pipandpock","lane":"visual_comedy","keywords":["comedy","chase","character","mishap"]},
+    {"profile":"pocket-crew","handle":"@pocketcrewshorts","lane":"miniature_crew","keywords":["tiny","miniature","crew","oversized"]},
+    {"profile":"hidden-shift","handle":"@hiddenshiftlab","lane":"visual_change_puzzle","keywords":["change","spot","puzzle","difference"]},
+    {"profile":"dream-rooms","handle":"@dreamroomslab","lane":"surreal_space_reveal","keywords":["room","door","window","surreal","reveal"]},
+    {"profile":"oddfactory","handle":"@oddfactoryshorts","lane":"process_transformation","keywords":["factory","process","machine","transform"]},
+    {"profile":"scaleshift","handle":"@scaleshiftshorts","lane":"scale_reversal","keywords":["scale","grow","shrink","giant","tiny"]},
+    {"profile":"inside-odd","handle":"@insideoddworld","lane":"inside_world_reveal","keywords":["inside","cutaway","hidden world","interior"]},
+    {"profile":"loop-foundry","handle":"@loopfoundryshorts","lane":"perfect_loop","keywords":["loop","reset","cycle","seamless"]}
+  ],
+  "hard_rules": {
+    "one_job_one_primary_channel": true,
+    "crosspost_same_master_to_multiple_global_channels": false,
+    "qa_pass_required_before_publish": true,
+    "recent_duplicate_title_block": true,
+    "channel_lane_match_required": true
+  }
+}
