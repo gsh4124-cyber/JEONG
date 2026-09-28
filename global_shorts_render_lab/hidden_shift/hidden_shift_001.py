@@ -6,7 +6,8 @@ os.makedirs(OUT, exist_ok=True)
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scene=bpy.context.scene
 scene.render.engine='BLENDER_EEVEE'
-scene.render.resolution_x=1080; scene.render.resolution_y=1920; scene.render.resolution_percentage=50
+# QA proof is intentionally cheap; final production render is a later stage.
+scene.render.resolution_x=360; scene.render.resolution_y=640; scene.render.resolution_percentage=100
 scene.render.image_settings.file_format='PNG'
 scene.render.fps=30
 scene.frame_start=1; scene.frame_end=300
@@ -20,7 +21,7 @@ white=mat('ivory',(0.72,.69,.62)); wood=mat('wood',(.20,.08,.035)); red=mat('red
 
 def cube(name,loc,scale,ma,bevel=.05):
  bpy.ops.mesh.primitive_cube_add(location=loc); o=bpy.context.object; o.name=name; o.scale=scale; bpy.ops.object.transform_apply(location=False,rotation=False,scale=True); o.data.materials.append(ma)
- if bevel: mod=o.modifiers.new('soft','BEVEL'); mod.width=bevel; mod.segments=3
+ if bevel: mod=o.modifiers.new('soft','BEVEL'); mod.width=bevel; mod.segments=2
  return o
 # tabletop and back wall
 cube('table',(0,0,-.35),(4.8,3,.3),wood,.08); cube('back',(0,2.7,3.2),(4.8,.18,3.8),white,.05)
@@ -29,7 +30,7 @@ cube('left',(-1.8,.1,.35),(.55,.55,.7),red,.12)
 center=cube('center',(0,.1,.35),(.55,.55,.7),green,.12)
 cube('right',(1.8,.1,.35),(.55,.55,.7),blue,.12)
 # distinct gold token creates a fair landmark; stays fixed
-bpy.ops.mesh.primitive_cylinder_add(vertices=48,radius=.34,depth=.12,location=(0,-1.15,.05)); token=bpy.context.object; token.data.materials.append(gold)
+bpy.ops.mesh.primitive_cylinder_add(vertices=32,radius=.34,depth=.12,location=(0,-1.15,.05)); token=bpy.context.object; token.data.materials.append(gold)
 # single meaningful shift: green block moves behind token at frame 151, no other scene change
 center.keyframe_insert('location',frame=150); center.location.x=.78; center.keyframe_insert('location',frame=151); center.keyframe_insert('location',frame=270)
 # camera locked
@@ -43,5 +44,5 @@ bpy.ops.object.light_add(type='AREA',location=(3,-1,4)); bpy.context.object.data
 # render representative before/after frames for automated market-gate proof
 for f,label in [(90,'before'),(210,'after')]:
  scene.frame_set(f); scene.render.filepath=f'{OUT}/{label}.png'; bpy.ops.render.render(write_still=True)
-with open(f'{OUT}/result.json','w') as fp: json.dump({'marker':'HIDDEN_SHIFT_001_RENDER_PASS','episode':'hidden_shift_001','mechanism':'single_object_lateral_shift','before_frame':90,'after_frame':210,'camera_locked':True,'intentional_changes':1},fp)
+with open(f'{OUT}/result.json','w') as fp: json.dump({'marker':'HIDDEN_SHIFT_001_RENDER_PASS','episode':'hidden_shift_001','mechanism':'single_object_lateral_shift','before_frame':90,'after_frame':210,'camera_locked':True,'intentional_changes':1,'proof_resolution':'360x640'},fp)
 print('HIDDEN_SHIFT_001_RENDER_PASS')
