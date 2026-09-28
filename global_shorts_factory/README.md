@@ -1,22 +1,22 @@
-# Global Shorts Factory
+# Global Shorts Factory — SUPPORT ASSET
 
-This directory is the executable contract layer for the 8-session Global Shorts factory.
+> SUPPORT-ONLY ROLE — 2026-09-28
 
-Pipeline:
+This directory preserves reusable Global Shorts execution assets for **diagnosis, recovery, and temporary support**.
 
-`00 orchestrator -> 01 market scout -> 02 reverse engineering -> 03 production design -> 04 production -> 05 QA -> 06 publish -> 07 performance -> 00`
+It is not the current primary factory owner.
 
-Execution split:
+Primary operating rules and default execution ownership live in:
+- `gsh4124-cyber/hwangje-vault/직장/콘텐츠/글로벌 숏츠/_INDEX.md`
+- `gsh4124-cyber/hwangje-vault/직장/콘텐츠/글로벌 숏츠/5슬롯_품질공장_실행계약_2026-09-28.md`
+- `gsh4124-cyber/hwangje-vault/00 황제/GitHub_실행저장소_라우팅_규칙.md`
 
-- 00-03: ChatGPT orchestration + current web/YouTube/vidIQ evidence.
-- 04-05: JEONG/GitHub Actions production and deterministic QA where possible.
-- 06: connected publishing connector; publishing is complete only after platform readback/proof.
-- 07: current YouTube/vidIQ performance retrieval; result feeds the next market scan and planning cycle.
+Historical pipeline assets here may support:
+`market evidence -> production design -> render/QA support -> proof`
 
-This is a hybrid factory by design. GitHub Actions must not pretend to perform market research, editorial judgment, external publishing, or analytics when the required connected services are not available inside the runner.
+But JEONG may be invoked only after the primary hwangje-vault Actions path has a verified blocker.
 
-The canonical operating rules are owned by `hwangje-vault/직장/콘텐츠/글로벌 숏츠/세션_운영구조.md`.
+Expected route:
+`HWANGJE PRIMARY -> VERIFIED BLOCKER -> JEONG SUPPORT -> RECOVERY / PROOF -> RETURN TO HWANGJE PRIMARY`
 
-`factory_contract.json` is the machine-readable handoff contract. `factory_selfcheck.py` verifies that the contract preserves the current stage boundaries and hard rules.
-
-Important: no timer/cadence is defined here until the Emperor explicitly chooses one. The executable workflow therefore validates readiness and production adapters but does not invent a publishing schedule.
+Do not infer primary ownership from the existence of `factory_contract.json`, runner code, old workflows, or historical successful Actions runs.
