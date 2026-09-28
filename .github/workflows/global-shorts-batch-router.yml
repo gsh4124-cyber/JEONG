@@ -1,0 +1,41 @@
+name: Global Shorts Batch Router
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "global_shorts_factory/channel_registry.json"
+      - "global_shorts_factory/queue_router.py"
+      - "global_shorts_factory/batch_*.json"
+      - ".github/workflows/global-shorts-batch-router.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  route:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Route first 10-channel batch
+        run: |
+          python global_shorts_factory/queue_router.py global_shorts_factory/batch_2026-09-28.json > routed_batch.json
+      - name: Verify all ten channels are uniquely assigned
+        run: |
+          python - <<'PY'
+          import json
+          d=json.load(open('routed_batch.json'))
+          jobs=d['jobs']
+          assert len(jobs)==10, len(jobs)
+          profiles=[j['target_channel'] for j in jobs]
+          assert len(set(profiles))==10, profiles
+          assert all(j['next_stage']=='01' for j in jobs)
+          print('GLOBAL_SHORTS_10_CHANNEL_ROUTER_PASS')
+          for j in jobs:
+              print(j['job_id'], '->', j['target_channel'])
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: global-shorts-routed-batch
+          path: routed_batch.json
