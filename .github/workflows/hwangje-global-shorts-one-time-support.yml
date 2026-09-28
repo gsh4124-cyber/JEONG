@@ -1,0 +1,83 @@
+name: Hwangje Global Shorts One-Time Support Validation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'support_hwangje_global_shorts/**'
+      - '.github/workflows/hwangje-global-shorts-one-time-support.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  support-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify fallback gate
+        run: |
+          python - <<'PY'
+          import json
+          r=json.load(open('support_hwangje_global_shorts/support_request.json'))
+          assert r['primary_repository']=='gsh4124-cyber/hwangje-vault'
+          assert r['primary_blocker_evidence']
+          assert r['support_scope'] in {'diagnostic','recovery','temporary_support'}
+          assert r['return_to_primary_plan']
+          print('JEONG_SUPPORT_GATE_PASS')
+          PY
+      - name: Validate migrated primary contract
+        run: |
+          python - <<'PY'
+          import json
+          c=json.load(open('support_hwangje_global_shorts/contract.json'))
+          r=json.load(open('support_hwangje_global_shorts/registry.json'))
+          assert c['role']=='HWANGJE_PRIMARY_EXECUTION'
+          assert c['primary_repository']=='gsh4124-cyber/hwangje-vault'
+          assert c['support_repository']=='gsh4124-cyber/JEONG'
+          assert c['rules']['hwangje_is_primary'] is True
+          assert c['rules']['jeong_is_primary'] is False
+          assert c['rules']['daily_zero_publish_is_normal'] is False
+          assert c['rules']['daily_recovery_loop_required_if_no_pass'] is True
+          assert c['pipeline']==['00','01','02','03','03.5','04','05T','05C','06','07','00']
+          ch=r['channels']
+          assert len([x for x in ch if x.get('slot_type')=='CORE' and x.get('production_eligible')])==4
+          assert len([x for x in ch if x.get('slot_type')=='PREMIUM_CHALLENGER' and x.get('production_eligible')])==1
+          assert len([x for x in ch if x.get('slot_type')=='CONTROL_BACKUP'])==1
+          print('HWANGJE_PRIMARY_CONTRACT_SUPPORT_VALIDATED')
+          PY
+      - name: Validate migrated router
+        run: |
+          cat > /tmp/batch.json <<'EOF'
+          {"batch_id":"SUPPORT","jobs":[
+            {"job_id":"ML","lane":"prediction_physics","title":"Motion","benchmark_source":"ci://support","benchmark_evidence":"present"},
+            {"job_id":"LF","lane":"perfect_loop","title":"Loop","benchmark_source":"ci://support","benchmark_evidence":"present"},
+            {"job_id":"OF","lane":"process_transformation","title":"Factory","benchmark_source":"ci://support","benchmark_evidence":"present"},
+            {"job_id":"SS","lane":"scale_reversal","title":"Scale","benchmark_source":"ci://support","benchmark_evidence":"present"},
+            {"job_id":"DR","lane":"surreal_space_reveal","title":"Premium","benchmark_source":"ci://support","benchmark_evidence":"present"}
+          ]}
+          EOF
+          python support_hwangje_global_shorts/queue_router.py /tmp/batch.json > /tmp/routed.json
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/routed.json'))
+          assert len(d['jobs'])==5
+          assert len({x['target_channel'] for x in d['jobs']})==5
+          print('HWANGJE_PRIMARY_ROUTER_SUPPORT_VALIDATED')
+          PY
+      - name: Install Blender
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libgl1 libxrender1 libxi6 libxkbcommon0 libxfixes3 libxxf86vm1
+          mkdir -p .cache/blender
+          curl -L --fail --retry 3 -o .cache/blender/blender.tar.xz https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
+          tar -xf .cache/blender/blender.tar.xz -C .cache/blender
+      - name: Validate migrated runtime
+        env:
+          EGL_PLATFORM: surfaceless
+        run: |
+          .cache/blender/blender-5.2.2-linux-x64/blender --background --factory-startup --python support_hwangje_global_shorts/runtime_smoke.py
+          test -s /tmp/hwangje_support_smoke/smoke.png
+          grep -q HWANGJE_GLOBAL_SHORTS_RUNTIME_PASS /tmp/hwangje_support_smoke/result.json
+          echo 'HWANGJE_GLOBAL_SHORTS_SUPPORT_VALIDATION_PASS'
