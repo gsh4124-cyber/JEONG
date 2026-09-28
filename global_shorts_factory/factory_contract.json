@@ -1,64 +1,27 @@
 {
-  "project": "global_shorts",
-  "version": 2,
-  "portfolio_mode": "quality_factory_active_slots",
+  "project": "global_shorts_support",
+  "version": 3,
+  "role": "SUPPORT_RECOVERY_FALLBACK_ONLY",
+  "primary_repository": "gsh4124-cyber/hwangje-vault",
+  "support_repository": "gsh4124-cyber/JEONG",
+  "activation_requires": [
+    "verified_primary_actions_blocker",
+    "explicit_support_scope",
+    "recovery_or_diagnostic_purpose",
+    "return_to_primary_plan"
+  ],
   "stages": [
-    {"id":"00","name":"portfolio_orchestrator","owner":"chatgpt","requires":["job_id","current_stage","status","next_stage","slot_state"]},
-    {"id":"01","name":"market_scout","owner":"chatgpt_web_vidiq","requires":["benchmark_source","benchmark_evidence"]},
-    {"id":"02","name":"benchmark_reverse_engineering","owner":"chatgpt","requires":["format_dna"]},
-    {"id":"03","name":"production_design","owner":"chatgpt","requires":["target_channel","production_spec","qa_checkpoints","visual_proof_spec"]},
-    {"id":"03.5","name":"visual_proof_gate","owner":"chatgpt_plus_render_adapter","requires":["visual_proof_asset","visual_proof_state","visual_proof_evidence"]},
-    {"id":"04","name":"production","owner":"jeong_github_actions","requires":["production_spec","output_assets"]},
-    {"id":"05T","name":"technical_qa","owner":"jeong_github_actions","requires":["technical_qa_state","technical_qa_evidence"]},
-    {"id":"05C","name":"commercial_qa","owner":"chatgpt","requires":["commercial_qa_state","commercial_qa_evidence"]},
-    {"id":"06","name":"publish","owner":"upload_connector","requires":["publish_state","platform_proof"]},
-    {"id":"07","name":"performance","owner":"chatgpt_vidiq_youtube","requires":["performance","production_cost","production_time"]}
+    {"id":"00","name":"support_router","owner":"chatgpt","requires":["job_id","primary_blocker_evidence","support_scope","return_plan"]},
+    {"id":"01","name":"support_production_or_diagnostic","owner":"jeong_support","requires":["support_spec","output_assets"]},
+    {"id":"02","name":"support_qa","owner":"jeong_support_plus_chatgpt","requires":["qa_state","qa_evidence"]},
+    {"id":"03","name":"recovery_handoff","owner":"chatgpt","requires":["recovery_result","primary_return_state"]}
   ],
-  "status_values": ["READY","PASS","FAIL","BLOCKED","HOLD","REBUILD","FORMAT_DOWNGRADE"],
-  "handoff_required": [
-    "job_id","target_channel","slot_type","benchmark_source","benchmark_evidence","format_dna","current_stage",
-    "input_assets","output_assets","status","failure_reason","next_stage","next_action","human_gate"
-  ],
+  "status_values": ["READY","PASS","FAIL","BLOCKED","HOLD"],
   "rules": {
-    "external_market_first": true,
-    "internal_tournament_required": false,
-    "active_slots_only_for_normal_production": true,
-    "job_created_only_when_market_candidate_matches_lane": true,
-    "visual_proof_required_before_full_render": true,
-    "qa_separate_from_production": true,
-    "technical_and_commercial_qa_both_required": true,
-    "publish_requires_all_qa_pass": true,
-    "publish_success_requires_readback": true,
-    "user_manual_relay_forbidden": true,
-    "production_quota_must_not_lower_quality_gate": true,
-    "daily_zero_publish_is_not_normal": true,
-    "daily_recovery_loop_required_when_no_candidate_passes": true,
-    "daily_minimum_publish_target": 1,
-    "daily_minimum_publish_exception": "EXTERNAL_BLOCKER_OR_NO_SAFE_COMPLIANT_OUTPUT_AFTER_RECOVERY",
-    "same_master_cross_channel_forbidden": true
-  },
-  "recovery_loop": {
-    "trigger": "no_publishable_job_for_day",
-    "sequence": [
-      "rebuild_failed_core_job",
-      "format_downgrade_without_lowering_commercial_quality",
-      "route_new_market_candidate_to_another_active_core_slot",
-      "use_hidden_shift_control_backup_if_it_can_pass_full_gate",
-      "escalate_external_blocker_only_if_all_safe_paths_fail"
-    ],
-    "forbidden": [
-      "lower_commercial_post_gate",
-      "publish_failed_asset",
-      "revive_hold_channel_only_to_fill_quota"
-    ]
-  },
-  "performance_routing": {
-    "weak_market_mechanism":"01_or_02",
-    "good_idea_weak_implementation":"03",
-    "render_or_assembly_failure":"04",
-    "qa_system_failure":"05",
-    "publish_failure":"06",
-    "repeatable_winner":"SCALE",
-    "high_cost_low_return":"HOLD_OR_CHALLENGER_REPLACE"
+    "jeong_is_primary": false,
+    "primary_blocker_required": true,
+    "return_to_hwangje_required": true,
+    "second_canonical_forbidden": true,
+    "user_manual_relay_forbidden": true
   }
 }
