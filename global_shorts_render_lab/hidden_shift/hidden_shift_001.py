@@ -5,8 +5,10 @@ OUT='/tmp/hidden_shift_001'
 os.makedirs(OUT, exist_ok=True)
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scene=bpy.context.scene
-scene.render.engine='BLENDER_EEVEE'
-# QA proof is intentionally cheap; final production render is a later stage.
+# Stage-05 deterministic proof: use a cheap renderer. Viewer-facing final render belongs to Stage 04.
+scene.render.engine='BLENDER_WORKBENCH'
+scene.display.shading.light='STUDIO'
+scene.display.shading.color_type='MATERIAL'
 scene.render.resolution_x=360; scene.render.resolution_y=640; scene.render.resolution_percentage=100
 scene.render.image_settings.file_format='PNG'
 scene.render.fps=30
@@ -37,12 +39,12 @@ center.keyframe_insert('location',frame=150); center.location.x=.78; center.keyf
 bpy.ops.object.camera_add(location=(0,-10.5,5.8)); cam=bpy.context.object; scene.camera=cam
 def track(o,p): o.rotation_euler=(Vector(p)-o.location).to_track_quat('-Z','Y').to_euler()
 track(cam,(0,.1,.55)); cam.data.lens=53
-# lighting
+# lights remain part of the scene definition for final-render parity even though Workbench proof ignores them
 bpy.ops.object.light_add(type='AREA',location=(-3,-4,7)); bpy.context.object.data.energy=950; bpy.context.object.data.shape='DISK'; bpy.context.object.data.size=5
 track(bpy.context.object,(0,0,.5))
 bpy.ops.object.light_add(type='AREA',location=(3,-1,4)); bpy.context.object.data.energy=650; bpy.context.object.data.size=4; track(bpy.context.object,(0,0,.5))
-# render representative before/after frames for automated market-gate proof
+# representative before/after frames for deterministic Stage-05 proof
 for f,label in [(90,'before'),(210,'after')]:
  scene.frame_set(f); scene.render.filepath=f'{OUT}/{label}.png'; bpy.ops.render.render(write_still=True)
-with open(f'{OUT}/result.json','w') as fp: json.dump({'marker':'HIDDEN_SHIFT_001_RENDER_PASS','episode':'hidden_shift_001','mechanism':'single_object_lateral_shift','before_frame':90,'after_frame':210,'camera_locked':True,'intentional_changes':1,'proof_resolution':'360x640'},fp)
+with open(f'{OUT}/result.json','w') as fp: json.dump({'marker':'HIDDEN_SHIFT_001_RENDER_PASS','episode':'hidden_shift_001','mechanism':'single_object_lateral_shift','before_frame':90,'after_frame':210,'camera_locked':True,'intentional_changes':1,'proof_resolution':'360x640','proof_engine':'BLENDER_WORKBENCH'},fp)
 print('HIDDEN_SHIFT_001_RENDER_PASS')
