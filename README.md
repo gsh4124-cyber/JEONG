@@ -1,25 +1,37 @@
-# JEONG repository status
+# JEONG — support / recovery repository
 
-> ACTIVE USE RESTRICTION — 2026-09-25
+> ROLE LOCK — 2026-09-28
 
-This repository is **not** the general workspace for the 황제 Project.
+This repository is **not a primary project owner or default production repository** for the 황제 Project.
 
-Current allowed active use:
-- Global Shorts execution infrastructure only
-- GitHub-hosted Blender/headless render runner
-- Global Shorts QA/render artifacts and supporting scripts
+## Current role
 
-Not allowed here:
-- 황제 Vault canonical documents
-- AI Shopping / Toss Sharelink source ownership
-- Insurance, AI 해결사, philosophy, study, church, or other Project work
-- New general-purpose planning/state/app work
+`gsh4124-cyber/JEONG` is a **support / recovery / fallback repository**.
 
-Canonical ownership:
-- 황제 long-term memory, rules, indexes, project state pointers: `gsh4124-cyber/hwangje-vault`
-- Independent software products: their own dedicated repositories
-- Global Shorts exception execution repo: this `JEONG` repository
+Use it only when:
+1. the primary `gsh4124-cyber/hwangje-vault` GitHub Actions path has a verified blocker,
+2. diagnosis, recovery, or temporary execution support is needed,
+3. the support scope is explicit,
+4. the workflow is intended to return to the 황제 primary path after recovery.
 
-The legacy JEONG application code in Git history is deprecated and must not be treated as a current project owner or default execution path.
+## Primary owner
 
-If a task is not Global Shorts execution infrastructure, stop and route it to the current owner under `hwangje-vault` or the product's dedicated repository.
+- 황제 Canonical + default project execution + default GitHub Actions: `gsh4124-cyber/hwangje-vault`
+- Independent software products: their explicitly assigned dedicated repositories
+
+## Existing assets here
+
+Historical Global Shorts Blender/render/QA/factory assets may be reused as **support and recovery assets**. Their existence or past successful runs do **not** make JEONG the current production source or PRIMARY execution route.
+
+## Prohibited interpretation
+
+Do not treat this repository as:
+- the general 황제 workspace,
+- a Global Shorts primary execution repo,
+- a second Canonical,
+- the default place for new content factories or automation,
+- a reason to bypass hwangje-vault because code already exists here.
+
+Expected route:
+
+`HWANGJE PRIMARY -> VERIFIED BLOCKER -> JEONG SUPPORT -> RECOVERY / PROOF -> RETURN TO HWANGJE PRIMARY`
