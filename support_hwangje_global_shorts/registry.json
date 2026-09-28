@@ -1,0 +1,16 @@
+{
+  "version": 3,
+  "owner_repository": "gsh4124-cyber/hwangje-vault",
+  "channels": [
+    {"profile":"motion-logic-lab","lane":"prediction_physics","slot_type":"CORE","production_eligible":true},
+    {"profile":"loop-foundry","lane":"perfect_loop","slot_type":"CORE","production_eligible":true},
+    {"profile":"oddfactory","lane":"process_transformation","slot_type":"CORE","production_eligible":true},
+    {"profile":"scaleshift","lane":"scale_reversal","slot_type":"CORE","production_eligible":true},
+    {"profile":"dream-rooms","lane":"surreal_space_reveal","slot_type":"PREMIUM_CHALLENGER","production_eligible":true,"replaceable_slot":true},
+    {"profile":"hidden-shift","lane":"visual_change_puzzle","slot_type":"CONTROL_BACKUP","production_eligible":false,"backup_eligible":true},
+    {"profile":"morphmint","lane":"satisfying_transformation","slot_type":"HOLD","production_eligible":false},
+    {"profile":"pip-pock","lane":"visual_comedy","slot_type":"HOLD","production_eligible":false},
+    {"profile":"pocket-crew","lane":"miniature_crew","slot_type":"HOLD","production_eligible":false},
+    {"profile":"inside-odd","lane":"inside_world_reveal","slot_type":"HOLD","production_eligible":false}
+  ]
+}
