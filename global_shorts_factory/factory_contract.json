@@ -1,6 +1,6 @@
 {
   "project": "global_shorts_support",
-  "version": 3,
+  "version": 4,
   "role": "SUPPORT_RECOVERY_FALLBACK_ONLY",
   "primary_repository": "gsh4124-cyber/hwangje-vault",
   "support_repository": "gsh4124-cyber/JEONG",
@@ -13,8 +13,11 @@
   "stages": [
     {"id":"00","name":"support_router","owner":"chatgpt","requires":["job_id","primary_blocker_evidence","support_scope","return_plan"]},
     {"id":"01","name":"support_production_or_diagnostic","owner":"jeong_support","requires":["support_spec","output_assets"]},
-    {"id":"02","name":"support_qa","owner":"jeong_support_plus_chatgpt","requires":["qa_state","qa_evidence"]},
-    {"id":"03","name":"recovery_handoff","owner":"chatgpt","requires":["recovery_result","primary_return_state"]}
+    {"id":"02","name":"artifact_technical_qa","owner":"jeong_support_plus_chatgpt","requires":["actual_output_opened","technical_qa_state","technical_qa_evidence"]},
+    {"id":"03","name":"artifact_commercial_qa","owner":"chatgpt","requires":["actual_output_opened","first_frame_review","instant_comprehension_review","visual_finish_review","motion_review","payoff_review","cheap_procedural_check","commercial_qa_state","commercial_qa_evidence"]},
+    {"id":"04","name":"internal_rework_loop","owner":"chatgpt","requires":["fail_reason_or_pass","rebuild_or_format_downgrade_or_next_core_or_hidden_shift"]},
+    {"id":"05","name":"submission_gate","owner":"chatgpt","requires":["technical_qa_pass","commercial_qa_pass","user_facing_submission_allowed"]},
+    {"id":"06","name":"recovery_handoff","owner":"chatgpt","requires":["recovery_result","primary_return_state"]}
   ],
   "status_values": ["READY","PASS","FAIL","BLOCKED","HOLD"],
   "rules": {
@@ -22,6 +25,12 @@
     "primary_blocker_required": true,
     "return_to_hwangje_required": true,
     "second_canonical_forbidden": true,
-    "user_manual_relay_forbidden": true
+    "user_manual_relay_forbidden": true,
+    "technical_pass_is_not_commercial_pass": true,
+    "actual_artifact_inspection_required": true,
+    "commercial_qa_required_before_user_submission": true,
+    "failed_intermediate_artifact_must_not_be_submitted_to_user": true,
+    "self_report_without_artifact_evidence_forbidden": true,
+    "submission_requires_both_qa_pass": true
   }
 }
