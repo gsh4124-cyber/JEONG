@@ -29,6 +29,12 @@ def main() -> None:
         "return_to_hwangje_required",
         "second_canonical_forbidden",
         "user_manual_relay_forbidden",
+        "technical_pass_is_not_commercial_pass",
+        "actual_artifact_inspection_required",
+        "commercial_qa_required_before_user_submission",
+        "failed_intermediate_artifact_must_not_be_submitted_to_user",
+        "self_report_without_artifact_evidence_forbidden",
+        "submission_requires_both_qa_pass",
     ]
     for key in required_true:
         if rules.get(key) is not True:
@@ -45,14 +51,37 @@ def main() -> None:
     if missing:
         fail(f"activation requirements missing: {missing}")
 
-    ids = [stage.get("id") for stage in data.get("stages", [])]
-    if ids != ["00", "01", "02", "03"]:
+    stages = data.get("stages", [])
+    ids = [stage.get("id") for stage in stages]
+    if ids != ["00", "01", "02", "03", "04", "05", "06"]:
         fail(f"support stage order mismatch: {ids}")
+
+    by_id = {stage["id"]: stage for stage in stages}
+    commercial_required = set(by_id["03"].get("requires", []))
+    must_have = {
+        "actual_output_opened",
+        "first_frame_review",
+        "instant_comprehension_review",
+        "visual_finish_review",
+        "motion_review",
+        "payoff_review",
+        "cheap_procedural_check",
+        "commercial_qa_state",
+        "commercial_qa_evidence",
+    }
+    missing_commercial = sorted(must_have - commercial_required)
+    if missing_commercial:
+        fail(f"commercial QA evidence missing: {missing_commercial}")
+
+    submission_required = set(by_id["05"].get("requires", []))
+    if not {"technical_qa_pass", "commercial_qa_pass"}.issubset(submission_required):
+        fail("submission gate must require BOTH technical and commercial PASS")
 
     print("SUPPORT_CONTRACT_PASS")
     print("primary=gsh4124-cyber/hwangje-vault")
     print("support=gsh4124-cyber/JEONG")
-    print("route=HWANGJE_PRIMARY>VERIFIED_BLOCKER>JEONG_SUPPORT>RETURN_TO_HWANGJE")
+    print("qa=ACTUAL_ARTIFACT>TECHNICAL_QA>COMMERCIAL_QA>INTERNAL_REWORK>SUBMISSION")
+    print("submission=BOTH_QA_PASS_ONLY")
 
 
 if __name__ == "__main__":
