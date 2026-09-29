@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "purpose": "commercial_visual_proof_before_full_video",
+  "core_slots": [
+    {"id":"motion_logic","proof":"one instantly legible physical cause produces a surprising but coherent motion result"},
+    {"id":"loop_foundry","proof":"end state visually reconnects to opening state without an obvious edit dependency"},
+    {"id":"odd_factory","proof":"one familiar object performs one impossible but visually clean manufacturing transformation"},
+    {"id":"scaleshift","proof":"one familiar object reveals an unmistakable scale contradiction in a single composition"}
+  ],
+  "proof_requirements": {
+    "aspect_ratio":"9:16",
+    "duration_seconds_max":2.5,
+    "first_frame_must_work_without_caption":true,
+    "single_visual_idea_only":true,
+    "no_full_episode_before_proof_pass":true,
+    "no_failed_proof_user_submission":true
+  },
+  "commercial_qa": {
+    "first_frame_hook_min":8,
+    "instant_comprehension_min":8,
+    "visual_finish_min":8,
+    "motion_or_reveal_min":8,
+    "payoff_min":8,
+    "cheap_procedural_feel_max":2,
+    "overall_min":8.0,
+    "hard_fail":["looks_like_3d_software_demo","generic_primitives_as_final_art","unclear_subject","weak_or_missing_payoff","visible_render_or_compositing_defect"]
+  },
+  "recovery_order":["REBUILD","FORMAT_DOWNGRADE","NEXT_CORE","HIDDEN_SHIFT"]
+}
