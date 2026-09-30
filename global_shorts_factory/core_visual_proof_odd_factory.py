@@ -11,12 +11,15 @@ sc.render.resolution_x=540; sc.render.resolution_y=960; sc.render.resolution_per
 sc.render.fps=24; sc.frame_start=1; sc.frame_end=60
 sc.render.image_settings.file_format='PNG'
 sc.render.film_transparent=False
+# read_factory_settings(use_empty=True) can leave scene.world unset on headless Blender.
+if sc.world is None:
+    sc.world=bpy.data.worlds.new('OddFactoryWorld')
 sc.world.color=(0.003,0.005,0.012)
 
 # color management
 try:
     sc.view_settings.look='AgX - Medium High Contrast'
-except TypeError:
+except (TypeError, ValueError):
     pass
 
 def mat(name, base, metallic=0.0, rough=.35, emission=None, strength=0):
