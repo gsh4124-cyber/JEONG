@@ -19,27 +19,43 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install headless runtime
         run: |
+          set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y libegl1 libgl1 libxrender1 libxi6 libxkbcommon0 libxfixes3 libxxf86vm1
+          sudo apt-get install -y libegl1 libgl1 libxrender1 libxi6 libxkbcommon0 libxfixes3 libxxf86vm1 ffmpeg
       - name: Download Blender 5.2.2
         run: |
+          set -euo pipefail
           mkdir -p .cache/blender
           curl -L --fail --retry 3 -o .cache/blender/blender.tar.xz https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
           tar -xf .cache/blender/blender.tar.xz -C .cache/blender
-      - name: Render 2.5s 9:16 Visual Proof
+      - name: Render 2.5s 9:16 Visual Proof frames
         env:
           EGL_PLATFORM: surfaceless
-        run: .cache/blender/blender-5.2.2-linux-x64/blender --background --factory-startup --python global_shorts_factory/core_visual_proof_odd_factory.py
+        run: |
+          set -euo pipefail
+          .cache/blender/blender-5.2.2-linux-x64/blender --background --factory-startup --python global_shorts_factory/core_visual_proof_odd_factory.py
+          grep -q ODD_FACTORY_VISUAL_PROOF_FRAMES_RENDERED /tmp/core_visual_proof_odd_factory/result.txt
+      - name: Encode proof MP4
+        run: |
+          set -euo pipefail
+          ffmpeg -hide_banner -loglevel error -y -framerate 24 -i /tmp/core_visual_proof_odd_factory/frames/frame_%04d.png -c:v libx264 -pix_fmt yuv420p -movflags +faststart /tmp/core_visual_proof_odd_factory/odd_factory_visual_proof.mp4
       - name: Technical proof precheck
         run: |
+          set -euo pipefail
           test -s /tmp/core_visual_proof_odd_factory/odd_factory_visual_proof.mp4
           test -s /tmp/core_visual_proof_odd_factory/frame_001_hook.png
           test -s /tmp/core_visual_proof_odd_factory/frame_032_reveal.png
           test -s /tmp/core_visual_proof_odd_factory/frame_060_payoff.png
-          grep -q ODD_FACTORY_VISUAL_PROOF_RENDERED /tmp/core_visual_proof_odd_factory/result.txt
+          test "$(find /tmp/core_visual_proof_odd_factory/frames -maxdepth 1 -name 'frame_*.png' -size +0c | wc -l)" -eq 60
+          ffprobe -v error -select_streams v:0 -show_entries stream=width,height,r_frame_rate,nb_frames -of default=nw=1 /tmp/core_visual_proof_odd_factory/odd_factory_visual_proof.mp4
       - name: Upload proof for artifact-level QA
         uses: actions/upload-artifact@v4
         with:
           name: odd-factory-visual-proof
-          path: /tmp/core_visual_proof_odd_factory/
+          path: |
+            /tmp/core_visual_proof_odd_factory/odd_factory_visual_proof.mp4
+            /tmp/core_visual_proof_odd_factory/frame_001_hook.png
+            /tmp/core_visual_proof_odd_factory/frame_032_reveal.png
+            /tmp/core_visual_proof_odd_factory/frame_060_payoff.png
+            /tmp/core_visual_proof_odd_factory/result.txt
           retention-days: 3
