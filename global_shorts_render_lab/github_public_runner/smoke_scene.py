@@ -1,6 +1,6 @@
 import bpy, pathlib, json, mathutils
 
-OUT=pathlib.Path("render_output/jeong_public_smoke")
+OUT=pathlib.Path("render_output/actions_public_smoke")
 OUT.mkdir(parents=True, exist_ok=True)
 
 bpy.ops.object.select_all(action='SELECT')
@@ -8,7 +8,7 @@ bpy.ops.object.delete(use_global=False)
 
 bpy.ops.mesh.primitive_uv_sphere_add(segments=48, ring_count=24, radius=1.0)
 obj=bpy.context.object
-mat=bpy.data.materials.new("JEONG_Smoke_Material")
+mat=bpy.data.materials.new("ACTIONS_Smoke_Material")
 mat.use_nodes=True
 bsdf=mat.node_tree.nodes.get("Principled BSDF")
 bsdf.inputs["Base Color"].default_value=(0.08,0.30,0.90,1)
@@ -31,11 +31,11 @@ scene.render.resolution_x=256
 scene.render.resolution_y=256
 scene.render.resolution_percentage=100
 scene.render.image_settings.file_format='PNG'
-scene.render.filepath=str(OUT/"jeong_public_blender_smoke.png")
+scene.render.filepath=str(OUT/"actions_public_blender_smoke.png")
 
 bpy.ops.render.render(write_still=True)
 (OUT/"result.json").write_text(json.dumps({
-  "marker":"JEONG_PUBLIC_BLENDER_SMOKE_PASS",
+  "marker":"ACTIONS_PUBLIC_BLENDER_SMOKE_PASS",
   "engine":scene.render.engine
 },indent=2),encoding="utf-8")
-print("JEONG_PUBLIC_BLENDER_SMOKE_PASS")
+print("ACTIONS_PUBLIC_BLENDER_SMOKE_PASS")
