@@ -1,58 +1,40 @@
-import bpy, math, os
+import bpy, math, os, shutil
 from mathutils import Vector
-
-OUT='/tmp/core_visual_proof_odd_factory'
-FRAMES=OUT+'/frames'
-os.makedirs(FRAMES, exist_ok=True)
+OUT='/tmp/core_visual_proof_odd_factory'; FRAMES=OUT+'/frames'; os.makedirs(FRAMES,exist_ok=True)
 bpy.ops.wm.read_factory_settings(use_empty=True)
-sc=bpy.context.scene
-sc.render.engine='BLENDER_EEVEE'
-sc.render.resolution_x=540; sc.render.resolution_y=960; sc.render.resolution_percentage=100
-sc.render.fps=24; sc.frame_start=1; sc.frame_end=60
-sc.render.image_settings.file_format='PNG'
-sc.render.film_transparent=False
-if sc.world is None:
-    sc.world=bpy.data.worlds.new('OddFactoryWorld')
-sc.world.color=(0.003,0.005,0.012)
+sc=bpy.context.scene; sc.render.engine='BLENDER_EEVEE'; sc.render.resolution_x=360; sc.render.resolution_y=640; sc.render.resolution_percentage=100
+sc.render.fps=12; sc.frame_start=1; sc.frame_end=30; sc.render.image_settings.file_format='PNG'; sc.render.film_transparent=False
+sc.world=bpy.data.worlds.new('World'); sc.world.color=(0.006,0.008,0.015)
 try: sc.view_settings.look='AgX - Medium High Contrast'
-except (TypeError, ValueError): pass
+except: pass
 
-def mat(name, base, metallic=0.0, rough=.35, emission=None, strength=0):
-    m=bpy.data.materials.new(name); m.diffuse_color=(*base,1); m.use_nodes=True
-    bs=m.node_tree.nodes.get('Principled BSDF')
-    bs.inputs['Base Color'].default_value=(*base,1); bs.inputs['Metallic'].default_value=metallic; bs.inputs['Roughness'].default_value=rough
-    if emission:
-        if 'Emission Color' in bs.inputs: bs.inputs['Emission Color'].default_value=(*emission,1)
-        elif 'Emission' in bs.inputs: bs.inputs['Emission'].default_value=(*emission,1)
-        if 'Emission Strength' in bs.inputs: bs.inputs['Emission Strength'].default_value=strength
-    return m
-
-gold=mat('warm machined gold',(0.34,0.12,0.018),.92,.18); black=mat('obsidian metal',(0.008,0.012,0.018),.8,.2)
-cyan=mat('cyan energy',(0.005,0.16,0.22),.25,.18,(0.01,0.75,1.0),7); crystal=mat('crystal',(0.05,0.16,0.20),.1,.08,(0.02,0.3,0.42),1.5); white=mat('pearl',(0.72,0.82,0.88),.55,.14)
-bpy.ops.mesh.primitive_cylinder_add(vertices=96, radius=4.3, depth=.22, location=(0,0,-.35)); dais=bpy.context.object; dais.data.materials.append(black); bev=dais.modifiers.new('soft bevel','BEVEL'); bev.width=.16; bev.segments=4
-for z,r,minor in [(1.0,2.25,.16),(1.0,1.82,.08)]:
-    bpy.ops.mesh.primitive_torus_add(major_radius=r, minor_radius=minor, major_segments=96, minor_segments=16, location=(0,0,z), rotation=(math.pi/2,0,0)); bpy.context.object.data.materials.append(gold if r>2 else cyan)
-for x in (-2.55,2.55):
-    bpy.ops.mesh.primitive_cube_add(location=(x,.2,.8), scale=(.24,.34,2.0)); p=bpy.context.object; p.data.materials.append(black); b=p.modifiers.new('architectural bevel','BEVEL'); b.width=.18; b.segments=5
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=48, ring_count=24, radius=.22, location=(x,-.18,2.25)); s=bpy.context.object; s.scale=(1,.45,1.8); s.data.materials.append(cyan)
-for x in (-1.15,1.15):
-    bpy.ops.mesh.primitive_torus_add(major_radius=.55,minor_radius=.07,major_segments=64,minor_segments=12,location=(x,0,-.05),rotation=(math.pi/2,0,0)); bpy.context.object.data.materials.append(gold)
-bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=3,radius=.72,location=(0,0,.95)); seed=bpy.context.object; seed.scale=(.72,.72,1.28); seed.data.materials.append(crystal); seed.rotation_euler=(0,.2,0); seed.keyframe_insert('scale',frame=1); seed.keyframe_insert('rotation_euler',frame=1); seed.scale=(.56,.56,.98); seed.rotation_euler=(0,.2,math.pi*.55); seed.keyframe_insert('scale',frame=28); seed.keyframe_insert('rotation_euler',frame=28); seed.scale=(.08,.08,.12); seed.rotation_euler=(0,.2,math.pi); seed.keyframe_insert('scale',frame=39); seed.keyframe_insert('rotation_euler',frame=39)
-for i in range(12):
-    a=2*math.pi*i/12; verts=[(0,0,0),(.22,0,.18),(0,0,1.55),(-.22,0,.18),(0,.10,.55),(0,-.10,.55)]; faces=[(0,1,4),(0,4,3),(0,3,5),(0,5,1),(1,2,4),(4,2,3),(3,2,5),(5,2,1)]; me=bpy.data.meshes.new('petalmesh'); me.from_pydata(verts,[],faces); me.update(); o=bpy.data.objects.new('petal',me); bpy.context.collection.objects.link(o); o.data.materials.append(gold if i%2==0 else white); o.location=(0,0,.55); o.rotation_euler=(0,math.radians(58),a); o.scale=(.01,.01,.01); o.keyframe_insert('scale',frame=34); o.scale=(1,1,1); o.keyframe_insert('scale',frame=49); o.rotation_euler=(0,math.radians(72),a+.16); o.keyframe_insert('rotation_euler',frame=49)
-bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=4,radius=.36,location=(0,0,.72)); core=bpy.context.object; core.data.materials.append(cyan); core.scale=(.05,.05,.05); core.keyframe_insert('scale',frame=34); core.scale=(1,1,1); core.keyframe_insert('scale',frame=46)
-bpy.ops.mesh.primitive_torus_add(major_radius=.78,minor_radius=.045,major_segments=64,minor_segments=10,location=(0,0,.8),rotation=(math.pi/2,0,0)); sweep=bpy.context.object; sweep.data.materials.append(cyan); sweep.scale=(.2,.2,.2); sweep.keyframe_insert('scale',frame=25); sweep.scale=(2.6,2.6,2.6); sweep.keyframe_insert('scale',frame=42)
-bpy.ops.object.camera_add(location=(0,-9.6,3.3)); cam=bpy.context.object; sc.camera=cam
-def track(obj,pt): obj.rotation_euler=(Vector(pt)-obj.location).to_track_quat('-Z','Y').to_euler()
-track(cam,(0,0,.9)); cam.data.lens=58; cam.keyframe_insert('location',frame=1); cam.location=(0,-8.7,3.0); cam.keyframe_insert('location',frame=60)
-for typ,loc,energy,color,size in [('AREA',(0,-4,5),1150,(1,1,1),5),('AREA',(4,-1,2.6),850,(0.1,.55,1),3),('AREA',(-4,-.5,1.8),700,(1,.28,.05),2.5)]:
-    bpy.ops.object.light_add(type=typ,location=loc); l=bpy.context.object; l.data.energy=energy; l.data.color=color; l.data.size=size; track(l,(0,0,.8))
-# Blender 5.2 no longer exposes FFMPEG as an image_settings file format in this runner.
-# Render lossless frames here; workflow encodes them with system ffmpeg and fails hard on any renderer error.
-sc.render.image_settings.file_format='PNG'; sc.render.filepath=FRAMES+'/frame_'; bpy.ops.render.render(animation=True)
-for f,name in [(1,'frame_001_hook.png'),(32,'frame_032_reveal.png'),(60,'frame_060_payoff.png')]:
-    src=f'{FRAMES}/frame_{f:04d}.png'; dst=OUT+'/'+name
-    if not os.path.isfile(src) or os.path.getsize(src)==0: raise RuntimeError('missing rendered proof frame '+src)
-    import shutil; shutil.copy2(src,dst)
-with open(OUT+'/result.txt','w') as fh: fh.write('ODD_FACTORY_VISUAL_PROOF_FRAMES_RENDERED\n60 frames\n540x960\n24fps\n2.5s\n')
+def mat(name,c,metal=0,rough=.35,emit=None,strength=0):
+ m=bpy.data.materials.new(name); m.use_nodes=True; b=m.node_tree.nodes.get('Principled BSDF'); b.inputs['Base Color'].default_value=(*c,1); b.inputs['Metallic'].default_value=metal; b.inputs['Roughness'].default_value=rough
+ if emit:
+  if 'Emission Color' in b.inputs: b.inputs['Emission Color'].default_value=(*emit,1)
+  if 'Emission Strength' in b.inputs: b.inputs['Emission Strength'].default_value=strength
+ return m
+black=mat('black',(0.012,.016,.024),.7,.22); gold=mat('gold',(.42,.16,.025),.9,.18); cyan=mat('cyan',(.01,.25,.38),.2,.2,(.02,.75,1),5); red=mat('apple',(.5,.018,.012),.15,.22); pearl=mat('pearl',(.72,.82,.9),.45,.18)
+def track(o,p): o.rotation_euler=(Vector(p)-o.location).to_track_quat('-Z','Y').to_euler()
+bpy.ops.mesh.primitive_cylinder_add(vertices=48,radius=3.5,depth=.28,location=(0,0,-.45)); bpy.context.object.data.materials.append(black)
+for x in (-2.15,2.15):
+ bpy.ops.mesh.primitive_cube_add(location=(x,.15,.85),scale=(.22,.42,1.65)); o=bpy.context.object; o.data.materials.append(black); be=o.modifiers.new('bevel','BEVEL'); be.width=.15; be.segments=3
+bpy.ops.mesh.primitive_torus_add(major_radius=1.55,minor_radius=.18,major_segments=48,minor_segments=10,location=(0,0,.9),rotation=(math.pi/2,0,0)); bpy.context.object.data.materials.append(gold)
+bpy.ops.mesh.primitive_torus_add(major_radius=1.22,minor_radius=.055,major_segments=48,minor_segments=8,location=(0,-.03,.9),rotation=(math.pi/2,0,0)); bpy.context.object.data.materials.append(cyan)
+bpy.ops.mesh.primitive_uv_sphere_add(segments=32,ring_count=16,radius=.62,location=(0,0,.92)); apple=bpy.context.object; apple.scale=(1,.88,.92); apple.data.materials.append(red); apple.keyframe_insert('scale',frame=1); apple.scale=(.78,.68,.72); apple.keyframe_insert('scale',frame=13)
+bpy.ops.mesh.primitive_cylinder_add(vertices=12,radius=.07,depth=.38,location=(0,0,1.55)); stem=bpy.context.object; stem.data.materials.append(gold); stem.keyframe_insert('scale',frame=1); stem.scale=(.1,.1,.1); stem.keyframe_insert('scale',frame=15)
+for i in range(8):
+ a=2*math.pi*i/8; bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1,radius=.42,location=(.62*math.cos(a),0,.92+.62*math.sin(a))); p=bpy.context.object; p.scale=(.72,.28,1.35); p.rotation_euler[1]=a; p.data.materials.append(gold if i%2==0 else pearl); p.scale=(.01,.01,.01); p.keyframe_insert('scale',frame=12); p.scale=(.72,.28,1.35); p.keyframe_insert('scale',frame=23)
+bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2,radius=.36,location=(0,-.03,.92)); core=bpy.context.object; core.data.materials.append(cyan); core.scale=(.01,.01,.01); core.keyframe_insert('scale',frame=12); core.scale=(1,1,1); core.keyframe_insert('scale',frame=21)
+apple.scale=(.05,.05,.05); apple.keyframe_insert('scale',frame=18)
+bpy.ops.mesh.primitive_torus_add(major_radius=.72,minor_radius=.04,major_segments=36,minor_segments=8,location=(0,-.08,.92),rotation=(math.pi/2,0,0)); sw=bpy.context.object; sw.data.materials.append(cyan); sw.scale=(.2,.2,.2); sw.keyframe_insert('scale',frame=10); sw.scale=(2.2,2.2,2.2); sw.keyframe_insert('scale',frame=19)
+bpy.ops.object.camera_add(location=(0,-8.2,2.8)); cam=bpy.context.object; sc.camera=cam; cam.data.lens=58; track(cam,(0,0,.85)); cam.keyframe_insert('location',frame=1); cam.location=(0,-7.6,2.6); cam.keyframe_insert('location',frame=30)
+for loc,energy,color,size in [((0,-4,5),900,(1,1,1),4),((3,-2,2.5),650,(.08,.5,1),2.5),((-3,-1,2),500,(1,.24,.05),2)]:
+ bpy.ops.object.light_add(type='AREA',location=loc); l=bpy.context.object; l.data.energy=energy; l.data.color=color; l.data.shape='DISK'; l.data.size=size; track(l,(0,0,.8))
+sc.render.filepath=FRAMES+'/frame_'; bpy.ops.render.render(animation=True)
+for f,name in [(1,'frame_001_hook.png'),(16,'frame_016_reveal.png'),(30,'frame_030_payoff.png')]:
+ src=f'{FRAMES}/frame_{f:04d}.png'; dst=OUT+'/'+name
+ if not os.path.isfile(src) or os.path.getsize(src)==0: raise RuntimeError('missing '+src)
+ shutil.copy2(src,dst)
+with open(OUT+'/result.txt','w') as fh: fh.write('ODD_FACTORY_VISUAL_PROOF_FRAMES_RENDERED\n30 frames\n360x640\n12fps\n2.5s\n')
 print('ODD_FACTORY_VISUAL_PROOF_FRAMES_RENDERED')
