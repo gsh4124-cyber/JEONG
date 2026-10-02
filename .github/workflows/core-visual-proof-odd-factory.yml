@@ -14,7 +14,7 @@ permissions:
 jobs:
   render-proof:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - name: Install headless runtime
@@ -38,15 +38,15 @@ jobs:
       - name: Encode proof MP4
         run: |
           set -euo pipefail
-          ffmpeg -hide_banner -loglevel error -y -framerate 24 -i /tmp/core_visual_proof_odd_factory/frames/frame_%04d.png -c:v libx264 -pix_fmt yuv420p -movflags +faststart /tmp/core_visual_proof_odd_factory/odd_factory_visual_proof.mp4
+          ffmpeg -hide_banner -loglevel error -y -framerate 12 -i /tmp/core_visual_proof_odd_factory/frames/frame_%04d.png -c:v libx264 -pix_fmt yuv420p -movflags +faststart /tmp/core_visual_proof_odd_factory/odd_factory_visual_proof.mp4
       - name: Technical proof precheck
         run: |
           set -euo pipefail
           test -s /tmp/core_visual_proof_odd_factory/odd_factory_visual_proof.mp4
           test -s /tmp/core_visual_proof_odd_factory/frame_001_hook.png
-          test -s /tmp/core_visual_proof_odd_factory/frame_032_reveal.png
-          test -s /tmp/core_visual_proof_odd_factory/frame_060_payoff.png
-          test "$(find /tmp/core_visual_proof_odd_factory/frames -maxdepth 1 -name 'frame_*.png' -size +0c | wc -l)" -eq 60
+          test -s /tmp/core_visual_proof_odd_factory/frame_016_reveal.png
+          test -s /tmp/core_visual_proof_odd_factory/frame_030_payoff.png
+          test "$(find /tmp/core_visual_proof_odd_factory/frames -maxdepth 1 -name 'frame_*.png' -size +0c | wc -l)" -eq 30
           ffprobe -v error -select_streams v:0 -show_entries stream=width,height,r_frame_rate,nb_frames -of default=nw=1 /tmp/core_visual_proof_odd_factory/odd_factory_visual_proof.mp4
       - name: Upload proof for artifact-level QA
         uses: actions/upload-artifact@v4
@@ -55,7 +55,7 @@ jobs:
           path: |
             /tmp/core_visual_proof_odd_factory/odd_factory_visual_proof.mp4
             /tmp/core_visual_proof_odd_factory/frame_001_hook.png
-            /tmp/core_visual_proof_odd_factory/frame_032_reveal.png
-            /tmp/core_visual_proof_odd_factory/frame_060_payoff.png
+            /tmp/core_visual_proof_odd_factory/frame_016_reveal.png
+            /tmp/core_visual_proof_odd_factory/frame_030_payoff.png
             /tmp/core_visual_proof_odd_factory/result.txt
           retention-days: 3
