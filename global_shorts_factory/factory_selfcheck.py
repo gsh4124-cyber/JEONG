@@ -14,15 +14,15 @@ def main() -> None:
     data = json.loads(CONTRACT.read_text(encoding="utf-8"))
 
     if data.get("role") != "SUPPORT_RECOVERY_FALLBACK_ONLY":
-        fail("JEONG role must stay support/recovery/fallback only")
+        fail("actions role must stay support/recovery/fallback only")
     if data.get("primary_repository") != "gsh4124-cyber/hwangje-vault":
         fail("primary repository must be hwangje-vault")
-    if data.get("support_repository") != "gsh4124-cyber/JEONG":
+    if data.get("support_repository") != "gsh4124-cyber/actions":
         fail("support repository mismatch")
 
     rules = data.get("rules", {})
-    if rules.get("jeong_is_primary") is not False:
-        fail("JEONG must never self-declare primary")
+    if rules.get("actions_is_primary") is not False:
+        fail("actions must never self-declare primary")
 
     required_true = [
         "primary_blocker_required",
@@ -79,7 +79,7 @@ def main() -> None:
 
     print("SUPPORT_CONTRACT_PASS")
     print("primary=gsh4124-cyber/hwangje-vault")
-    print("support=gsh4124-cyber/JEONG")
+    print("support=gsh4124-cyber/actions")
     print("qa=ACTUAL_ARTIFACT>TECHNICAL_QA>COMMERCIAL_QA>INTERNAL_REWORK>SUBMISSION")
     print("submission=BOTH_QA_PASS_ONLY")
 
