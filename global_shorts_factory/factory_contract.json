@@ -1,9 +1,9 @@
 {
   "project": "global_shorts_support",
-  "version": 4,
+  "version": 5,
   "role": "SUPPORT_RECOVERY_FALLBACK_ONLY",
   "primary_repository": "gsh4124-cyber/hwangje-vault",
-  "support_repository": "gsh4124-cyber/JEONG",
+  "support_repository": "gsh4124-cyber/actions",
   "activation_requires": [
     "verified_primary_actions_blocker",
     "explicit_support_scope",
@@ -12,8 +12,8 @@
   ],
   "stages": [
     {"id":"00","name":"support_router","owner":"chatgpt","requires":["job_id","primary_blocker_evidence","support_scope","return_plan"]},
-    {"id":"01","name":"support_production_or_diagnostic","owner":"jeong_support","requires":["support_spec","output_assets"]},
-    {"id":"02","name":"artifact_technical_qa","owner":"jeong_support_plus_chatgpt","requires":["actual_output_opened","technical_qa_state","technical_qa_evidence"]},
+    {"id":"01","name":"support_production_or_diagnostic","owner":"actions_support","requires":["support_spec","output_assets"]},
+    {"id":"02","name":"artifact_technical_qa","owner":"actions_support_plus_chatgpt","requires":["actual_output_opened","technical_qa_state","technical_qa_evidence"]},
     {"id":"03","name":"artifact_commercial_qa","owner":"chatgpt","requires":["actual_output_opened","first_frame_review","instant_comprehension_review","visual_finish_review","motion_review","payoff_review","cheap_procedural_check","commercial_qa_state","commercial_qa_evidence"]},
     {"id":"04","name":"internal_rework_loop","owner":"chatgpt","requires":["fail_reason_or_pass","rebuild_or_format_downgrade_or_next_core_or_hidden_shift"]},
     {"id":"05","name":"submission_gate","owner":"chatgpt","requires":["technical_qa_pass","commercial_qa_pass","user_facing_submission_allowed"]},
@@ -21,7 +21,7 @@
   ],
   "status_values": ["READY","PASS","FAIL","BLOCKED","HOLD"],
   "rules": {
-    "jeong_is_primary": false,
+    "actions_is_primary": false,
     "primary_blocker_required": true,
     "return_to_hwangje_required": true,
     "second_canonical_forbidden": true,
