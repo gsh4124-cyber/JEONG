@@ -13,7 +13,7 @@ permissions:
 jobs:
   validate-harness:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - name: Preserve support contract
@@ -27,7 +27,7 @@ jobs:
             global_shorts_factory/harness_v1/examples/odd_one_out_001.json \
             --out /tmp/harness_v1/scene_plan.json
           test -s /tmp/harness_v1/scene_plan.json
-      - name: Install proof renderer dependency
+      - name: Install renderer dependency
         run: python -m pip install --disable-pip-version-check pillow==11.3.0
       - name: Render L1 three-keyframe Visual Proof
         run: |
@@ -35,10 +35,37 @@ jobs:
             global_shorts_factory/harness_v1/examples/odd_one_out_001.json \
             --out /tmp/harness_v1/proof
           test -s /tmp/harness_v1/proof/contact_sheet.png
-          test -s /tmp/harness_v1/proof/proof_manifest.json
-      - name: Upload scene plan and Visual Proof
+      - name: Render full Odd One Out episode
+        run: |
+          python global_shorts_factory/harness_v1/full_renderer.py \
+            global_shorts_factory/harness_v1/examples/odd_one_out_001.json \
+            --out /tmp/harness_v1/render
+          ffmpeg -hide_banner -loglevel error -y \
+            -framerate 15 -i /tmp/harness_v1/render/frames/frame_%04d.png \
+            -i /tmp/harness_v1/render/audio.wav \
+            -c:v libx264 -pix_fmt yuv420p -profile:v high -level 4.0 \
+            -c:a aac -b:a 128k -shortest -movflags +faststart \
+            /tmp/harness_v1/render/final.mp4
+          ffprobe -v error -select_streams v:0 \
+            -show_entries stream=width,height,r_frame_rate -of json \
+            /tmp/harness_v1/render/final.mp4 > /tmp/harness_v1/render/technical_video.json
+          ffprobe -v error -show_entries format=duration,size -of json \
+            /tmp/harness_v1/render/final.mp4 > /tmp/harness_v1/render/technical_format.json
+          ffmpeg -hide_banner -loglevel error -y -i /tmp/harness_v1/render/final.mp4 \
+            -vf "select='eq(n,0)+eq(n,15)+eq(n,75)+eq(n,96)+eq(n,126)',scale=180:320,tile=5x1" \
+            -frames:v 1 /tmp/harness_v1/render/review_sheet.jpg
+          test -s /tmp/harness_v1/render/final.mp4
+          test -s /tmp/harness_v1/render/review_sheet.jpg
+      - name: Upload scene plan, Visual Proof, and full render
         uses: actions/upload-artifact@v4
         with:
-          name: global-shorts-harness-v1-proof
-          path: /tmp/harness_v1
+          name: global-shorts-harness-v1-full-render
+          path: |
+            /tmp/harness_v1/scene_plan.json
+            /tmp/harness_v1/proof
+            /tmp/harness_v1/render/final.mp4
+            /tmp/harness_v1/render/review_sheet.jpg
+            /tmp/harness_v1/render/render_manifest.json
+            /tmp/harness_v1/render/technical_video.json
+            /tmp/harness_v1/render/technical_format.json
           retention-days: 3
