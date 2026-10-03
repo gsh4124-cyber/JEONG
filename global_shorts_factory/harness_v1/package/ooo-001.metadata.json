@@ -1,0 +1,38 @@
+{
+  "schema_version": "1.0",
+  "episode_id": "OOO-001",
+  "format": "odd_one_out",
+  "channel_slot": "odd-factory",
+  "publish_target": "2026-10-03T22:00:00+09:00",
+  "filename": "OOO-001_odd-factory_2026-10-03.mp4",
+  "title": "Find the Odd One Out Before Time’s Up 👀 #Shorts",
+  "description": "One shape is different. Can you spot it before the reveal?\n\n#OddOneOut #Puzzle #BrainTeaser",
+  "tags": [
+    "odd one out",
+    "visual puzzle",
+    "brain teaser",
+    "spot the difference",
+    "shorts"
+  ],
+  "language": "zxx",
+  "source": {
+    "repository": "gsh4124-cyber/actions",
+    "commit": "7277325038d78ae9b32a9e25e6310e6707fdb2ba",
+    "workflow_run_id": 37115392508,
+    "artifact_id": 11271053059,
+    "artifact_digest": "sha256:8d951343053c9179e71a4eb2afc52d3b0aea6cbbc8a46d50d30022a956eae2c5",
+    "render_sha256": "d2db4c39710d1cccbad3e3b1c8efb69508d39311df769642da581bdcc5d91f34"
+  },
+  "gates": {
+    "proof_qa": "PASS",
+    "technical_qa": "PASS",
+    "commercial_qa": "PASS",
+    "publish_not_before": "2026-10-03T22:00:00+09:00",
+    "duplicate_scan_required": true,
+    "success_requires": [
+      "post_id",
+      "permalink",
+      "public_readback"
+    ]
+  }
+}
