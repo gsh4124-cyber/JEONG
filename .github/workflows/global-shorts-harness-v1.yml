@@ -13,7 +13,7 @@ permissions:
 jobs:
   validate-harness:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - name: Preserve support contract
@@ -27,9 +27,18 @@ jobs:
             global_shorts_factory/harness_v1/examples/odd_one_out_001.json \
             --out /tmp/harness_v1/scene_plan.json
           test -s /tmp/harness_v1/scene_plan.json
-      - name: Upload scene plan proof
+      - name: Install proof renderer dependency
+        run: python -m pip install --disable-pip-version-check pillow==11.3.0
+      - name: Render L1 three-keyframe Visual Proof
+        run: |
+          python global_shorts_factory/harness_v1/proof_renderer.py \
+            global_shorts_factory/harness_v1/examples/odd_one_out_001.json \
+            --out /tmp/harness_v1/proof
+          test -s /tmp/harness_v1/proof/contact_sheet.png
+          test -s /tmp/harness_v1/proof/proof_manifest.json
+      - name: Upload scene plan and Visual Proof
         uses: actions/upload-artifact@v4
         with:
-          name: global-shorts-harness-v1-plan
-          path: /tmp/harness_v1/scene_plan.json
+          name: global-shorts-harness-v1-proof
+          path: /tmp/harness_v1
           retention-days: 3
