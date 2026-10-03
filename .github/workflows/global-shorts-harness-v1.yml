@@ -55,7 +55,7 @@ jobs:
           ffprobe -v error -show_entries format=duration,size -of json \
             /tmp/harness_v1/render/final.mp4 > /tmp/harness_v1/render/technical_format.json
           ffmpeg -hide_banner -loglevel error -y -i /tmp/harness_v1/render/final.mp4 \
-            -vf "select='eq(n,0)+eq(n,15)+eq(n,75)+eq(n,96)+eq(n,126)',scale=180:320,tile=5x1" \
+            -vf "select='eq(n,0)+eq(n,30)+eq(n,150)+eq(n,198)+eq(n,264)',scale=180:320,tile=5x1" \
             -frames:v 1 /tmp/harness_v1/render/review_sheet.jpg
           test -s /tmp/harness_v1/render/final.mp4
           test -s /tmp/harness_v1/render/review_sheet.jpg

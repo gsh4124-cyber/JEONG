@@ -61,7 +61,10 @@ def frame_for(spec, t):
     dh = ImageDraw.Draw(hook)
     dh.rounded_rectangle((54, 535, 306, 582), radius=23, fill=PANEL)
     centered(dh, 547, "READY?", font(21), WHITE)
-    return Image.blend(reveal, hook, min(1.0, (t - 8.4) / .6))
+    blank = Image.new("RGB", (W, H), BG)
+    if t < 8.7:
+        return Image.blend(reveal, blank, min(1.0, (t - 8.4) / .3))
+    return Image.blend(blank, hook, min(1.0, (t - 8.7) / .3))
 
 def write_audio(path, duration=9.0, rate=44100):
     samples = [0.0] * int(duration * rate)
