@@ -44,9 +44,9 @@ jobs:
             global_shorts_factory/harness_v1/examples/odd_one_out_001.json \
             --out /tmp/harness_v1/render
           ffmpeg -hide_banner -loglevel error -y \
-            -framerate 15 -i /tmp/harness_v1/render/frames/frame_%04d.png \
+            -framerate 30 -i /tmp/harness_v1/render/frames/frame_%04d.png \
             -i /tmp/harness_v1/render/audio.wav \
-            -c:v libx264 -pix_fmt yuv420p -profile:v high -level 4.0 \
+            -vf scale=1080:1920:flags=lanczos -c:v libx264 -pix_fmt yuv420p -profile:v high -level 4.2 \
             -c:a aac -b:a 128k -shortest -movflags +faststart \
             /tmp/harness_v1/render/final.mp4
           ffprobe -v error -select_streams v:0 \

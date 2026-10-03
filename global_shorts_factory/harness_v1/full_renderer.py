@@ -9,7 +9,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 from proof_renderer import W, H, BG, PANEL, CYAN, CYAN_DARK, WHITE, MUTED, YELLOW, font, centered, candy
 
-FPS = 15
+FPS = 30
 
 def base_grid(spec, dim_others=False, ring=False, title="FIND THE ODD ONE", subtitle="Only one is different"):
     im = Image.new("RGB", (W, H), BG)
