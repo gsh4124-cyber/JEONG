@@ -1,0 +1,39 @@
+name: Global Shorts Mass POC
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'global_shorts_factory/mass_short_poc.py'
+      - '.github/workflows/global-shorts-mass-poc.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install renderer
+        run: |
+          python -m pip install --quiet pillow
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: Render episode
+        run: python global_shorts_factory/mass_short_poc.py
+      - name: Encode vertical MP4
+        run: |
+          ffmpeg -hide_banner -loglevel error -y -framerate 30 -i /tmp/global_shorts_mass_poc/frames/frame_%04d.png -c:v libx264 -crf 20 -pix_fmt yuv420p -movflags +faststart /tmp/global_shorts_mass_poc/odd_one_out_poc.mp4
+          test -s /tmp/global_shorts_mass_poc/odd_one_out_poc.mp4
+          ffprobe -v error -show_entries format=duration,size -of default=nw=1 /tmp/global_shorts_mass_poc/odd_one_out_poc.mp4
+      - name: Save QA frames
+        run: |
+          cp /tmp/global_shorts_mass_poc/frames/frame_0001.png /tmp/global_shorts_mass_poc/hook.png
+          cp /tmp/global_shorts_mass_poc/frames/frame_0095.png /tmp/global_shorts_mass_poc/reveal.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: global-shorts-mass-poc
+          path: |
+            /tmp/global_shorts_mass_poc/odd_one_out_poc.mp4
+            /tmp/global_shorts_mass_poc/hook.png
+            /tmp/global_shorts_mass_poc/reveal.png
+          retention-days: 3
