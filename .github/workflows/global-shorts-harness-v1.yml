@@ -27,8 +27,11 @@ jobs:
             global_shorts_factory/harness_v1/examples/odd_one_out_001.json \
             --out /tmp/harness_v1/scene_plan.json
           test -s /tmp/harness_v1/scene_plan.json
-      - name: Install renderer dependency
-        run: python -m pip install --disable-pip-version-check pillow==11.3.0
+      - name: Install render dependencies
+        run: |
+          python -m pip install --disable-pip-version-check pillow==11.3.0
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
       - name: Render L1 three-keyframe Visual Proof
         run: |
           python global_shorts_factory/harness_v1/proof_renderer.py \
