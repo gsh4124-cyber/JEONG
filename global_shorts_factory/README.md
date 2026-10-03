@@ -1,6 +1,6 @@
 # Global Shorts Factory — SUPPORT ASSET
 
-> SUPPORT-ONLY ROLE — 2026-09-28
+> SUPPORT-ONLY ROLE — 2026-10-03
 
 This directory preserves reusable Global Shorts execution assets for **diagnosis, recovery, and temporary support**.
 
@@ -14,9 +14,11 @@ Primary operating rules and default execution ownership live in:
 Historical pipeline assets here may support:
 `market evidence -> production design -> render/QA support -> proof`
 
-But JEONG may be invoked only after the primary hwangje-vault Actions path has a verified blocker.
+`gsh4124-cyber/actions` may be invoked only after the primary `gsh4124-cyber/hwangje-vault` Actions path has a verified blocker.
 
 Expected route:
-`HWANGJE PRIMARY -> VERIFIED BLOCKER -> JEONG SUPPORT -> RECOVERY / PROOF -> RETURN TO HWANGJE PRIMARY`
+`HWANGJE PRIMARY -> VERIFIED BLOCKER -> actions SUPPORT -> RECOVERY / PROOF -> RETURN TO HWANGJE PRIMARY`
+
+The previous repository name `JEONG` is historical only. Do not use it as a current repository, workflow, artifact, marker, temporary-path, or routing identifier.
 
 Do not infer primary ownership from the existence of `factory_contract.json`, runner code, old workflows, or historical successful Actions runs.
