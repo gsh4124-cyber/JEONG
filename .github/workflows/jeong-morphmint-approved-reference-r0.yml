@@ -1,0 +1,67 @@
+name: JEONG MorphMint Approved Reference R0
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "global_shorts_render_lab/github_public_runner/morphmint_reference_r0_stills.py"
+      - ".github/workflows/jeong-morphmint-approved-reference-r0.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  render-stills:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
+
+      - name: Install Blender runtime libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libgl1 libxrender1 libxi6 libxkbcommon0 libxfixes3 libxxf86vm1
+
+      - name: Download Blender 5.2.2
+        run: |
+          mkdir -p .cache/blender
+          curl -L --fail --retry 3 -o .cache/blender/blender.tar.xz https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
+          tar -xf .cache/blender/blender.tar.xz -C .cache/blender
+
+      - name: Render approved-reference three-state stills
+        env:
+          EGL_PLATFORM: surfaceless
+        run: |
+          .cache/blender/blender-5.2.2-linux-x64/blender --background --factory-startup --python global_shorts_render_lab/github_public_runner/morphmint_reference_r0_stills.py
+
+      - name: Verify still outputs
+        run: |
+          test -s render_output/morphmint_reference_r0/ceramic.png
+          test -s render_output/morphmint_reference_r0/chrome.png
+          test -s render_output/morphmint_reference_r0/crystal.png
+          grep -q "MORPHMINT_APPROVED_REFERENCE_R0_STILLS_PASS" render_output/morphmint_reference_r0/result.json
+          echo "MORPHMINT_APPROVED_REFERENCE_R0_STILLS_PASS"
+
+      - name: Persist QA proof to PR branch
+        if: github.event_name == 'pull_request'
+        run: |
+          git config user.name "global-shorts-render-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add render_output/morphmint_reference_r0/ceramic.png
+          git add render_output/morphmint_reference_r0/chrome.png
+          git add render_output/morphmint_reference_r0/crystal.png
+          git add render_output/morphmint_reference_r0/result.json
+          git diff --cached --quiet && exit 0
+          git commit -m "render: persist MorphMint approved-reference R0 stills"
+          git push
+
+      - name: Upload preview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: morphmint-approved-reference-r0-stills
+          path: render_output/morphmint_reference_r0/
+          if-no-files-found: error
+          retention-days: 7

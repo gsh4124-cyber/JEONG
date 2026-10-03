@@ -1,0 +1,17 @@
+{
+  "marker": "MORPHMINT_APPROVED_REFERENCE_R0_STILLS_PASS",
+  "renderer": "BLENDER_EEVEE",
+  "resolution": [
+    540,
+    960
+  ],
+  "camera": "premium_3q_fixed",
+  "states": [
+    "ceramic",
+    "chrome",
+    "crystal"
+  ],
+  "goal": "same-object material transformation semantic legibility",
+  "reference_gate": "EMPEROR_APPROVED_5_PANEL_TARGET",
+  "full_video_gate": "BLOCKED_UNTIL_3_STILLS_VISUALLY_PASS"
+}
