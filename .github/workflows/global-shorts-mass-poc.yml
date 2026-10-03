@@ -1,24 +1,41 @@
-name: Global Shorts Mass POC
+name: actions Global Shorts Recovery POC
+
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'global_shorts_factory/mass_short_poc.py'
-      - '.github/workflows/global-shorts-mass-poc.yml'
   workflow_dispatch:
+    inputs:
+      primary_blocker_evidence:
+        description: 'Verified hwangje-vault Actions blocker evidence / reference'
+        required: true
+        type: string
+      support_scope:
+        description: 'diagnostic | recovery | temporary_support'
+        required: true
+        type: choice
+        options:
+          - diagnostic
+          - recovery
+          - temporary_support
+      return_to_primary_plan:
+        description: 'How the result returns to hwangje-vault primary'
+        required: true
+        type: string
+
 permissions:
   contents: read
+
 jobs:
-  build:
+  support-poc:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - name: Validate support-only contract
+        run: python global_shorts_factory/factory_selfcheck.py
       - name: Install renderer
         run: |
           python -m pip install --quiet pillow
           sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
-      - name: Render episode
+      - name: Render recovery episode
         run: python global_shorts_factory/mass_short_poc.py
       - name: Encode vertical MP4
         run: |
@@ -29,11 +46,23 @@ jobs:
         run: |
           cp /tmp/global_shorts_mass_poc/frames/frame_0001.png /tmp/global_shorts_mass_poc/hook.png
           cp /tmp/global_shorts_mass_poc/frames/frame_0095.png /tmp/global_shorts_mass_poc/reveal.png
+      - name: Record support context
+        run: |
+          cat > /tmp/global_shorts_mass_poc/support_context.json <<EOF
+          {
+            "primary_blocker_evidence": "${{ inputs.primary_blocker_evidence }}",
+            "support_scope": "${{ inputs.support_scope }}",
+            "return_to_primary_plan": "${{ inputs.return_to_primary_plan }}",
+            "support_repository": "gsh4124-cyber/actions",
+            "role": "SUPPORT_RECOVERY_FALLBACK_ONLY"
+          }
+          EOF
       - uses: actions/upload-artifact@v4
         with:
-          name: global-shorts-mass-poc
+          name: actions-global-shorts-recovery-poc
           path: |
             /tmp/global_shorts_mass_poc/odd_one_out_poc.mp4
             /tmp/global_shorts_mass_poc/hook.png
             /tmp/global_shorts_mass_poc/reveal.png
+            /tmp/global_shorts_mass_poc/support_context.json
           retention-days: 3
