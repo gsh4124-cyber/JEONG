@@ -1,4 +1,4 @@
-name: JEONG Hidden Shift Recovery Render QA
+name: actions Hidden Shift Recovery Render QA
 
 on:
   workflow_dispatch:
@@ -49,7 +49,7 @@ jobs:
           test -s /tmp/hidden_shift_001/before.png
           test -s /tmp/hidden_shift_001/after.png
           grep -q HIDDEN_SHIFT_001_RENDER_PASS /tmp/hidden_shift_001/result.json
-          echo 'JEONG_SUPPORT_ONLY_NO_PRIMARY_CLAIM'
+          echo 'ACTIONS_SUPPORT_ONLY_NO_PRIMARY_CLAIM'
       - name: Record support context
         run: |
           cat > /tmp/hidden_shift_001/support_context.json <<EOF
@@ -57,11 +57,12 @@ jobs:
             "primary_blocker_evidence": "${{ inputs.primary_blocker_evidence }}",
             "support_scope": "${{ inputs.support_scope }}",
             "return_to_primary_plan": "${{ inputs.return_to_primary_plan }}",
+            "support_repository": "gsh4124-cyber/actions",
             "role": "SUPPORT_RECOVERY_FALLBACK_ONLY"
           }
           EOF
       - name: Upload recovery QA proof
         uses: actions/upload-artifact@v4
         with:
-          name: jeong-hidden-shift-recovery-proof
+          name: actions-hidden-shift-recovery-proof
           path: /tmp/hidden_shift_001/
