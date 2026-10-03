@@ -1,0 +1,68 @@
+name: actions Hidden Shift Recovery Render QA
+
+on:
+  workflow_dispatch:
+    inputs:
+      primary_blocker_evidence:
+        description: 'Verified hwangje-vault Actions blocker evidence / reference'
+        required: true
+        type: string
+      support_scope:
+        description: 'diagnostic | recovery | temporary_support'
+        required: true
+        type: choice
+        options:
+          - diagnostic
+          - recovery
+          - temporary_support
+      return_to_primary_plan:
+        description: 'How the result returns to hwangje-vault primary'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  support-render-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate support-only contract
+        run: python global_shorts_factory/factory_selfcheck.py
+      - name: Install runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libgl1 libxrender1 libxi6 libxkbcommon0 libxfixes3 libxxf86vm1
+      - name: Download Blender 5.2.2
+        run: |
+          mkdir -p .cache/blender
+          curl -L --fail --retry 3 -o .cache/blender/blender.tar.xz https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
+          tar -xf .cache/blender/blender.tar.xz -C .cache/blender
+      - name: Render representative recovery frames
+        env:
+          EGL_PLATFORM: surfaceless
+        run: .cache/blender/blender-5.2.2-linux-x64/blender --background --factory-startup --python global_shorts_render_lab/hidden_shift/hidden_shift_001.py
+      - name: Verify deterministic support proof
+        run: |
+          test -s /tmp/hidden_shift_001/before.png
+          test -s /tmp/hidden_shift_001/after.png
+          grep -q HIDDEN_SHIFT_001_RENDER_PASS /tmp/hidden_shift_001/result.json
+          echo 'ACTIONS_SUPPORT_ONLY_NO_PRIMARY_CLAIM'
+      - name: Record support context
+        run: |
+          cat > /tmp/hidden_shift_001/support_context.json <<EOF
+          {
+            "primary_blocker_evidence": "${{ inputs.primary_blocker_evidence }}",
+            "support_scope": "${{ inputs.support_scope }}",
+            "return_to_primary_plan": "${{ inputs.return_to_primary_plan }}",
+            "support_repository": "gsh4124-cyber/actions",
+            "role": "SUPPORT_RECOVERY_FALLBACK_ONLY"
+          }
+          EOF
+      - name: Upload recovery QA proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: actions-hidden-shift-recovery-proof
+          path: /tmp/hidden_shift_001/
