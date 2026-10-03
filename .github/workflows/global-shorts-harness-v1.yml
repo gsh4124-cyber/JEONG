@@ -1,0 +1,35 @@
+name: Global Shorts Harness V1 Validation
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'global_shorts_factory/harness_v1/**'
+      - '.github/workflows/global-shorts-harness-v1.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-harness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preserve support contract
+        run: python global_shorts_factory/factory_selfcheck.py
+      - name: Unit tests
+        working-directory: global_shorts_factory/harness_v1
+        run: python -m unittest -v test_harness.py
+      - name: Build reference Odd One Out scene plan
+        run: |
+          python global_shorts_factory/harness_v1/harness.py \
+            global_shorts_factory/harness_v1/examples/odd_one_out_001.json \
+            --out /tmp/harness_v1/scene_plan.json
+          test -s /tmp/harness_v1/scene_plan.json
+      - name: Upload scene plan proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: global-shorts-harness-v1-plan
+          path: /tmp/harness_v1/scene_plan.json
+          retention-days: 3
