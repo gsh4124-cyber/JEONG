@@ -1,22 +1,36 @@
-name: actions Core Visual Proof - Odd Factory
+name: actions Odd Factory Recovery Visual Proof
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'global_shorts_factory/core_visual_proof_odd_factory.py'
-      - '.github/workflows/core-visual-proof-odd-factory.yml'
   workflow_dispatch:
+    inputs:
+      primary_blocker_evidence:
+        description: 'Verified hwangje-vault Actions blocker evidence / reference'
+        required: true
+        type: string
+      support_scope:
+        description: 'diagnostic | recovery | temporary_support'
+        required: true
+        type: choice
+        options:
+          - diagnostic
+          - recovery
+          - temporary_support
+      return_to_primary_plan:
+        description: 'How the result returns to hwangje-vault primary'
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 jobs:
-  render-proof:
+  support-visual-proof:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - name: Validate support-only contract
+        run: python global_shorts_factory/factory_selfcheck.py
       - name: Install headless runtime
         run: |
           set -euo pipefail
@@ -28,7 +42,7 @@ jobs:
           mkdir -p .cache/blender
           curl -L --fail --retry 3 -o .cache/blender/blender.tar.xz https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
           tar -xf .cache/blender/blender.tar.xz -C .cache/blender
-      - name: Render 2.5s 9:16 Visual Proof frames
+      - name: Render 2.5s 9:16 recovery proof frames
         env:
           EGL_PLATFORM: surfaceless
         run: |
@@ -48,14 +62,26 @@ jobs:
           test -s /tmp/core_visual_proof_odd_factory/frame_030_payoff.png
           test "$(find /tmp/core_visual_proof_odd_factory/frames -maxdepth 1 -name 'frame_*.png' -size +0c | wc -l)" -eq 30
           ffprobe -v error -select_streams v:0 -show_entries stream=width,height,r_frame_rate,nb_frames -of default=nw=1 /tmp/core_visual_proof_odd_factory/odd_factory_visual_proof.mp4
-      - name: Upload proof for artifact-level QA
+      - name: Record support context
+        run: |
+          cat > /tmp/core_visual_proof_odd_factory/support_context.json <<EOF
+          {
+            "primary_blocker_evidence": "${{ inputs.primary_blocker_evidence }}",
+            "support_scope": "${{ inputs.support_scope }}",
+            "return_to_primary_plan": "${{ inputs.return_to_primary_plan }}",
+            "support_repository": "gsh4124-cyber/actions",
+            "role": "SUPPORT_RECOVERY_FALLBACK_ONLY"
+          }
+          EOF
+      - name: Upload recovery proof
         uses: actions/upload-artifact@v4
         with:
-          name: odd-factory-visual-proof
+          name: actions-odd-factory-recovery-proof
           path: |
             /tmp/core_visual_proof_odd_factory/odd_factory_visual_proof.mp4
             /tmp/core_visual_proof_odd_factory/frame_001_hook.png
             /tmp/core_visual_proof_odd_factory/frame_016_reveal.png
             /tmp/core_visual_proof_odd_factory/frame_030_payoff.png
             /tmp/core_visual_proof_odd_factory/result.txt
+            /tmp/core_visual_proof_odd_factory/support_context.json
           retention-days: 3
