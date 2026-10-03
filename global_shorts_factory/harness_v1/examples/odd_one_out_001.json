@@ -1,0 +1,16 @@
+{
+  "episode_id": "OOO-001",
+  "format": "odd_one_out",
+  "seed": 1003,
+  "duration_s": 9,
+  "hook": "Show a clean grid instantly; one object is subtly wrong.",
+  "challenge": "Viewer scans the grid before the timer/progress cue expires.",
+  "reveal": "Correct object gets a crisp pulse/ring while all others dim slightly.",
+  "payoff": "Hold the answer briefly, then restore the grid for a loopable ending.",
+  "difficulty": 2,
+  "visual_theme": "bold geometric candy pieces on dark neutral background",
+  "audio_mode": "minimal_tick_then_reveal_hit",
+  "channel_slot": "odd-factory",
+  "candidate_count": 12,
+  "answer_index": 7
+}
