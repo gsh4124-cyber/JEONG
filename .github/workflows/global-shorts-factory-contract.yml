@@ -1,4 +1,4 @@
-name: JEONG Global Shorts Support Contract Check
+name: actions Global Shorts Support Contract Check
 
 on:
   workflow_dispatch:
@@ -29,24 +29,25 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: Validate JEONG support-only contract
+      - name: Validate actions support-only contract
         run: python global_shorts_factory/factory_selfcheck.py
       - name: Record support invocation context
         run: |
-          mkdir -p /tmp/jeong_support
-          cat > /tmp/jeong_support/support_context.json <<EOF
+          mkdir -p /tmp/actions_support
+          cat > /tmp/actions_support/support_context.json <<EOF
           {
-            "marker": "JEONG_GLOBAL_SHORTS_SUPPORT_CONTRACT_PASS",
+            "marker": "ACTIONS_GLOBAL_SHORTS_SUPPORT_CONTRACT_PASS",
             "role": "SUPPORT_RECOVERY_FALLBACK_ONLY",
             "primary_repository": "gsh4124-cyber/hwangje-vault",
+            "support_repository": "gsh4124-cyber/actions",
             "primary_blocker_evidence": "${{ inputs.primary_blocker_evidence }}",
             "support_scope": "${{ inputs.support_scope }}",
             "return_to_primary_plan": "${{ inputs.return_to_primary_plan }}",
             "production_owner_claimed": false
           }
           EOF
-          cat /tmp/jeong_support/support_context.json
+          cat /tmp/actions_support/support_context.json
       - uses: actions/upload-artifact@v4
         with:
-          name: jeong-global-shorts-support-context
-          path: /tmp/jeong_support/support_context.json
+          name: actions-global-shorts-support-context
+          path: /tmp/actions_support/support_context.json
