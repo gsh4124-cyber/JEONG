@@ -11,10 +11,7 @@ on:
         description: 'diagnostic | recovery | temporary_support'
         required: true
         type: choice
-        options:
-          - diagnostic
-          - recovery
-          - temporary_support
+        options: [diagnostic, recovery, temporary_support]
       return_to_primary_plan:
         description: 'How the result returns to hwangje-vault primary'
         required: true
@@ -26,7 +23,7 @@ permissions:
 jobs:
   support-visual-proof:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Validate support-only contract
@@ -35,50 +32,36 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y libegl1 libgl1 libxrender1 libxi6 libxkbcommon0 libxfixes3 libxxf86vm1 ffmpeg
+          sudo apt-get install -y libegl1 libgl1 libxrender1 libxi6 libxkbcommon0 libxfixes3 libxxf86vm1
       - name: Download Blender 5.2.2
         run: |
           set -euo pipefail
           mkdir -p .cache/blender
           curl -L --fail --retry 3 -o .cache/blender/blender.tar.xz https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
           tar -xf .cache/blender/blender.tar.xz -C .cache/blender
-      - name: Render 2.5s 9:16 recovery proof frames
+      - name: Render cheap 9:16 hook-reveal-payoff proof
         env:
           EGL_PLATFORM: surfaceless
         run: |
           set -euo pipefail
           .cache/blender/blender-5.2.2-linux-x64/blender --background --factory-startup --python global_shorts_factory/core_visual_proof_odd_factory.py
-          grep -q ODD_FACTORY_VISUAL_PROOF_FRAMES_RENDERED /tmp/core_visual_proof_odd_factory/result.txt
-      - name: Encode proof MP4
-        run: |
-          set -euo pipefail
-          ffmpeg -hide_banner -loglevel error -y -framerate 12 -i /tmp/core_visual_proof_odd_factory/frames/frame_%04d.png -c:v libx264 -pix_fmt yuv420p -movflags +faststart /tmp/core_visual_proof_odd_factory/odd_factory_visual_proof.mp4
+          grep -q ODD_FACTORY_VISUAL_PROOF_KEYFRAMES_RENDERED /tmp/core_visual_proof_odd_factory/result.txt
       - name: Technical proof precheck
         run: |
           set -euo pipefail
-          test -s /tmp/core_visual_proof_odd_factory/odd_factory_visual_proof.mp4
           test -s /tmp/core_visual_proof_odd_factory/frame_001_hook.png
           test -s /tmp/core_visual_proof_odd_factory/frame_016_reveal.png
           test -s /tmp/core_visual_proof_odd_factory/frame_030_payoff.png
-          test "$(find /tmp/core_visual_proof_odd_factory/frames -maxdepth 1 -name 'frame_*.png' -size +0c | wc -l)" -eq 30
-          ffprobe -v error -select_streams v:0 -show_entries stream=width,height,r_frame_rate,nb_frames -of default=nw=1 /tmp/core_visual_proof_odd_factory/odd_factory_visual_proof.mp4
       - name: Record support context
         run: |
           cat > /tmp/core_visual_proof_odd_factory/support_context.json <<EOF
-          {
-            "primary_blocker_evidence": "${{ inputs.primary_blocker_evidence }}",
-            "support_scope": "${{ inputs.support_scope }}",
-            "return_to_primary_plan": "${{ inputs.return_to_primary_plan }}",
-            "support_repository": "gsh4124-cyber/actions",
-            "role": "SUPPORT_RECOVERY_FALLBACK_ONLY"
-          }
+          {"primary_blocker_evidence":"${{ inputs.primary_blocker_evidence }}","support_scope":"${{ inputs.support_scope }}","return_to_primary_plan":"${{ inputs.return_to_primary_plan }}","support_repository":"gsh4124-cyber/actions","role":"SUPPORT_RECOVERY_FALLBACK_ONLY","proof_mode":"3_KEYFRAME_VISUAL_GATE"}
           EOF
       - name: Upload recovery proof
         uses: actions/upload-artifact@v4
         with:
           name: actions-odd-factory-recovery-proof
           path: |
-            /tmp/core_visual_proof_odd_factory/odd_factory_visual_proof.mp4
             /tmp/core_visual_proof_odd_factory/frame_001_hook.png
             /tmp/core_visual_proof_odd_factory/frame_016_reveal.png
             /tmp/core_visual_proof_odd_factory/frame_030_payoff.png
